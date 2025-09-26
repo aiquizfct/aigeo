@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Làm bài thi - AIGEO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .prose { max-width: none; }
+
+        .answer-option {
+            transition: all 0.2s ease-in-out;
+            border: 2px solid #e2e8f0;
+        }
+        .answer-option:hover {
+            border-color: #a7f3d0;
+            background-color: #f0fdfa;
+        }
+        .answer-option.selected {
+            background-color: #d1fae5;
+            border-color: #10b981;
+            box-shadow: 0 0 0 2px #a7f3d0;
+        }
+        .answer-option .option-letter {
+            background-color: #e2e8f0;
+            color: #475569;
+            transition: all 0.2s ease-in-out;
+        }
+        .answer-option.selected .option-letter {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            color: white;
+        }
+
+        .tf-btn {
+            transition: all 0.2s ease-in-out;
+            border: 2px solid #e2e8f0;
+        }
+        .tf-btn:hover {
+            border-color: #a7f3d0;
+            background-color: #f0fdfa;
+        }
+        .tf-btn.selected {
+            color: white;
+            border-color: transparent;
+        }
+        .tf-btn[data-value="true"].selected { background-color: #10b981; }
+        .tf-btn[data-value="false"].selected { background-color: #ef4444; }
+
+        .question-grid-btn.answered { background-color: #f0fdfa; border-color: #a7f3d0; font-weight: 600; }
+        #question-map-toggle:checked + #question-map { transform: translateX(0); }
+        .question-section:not(:last-child) {
+            border-bottom: 2px dashed #cbd5e1;
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
+        }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
+        .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; transform: translateY(-20px); }
+
+        /* === CSS ĐÃ THÊM === */
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+        }
+        .cta-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+        }
+        /* === KẾT THÚC CSS ĐÃ THÊM === */
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <header id="test-header" class="bg-white shadow-md w-full flex-shrink-0 flex flex-col z-20 hidden">
+        <div class="h-16 flex items-center justify-between px-6">
+            <div class="flex items-center space-x-4">
+                 <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=S" alt="Student Avatar">
+                 <div>
+                    <h1 id="test-name-header" class="font-bold text-lg text-slate-800">Đang tải đề thi...</h1>
+                    <p id="user-name" class="text-sm text-slate-500">Học sinh</p>
+                 </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 bg-red-100 text-red-700 font-bold px-4 py-2 rounded-lg">
+                    <i data-feather="clock" class="w-5 h-5"></i>
+                    <span id="timer">--:--</span>
+                </div>
+                <label for="question-map-toggle" class="p-2 rounded-md hover:bg-slate-100 cursor-pointer md:hidden">
+                     <i data-feather="grid" class="w-6 h-6"></i>
+                </label>
+            </div>
+        </div>
+        <div class="w-full bg-slate-200 h-1">
+            <div id="progress-bar" class="h-1 bg-teal-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </header>
+
+    <div id="test-body" class="flex-1 flex overflow-hidden hidden">
+        <main class="flex-1 p-4 md:p-8 overflow-y-auto">
+            <div class="max-w-4xl mx-auto">
+                <div id="main-content-area"></div>
+            </div>
+        </main>
+
+        <input type="checkbox" id="question-map-toggle" class="hidden">
+        <aside id="question-map" class="w-72 bg-white border-l p-4 flex-shrink-0 flex flex-col overflow-y-auto transform transition-transform translate-x-full md:translate-x-0 md:relative">
+            <h2 class="font-bold mb-4">Danh sách câu hỏi</h2>
+            <div id="question-grid" class="grid grid-cols-5 gap-2"></div>
+            <div class="mt-auto pt-4">
+                <button id="submit-btn" class="w-full cta-button text-white font-bold py-3 rounded-lg flex items-center justify-center">
+                     <i data-feather="check-circle" class="w-5 h-5 mr-2"></i>
+                    <span>Nộp bài</span>
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    <div id="loading-container" class="flex-1 flex items-center justify-center">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto"></div>
+            <p class="mt-4 text-slate-500">Đang tải đề thi...</p>
+        </div>
+    </div>
+
+    <div id="lobby-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-lg modal-content text-center">
+            <i data-feather="log-in" class="w-16 h-16 mx-auto text-teal-500"></i>
+            <h2 id="lobby-test-name" class="text-2xl font-bold text-slate-800 mt-4">Sẵn sàng tham gia?</h2>
+            <p class="mt-2 text-slate-600">Bạn sắp vào phòng thi. Hãy chắc chắn bạn đã sẵn sàng.</p>
+            <p id="lobby-time-limit" class="mt-4 font-semibold text-slate-700"></p>
+            <button id="confirm-join-btn" class="mt-8 w-full cta-button text-white font-bold py-3 px-6 rounded-lg">Xác nhận tham gia thi</button>
+             <a href="index.html" class="mt-4 inline-block text-sm text-slate-500 hover:text-slate-700">Quay lại sau</a>
+        </div>
+    </div>
+
+    <div id="start-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-lg modal-content text-center">
+            <i data-feather="shield" class="w-16 h-16 mx-auto text-teal-500"></i>
+            <h2 class="text-2xl font-bold text-slate-800 mt-4">Lưu ý quan trọng</h2>
+            <p class="mt-4 text-slate-600">Để đảm bảo công bằng, bài thi sẽ được thực hiện ở chế độ toàn màn hình. Vui lòng tuân thủ các quy định sau:</p>
+            <ul class="mt-4 text-left space-y-2 text-slate-600 list-disc list-inside">
+                <li>Không thoát khỏi chế độ toàn màn hình.</li>
+                <li>Không chuyển sang tab hoặc ứng dụng khác.</li>
+                <li>Hệ thống sẽ cảnh báo nếu bạn vi phạm. Vi phạm nhiều lần sẽ tự động nộp bài.</li>
+            </ul>
+            <button id="start-test-btn" class="mt-8 w-full cta-button text-white font-bold py-3 px-6 rounded-lg">Bắt đầu làm bài</button>
+        </div>
+    </div>
+
+    <div id="warning-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md modal-content text-center">
+             <i data-feather="alert-triangle" class="w-16 h-16 mx-auto text-yellow-500"></i>
+            <h2 class="text-2xl font-bold text-slate-800 mt-4">Cảnh báo!</h2>
+            <p id="warning-text" class="mt-2 text-slate-600">Bạn đã vi phạm quy chế thi. Bài thi của bạn đã bị tạm khóa.</p>
+            <p id="warning-count" class="mt-2 text-sm font-bold text-red-600"></p>
+            <div id="resume-test-container">
+                 <p class="mt-4 text-slate-500">Vui lòng chờ giáo viên duyệt để tiếp tục.</p>
+                 <div class="mt-4 animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mx-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, getDocs, collection, query, where, setDoc, serverTimestamp, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            const mainContentArea = document.getElementById('main-content-area');
+            const progressBar = document.getElementById('progress-bar');
+            const questionGridEl = document.getElementById('question-grid');
+            const submitBtn = document.getElementById('submit-btn');
+            const timerEl = document.getElementById('timer');
+            const testNameHeader = document.getElementById('test-name-header');
+            const userNameEl = document.getElementById('user-name');
+            const userAvatarEl = document.getElementById('user-avatar');
+            const loadingContainer = document.getElementById('loading-container');
+            const testHeader = document.getElementById('test-header');
+            const testBody = document.getElementById('test-body');
+            const lobbyModal = document.getElementById('lobby-modal');
+            const lobbyTestName = document.getElementById('lobby-test-name');
+            const lobbyTimeLimit = document.getElementById('lobby-time-limit');
+            const confirmJoinBtn = document.getElementById('confirm-join-btn');
+            const startModal = document.getElementById('start-modal');
+            const startTestBtn = document.getElementById('start-test-btn');
+            const warningModal = document.getElementById('warning-modal');
+            const warningText = document.getElementById('warning-text');
+            const warningCountEl = document.getElementById('warning-count');
+
+            let currentUser = null;
+            let userData = {};
+            let questions = [];
+            let renderedQuestionsOrder = [];
+            let testData = {};
+            let userAnswers = {};
+            let timerInterval = null;
+            let sessionInterval = null;
+            let violationListener = null;
+            let timeLeft = 0;
+            let timeLimitInSeconds = 0;
+            let eventListenersSetup = false;
+            let isTestStarted = false;
+            let isLocked = false;
+            let currentTestId = null;
+            let currentClassId = null;
+            let warningCount = 0;
+            let currentSessionId = null;
+
+            // ✅ HÀM MỚI: Cập nhật icon một cách an toàn
+            function updateIcons() {
+                try {
+                    feather.replace();
+                } catch (e) {
+                    console.error('Lỗi khi thay thế icon Feather:', e);
+                }
+            }
+
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) { window.location.href = '../auth.html'; return; }
+                currentUser = user;
+                const docSnap = await getDoc(doc(db, "users", user.uid));
+                if (docSnap.exists() && docSnap.data().role === 'student') {
+                    userData = docSnap.data();
+                    userNameEl.textContent = userData.name || 'Học sinh';
+                    const nameInitial = (userData.name || 'S').charAt(0).toUpperCase();
+                    userAvatarEl.src = `https://placehold.co/40x40/10B981/FFFFFF?text=${nameInitial}`;
+                    initTest();
+                } else {
+                     window.location.href = `../${docSnap.data()?.role || 'admin'}/index.html`;
+                }
+            });
+
+            async function initTest() {
+                const urlParams = new URLSearchParams(window.location.search);
+                currentTestId = urlParams.get('testId');
+                currentClassId = urlParams.get('classId');
+                if (!currentTestId || !currentClassId) {
+                    alert("Thông tin đề thi hoặc lớp học không hợp lệ. Đang quay lại...");
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                currentSessionId = `${currentTestId}_${currentUser.uid}`;
+
+                try {
+                    const submissionId = `assigned_${currentTestId}_${currentUser.uid}`;
+                    const submissionDocRef = doc(db, 'submissions', submissionId);
+                    const resultSnap = await getDoc(submissionDocRef);
+
+                    if (resultSnap.exists()) {
+                        alert("Bạn đã hoàn thành bài thi này. Đang chuyển đến trang kết quả.");
+                        sessionStorage.setItem('latestResultId', submissionId);
+                        window.location.href = 'result.html';
+                        return;
+                    }
+
+                    const testDocRef = doc(db, "tests", currentTestId);
+                    const testDocSnap = await getDoc(testDocRef);
+                    if (!testDocSnap.exists()) throw new Error("Đề thi không tồn tại.");
+
+                    testData = testDocSnap.data();
+                    testNameHeader.textContent = testData.name;
+                    timeLeft = (testData.timeLimit || 45) * 60;
+                    timeLimitInSeconds = timeLeft;
+
+                    if (!testData.questionIds || testData.questionIds.length === 0) {
+                         mainContentArea.innerHTML = `<p class="text-center text-slate-500">Đề thi này chưa có câu hỏi nào.</p>`;
+                         return;
+                    }
+
+                    const questionIds = testData.questionIds;
+                    const fetchedQuestions = [];
+                    for (let i = 0; i < questionIds.length; i += 30) {
+                        const chunk = questionIds.slice(i, i + 30);
+                        const q = query(collection(db, "questions"), where("__name__", "in", chunk));
+                        const snapshot = await getDocs(q);
+                        snapshot.forEach(doc => fetchedQuestions.push({ id: doc.id, ...doc.data() }));
+                    }
+                    questions = fetchedQuestions.sort((a, b) => questionIds.indexOf(a.id) - questionIds.indexOf(b.id));
+
+                    questions.forEach(q => {
+                        if (q.type === 'multiple_choice' && q.options) {
+                            const optionsWithOriginalLetter = ['A', 'B', 'C', 'D']
+                                .map((letter, index) => ({ originalLetter: letter, content: q.options[index] }))
+                                .filter(opt => opt.content);
+
+                            for (let i = optionsWithOriginalLetter.length - 1; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                [optionsWithOriginalLetter[i], optionsWithOriginalLetter[j]] = [optionsWithOriginalLetter[j], optionsWithOriginalLetter[i]];
+                            }
+                            q.shuffledOptions = optionsWithOriginalLetter;
+                        }
+                    });
+
+                    loadingContainer.classList.add('hidden');
+
+                    lobbyTestName.textContent = testData.name;
+                    lobbyTimeLimit.textContent = `Thời gian làm bài: ${testData.timeLimit} phút`;
+                    lobbyModal.classList.remove('hidden');
+                    lobbyModal.classList.add('flex');
+                    await updateSessionStatus('waiting');
+
+                    updateIcons();
+                    setupEventListeners();
+
+                } catch (error) {
+                    console.error("Error fetching test:", error);
+                    mainContentArea.innerHTML = `<p class="text-center text-red-500">Lỗi khi tải đề thi: ${error.message}. Vui lòng thử lại.</p>`;
+                }
+            }
+
+            function getQuestionHTML(question, questionNumber) {
+                // ... (Nội dung hàm này không đổi)
+                let answerHTML = '';
+                const savedAnswer = userAnswers[question.id];
+
+                if (question.type === 'multiple_choice') {
+                    answerHTML = (question.shuffledOptions || []).map((optionData, i) => {
+                        const optionLetter = String.fromCharCode(65 + i);
+                        const isSelected = savedAnswer === optionLetter ? 'selected' : '';
+                        return `<div class="answer-option p-4 rounded-lg cursor-pointer flex items-center space-x-4 ${isSelected}" data-answer="${optionLetter}">
+                                    <span class="option-letter h-8 w-8 rounded-md flex items-center justify-center font-bold">${optionLetter}</span>
+                                    <span class="flex-1">${optionData.content}</span>
+                                </div>`;
+                    }).join('');
+                } else if (question.type === 'true_false_group') {
+                    const statements = question.statements || {};
+                    const savedAnswers = savedAnswer || {};
+                    answerHTML = Object.keys(statements).map(key => {
+                        if (!statements[key]) return '';
+                        const isTrueSelected = savedAnswers[key] === true;
+                        const isFalseSelected = savedAnswers[key] === false;
+                        return `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
+                                    <p class="mb-3 text-slate-800">${statements[key]}</p>
+                                    <div class="flex space-x-3" data-statement-key="${key}">
+                                        <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
+                                        <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
+                                    </div>
+                                </div>`;
+                    }).join('');
+                } else if (question.type === 'short_answer') {
+                    answerHTML = `<input type="text" class="mt-2 w-full p-3 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-300 focus:border-teal-500 transition" value="${savedAnswer || ''}" placeholder="Nhập câu trả lời của bạn...">`;
+                }
+
+                const imageHTML = question.imageUrl
+                    ? `<div class="my-4"><img src="${question.imageUrl}" alt="Hình ảnh câu hỏi" class="max-w-full h-auto rounded-lg mx-auto border"></div>`
+                    : '';
+
+                return `
+                    <div id="question-${question.id}" class="bg-white p-6 rounded-xl shadow-sm">
+                        <p class="font-semibold text-slate-600">Câu ${questionNumber}</p>
+                        ${imageHTML}
+                        <div class="prose mt-4 text-lg">${question.content}</div>
+                        <div class="mt-6 space-y-4">${answerHTML}</div>
+                    </div>
+                `;
+            }
+
+             function renderFullTest() {
+                // ... (Nội dung hàm này không đổi)
+                const questionsByType = {
+                    multiple_choice: [],
+                    true_false_group: [],
+                    short_answer: []
+                };
+                questions.forEach(q => {
+                    if (questionsByType[q.type]) questionsByType[q.type].push(q);
+                });
+                let fullTestHTML = '', questionCounter = 0;
+                renderedQuestionsOrder = [];
+                const renderSection = (title, type, questionsOfType) => {
+                    if (questionsOfType.length === 0) return '';
+                    let sectionHTML = `<div class="question-section"><h2 class="text-2xl font-bold text-slate-800 pb-2 mb-6 border-b-2 border-slate-200">${title}</h2><div class="space-y-8">`;
+                    questionsOfType.forEach(q => {
+                        questionCounter++;
+                        renderedQuestionsOrder.push(q.id);
+                        sectionHTML += getQuestionHTML(q, questionCounter);
+                    });
+                    sectionHTML += `</div></div>`;
+                    return sectionHTML;
+                };
+                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', 'multiple_choice', questionsByType.multiple_choice);
+                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', 'true_false_group', questionsByType.true_false_group);
+                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', 'short_answer', questionsByType.short_answer);
+                mainContentArea.innerHTML = fullTestHTML;
+                renderMathWithKaTeX(mainContentArea);
+            }
+
+            function renderQuestionMap() {
+                // ... (Nội dung hàm này không đổi)
+                questionGridEl.innerHTML = '';
+                renderedQuestionsOrder.forEach((questionId, index) => {
+                    const btn = document.createElement('a');
+                    btn.href = `#question-${questionId}`;
+                    btn.className = 'question-grid-btn border-2 rounded-md p-2 font-semibold transition-colors flex items-center justify-center';
+                    btn.textContent = index + 1;
+                    btn.dataset.questionId = questionId;
+                    questionGridEl.appendChild(btn);
+                });
+            }
+
+            function countAnsweredQuestions() {
+                // ... (Nội dung hàm này không đổi)
+                return Object.keys(userAnswers).reduce((count, qId) => {
+                    const answer = userAnswers[qId];
+                    if (answer !== undefined) {
+                        if (typeof answer === 'object' && answer !== null) {
+                            if (Object.values(answer).some(v => v !== undefined)) return count + 1;
+                        } else if (String(answer).trim() !== '') return count + 1;
+                    }
+                    return count;
+                }, 0);
+            }
+
+            function updateQuestionMap() {
+                // ... (Nội dung hàm này không đổi)
+                 questionGridEl.querySelectorAll('.question-grid-btn').forEach(btn => {
+                    const questionId = btn.dataset.questionId;
+                    const answer = userAnswers[questionId];
+                    let hasAnswer = false;
+                    if (answer !== undefined) {
+                        if (typeof answer === 'object' && answer !== null) hasAnswer = Object.values(answer).some(v => v !== undefined);
+                        else hasAnswer = String(answer).trim() !== '';
+                    }
+                    if (hasAnswer) btn.classList.add('answered');
+                    else btn.classList.remove('answered');
+                });
+            }
+
+            function updateProgressBar() {
+                // ... (Nội dung hàm này không đổi)
+                const answeredCount = countAnsweredQuestions();
+                const progress = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
+                progressBar.style.width = `${progress}%`;
+            }
+
+            function setupEventListeners() {
+                if (eventListenersSetup) return;
+
+                confirmJoinBtn.addEventListener('click', () => {
+                    lobbyModal.classList.add('hidden');
+                    lobbyModal.classList.remove('flex');
+                    startModal.classList.remove('hidden');
+                    startModal.classList.add('flex');
+                    updateIcons(); // ✅ Gọi lại hàm icon
+                });
+
+                mainContentArea.addEventListener('click', (e) => {
+                    const questionCard = e.target.closest('[id^="question-"]');
+                    if (!questionCard) return;
+                    const questionId = questionCard.id.replace('question-', '');
+                    const selectedOption = e.target.closest('.answer-option');
+                    if (selectedOption) {
+                        userAnswers[questionId] = selectedOption.dataset.answer;
+                        questionCard.querySelectorAll('.answer-option').forEach(opt => opt.classList.remove('selected'));
+                        selectedOption.classList.add('selected');
+                        updateQuestionMap();
+                        updateProgressBar();
+                        return;
+                    }
+                    const tfButton = e.target.closest('.tf-btn');
+                    if (tfButton) {
+                        const statementKey = tfButton.parentElement.dataset.statementKey;
+                        const value = tfButton.dataset.value === 'true';
+                        if (!userAnswers[questionId]) userAnswers[questionId] = {};
+                        userAnswers[questionId][statementKey] = value;
+                        tfButton.parentElement.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('selected'));
+                        tfButton.classList.add('selected');
+                        updateQuestionMap();
+                        updateProgressBar();
+                    }
+                });
+                 mainContentArea.addEventListener('input', (e) => {
+                    const questionCard = e.target.closest('[id^="question-"]');
+                    if (!questionCard) return;
+                    const questionId = questionCard.id.replace('question-', '');
+                    if(e.target.matches('input[type="text"]')) {
+                         userAnswers[questionId] = e.target.value.trim();
+                         updateQuestionMap();
+                         updateProgressBar();
+                    }
+                });
+                submitBtn.addEventListener('click', () => handleSubmit(false));
+                startTestBtn.addEventListener('click', startTest);
+                document.addEventListener('fullscreenchange', handleFullscreenChange);
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+                document.body.addEventListener('contextmenu', e => e.preventDefault());
+                document.body.addEventListener('copy', e => e.preventDefault());
+                document.body.addEventListener('cut', e => e.preventDefault());
+                document.body.addEventListener('paste', e => e.preventDefault());
+                eventListenersSetup = true;
+            }
+
+            async function startTest() {
+                isTestStarted = true;
+                await updateSessionStatus('online');
+                startModal.classList.add('hidden');
+                startModal.classList.remove('flex');
+                testHeader.classList.remove('hidden');
+                testBody.classList.remove('hidden');
+                testBody.classList.add('flex');
+                renderFullTest();
+                renderQuestionMap();
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn(`Fullscreen request failed: ${err.message}`);
+                });
+                startTimer();
+                startSessionUpdates();
+                updateIcons(); // ✅ Gọi lại hàm icon
+            }
+
+            function startTimer() {
+                // ... (Nội dung hàm này không đổi)
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                    const seconds = (timeLeft % 60).toString().padStart(2, '0');
+                    timerEl.textContent = `${minutes}:${seconds}`;
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        handleSubmit(true);
+                    }
+                }, 1000);
+            }
+
+            function startSessionUpdates() {
+                // ... (Nội dung hàm này không đổi)
+                if (sessionInterval) clearInterval(sessionInterval);
+                updateSessionStatus('online');
+                sessionInterval = setInterval(() => {
+                    updateSessionStatus('online');
+                }, 1500);
+            }
+
+            async function updateSessionStatus(status, extraData = {}) {
+                // ... (Nội dung hàm này không đổi)
+                if (!currentSessionId) return;
+                try {
+                    const sessionRef = doc(db, 'test_sessions', currentSessionId);
+                    await setDoc(sessionRef, {
+                        studentId: currentUser.uid,
+                        studentName: userData.name || 'Học sinh',
+                        testId: currentTestId,
+                        classId: currentClassId,
+                        status: status,
+                        warnings: warningCount,
+                        progress: countAnsweredQuestions(),
+                        totalQuestions: questions.length,
+                        lastUpdated: serverTimestamp(),
+                        ...extraData
+                    }, { merge: true });
+                } catch (error) {
+                    console.error("Lỗi khi cập nhật session:", error);
+                }
+            }
+
+            function handleFullscreenChange() {
+                if (!document.fullscreenElement && isTestStarted) {
+                    handleCheating();
+                }
+            }
+
+            function handleVisibilityChange() {
+                if (document.visibilityState === 'hidden' && isTestStarted) {
+                    handleCheating();
+                }
+            }
+
+            function handleCheating() {
+                if (timeLeft <= 0 || !isTestStarted || isLocked) return;
+
+                isLocked = true;
+                clearInterval(timerInterval);
+                clearInterval(sessionInterval);
+                warningCount++;
+
+                updateSessionStatus('locked', { violationTime: serverTimestamp() });
+
+                warningCountEl.textContent = `Số lần vi phạm: ${warningCount}`;
+                warningModal.classList.remove('hidden');
+                warningModal.classList.add('flex');
+                updateIcons(); // ✅ Gọi lại hàm icon
+
+                listenForTeacherDecision();
+            }
+
+            function listenForTeacherDecision() {
+                if (violationListener) violationListener();
+
+                const sessionRef = doc(db, 'test_sessions', currentSessionId);
+                violationListener = onSnapshot(sessionRef, (docSnap) => {
+                    if (!isLocked) return;
+
+                    if (docSnap.exists()) {
+                        const sessionData = docSnap.data();
+                        if (sessionData.status === 'online') {
+                            if (violationListener) violationListener();
+                            isLocked = false;
+                            warningModal.classList.add('hidden');
+                            warningModal.classList.remove('flex');
+                            document.documentElement.requestFullscreen().catch(err => {});
+                            startTimer();
+                            startSessionUpdates();
+                        } else if (sessionData.status === 'force_submit') {
+                            if (violationListener) violationListener();
+                            isLocked = false;
+                            handleSubmit(true);
+                        }
+                    }
+                });
+            }
+
+            async function getTeacherIdsForSubject(subjectId) {
+                // ... (Nội dung hàm này không đổi)
+                if (!subjectId) return [];
+                const q = query(collection(db, "classrooms"), where("students", "array-contains", currentUser.uid), where("subjectId", "==", subjectId));
+                const snapshot = await getDocs(q);
+                return [...new Set(snapshot.docs.map(doc => doc.data().teacherId))];
+            }
+
+            async function handleSubmit(isAutoSubmit) {
+                // ... (Nội dung hàm này không đổi)
+                if (!isAutoSubmit && !confirm("Bạn có chắc chắn muốn nộp bài?")) return;
+
+                isTestStarted = false;
+                if (timerInterval) clearInterval(timerInterval);
+                if (sessionInterval) clearInterval(sessionInterval);
+                if (violationListener) violationListener();
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="animate-spin h-5 w-5 border-t-2 border-r-2 border-white rounded-full mx-auto"></span>';
+
+                let score = 0;
+                let incorrectQuestions = [];
+                const timeTaken = timeLimitInSeconds - timeLeft;
+
+                questions.forEach(q => {
+                    const userAnswer = userAnswers[q.id];
+                    let isCorrect = false;
+                    if (q.type === 'multiple_choice') {
+                        if (userAnswer) {
+                            const selectedOptionData = q.shuffledOptions.find((opt, i) => String.fromCharCode(65 + i) === userAnswer);
+                            if (selectedOptionData && selectedOptionData.originalLetter === q.correctAnswer) {
+                                isCorrect = true;
+                            }
+                        }
+                    } else if (q.type === 'short_answer') {
+                        isCorrect = (String(userAnswer || "").trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase());
+                    } else if (q.type === 'true_false_group') {
+                        const statementKeys = Object.keys(q.statements).filter(k => q.statements[k]);
+                        isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => userAnswer[key] === q.answers[key]);
+                    }
+                    if (isCorrect) score++;
+                    else incorrectQuestions.push({ questionContent: q.content, lessonId: q.lessonId });
+                });
+
+                try {
+                    await updateSessionStatus('finished');
+
+                    const submissionId = `assigned_${currentTestId}_${currentUser.uid}`;
+                    const submissionRef = doc(db, 'submissions', submissionId);
+                    const teacherIds = await getTeacherIdsForSubject(testData.subjectId);
+
+                    await setDoc(submissionRef, {
+                        studentId: currentUser.uid, testId: currentTestId, classId: currentClassId,
+                        testName: testData.name, subjectId: testData.subjectId,
+                        score: score, totalQuestions: questions.length, timeTaken: timeTaken,
+                        completedAt: serverTimestamp(), incorrectQuestions: incorrectQuestions,
+                        questionIds: questions.map(q => q.id), userAnswers: userAnswers,
+                        teacherIds: teacherIds
+                    });
+
+                    const sessionRef = doc(db, 'test_sessions', currentSessionId);
+                    await deleteDoc(sessionRef);
+
+                    sessionStorage.setItem('latestResultId', submissionId);
+                    window.location.href = 'result.html';
+
+                } catch(error) {
+                    console.error("Error saving test result:", error);
+                    alert("Đã có lỗi xảy ra khi lưu kết quả.");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<span>Nộp bài</span>';
+                }
+            }
+
+            function renderMathWithKaTeX(elem) {
+                if (window.renderMathInElement) {
+                    window.renderMathInElement(elem, {
+                        delimiters: [
+                            { left: "$$", right: "$$", display: true },
+                            { left: "$", right: "$", display: false }
+                        ]
+                    });
+                }
+            }
+
+            updateIcons();
+        });
+    </script>
+</body>
+</html>

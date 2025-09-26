@@ -1,0 +1,165 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =====================================================================
+    // Helper Functions (Hàm hỗ trợ)
+    // =====================================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function getUserRole() {
+      return getUserData().role;
+    }
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'admin';
+    }
+    function isTeacher() {
+      return isSignedIn() && getUserRole() == 'teacher';
+    }
+    function isStudent() {
+      return isSignedIn() && getUserRole() == 'student';
+    }
+    // Kiểm tra xem người dùng có phải là tác giả của tài liệu không
+    function isOwner(doc) {
+      return isSignedIn() && request.auth.uid == doc.data.authorId;
+    }
+
+    // =====================================================================
+    // Collection: USERS (Người dùng)
+    // =====================================================================
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow update: if isAdmin() || isUser(userId);
+      allow create: if isUser(userId); // Người dùng tự tạo tài khoản của mình khi đăng ký
+      allow delete: if isAdmin();
+    }
+
+    // =====================================================================
+    // Collections: SUBJECTS & LESSONS (Học liệu)
+    // =====================================================================
+    match /subjects/{subjectId} {
+      allow read: if true; // Ai cũng có thể đọc danh sách môn học
+      allow write: if isAdmin();
+    }
+    match /lessons/{lessonId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // =====================================================================
+    // Collection: QUESTIONS (Câu hỏi)
+    // =====================================================================
+    match /questions/{questionId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || isTeacher();
+      allow update, delete: if isAdmin() || isOwner(resource);
+    }
+
+    // =====================================================================
+    // Collection: TESTS (Đề thi)
+    // =====================================================================
+    match /tests/{testId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() || isTeacher();
+      allow update, delete: if isAdmin() || isOwner(resource);
+    }
+
+    // =====================================================================
+    // Collection: CLASSROOMS (Lớp học)
+    // =====================================================================
+    match /classrooms/{classroomId} {
+      allow read: if isSignedIn();
+      allow create: if isTeacher() && request.resource.data.teacherId == request.auth.uid;
+      allow update: if
+        isAdmin() ||
+        (isTeacher() && resource.data.teacherId == request.auth.uid) ||
+        (
+          isStudent() &&
+          // Chỉ cho phép học sinh tự thêm mình vào danh sách `students`
+          request.resource.data.students == resource.data.students.concat([request.auth.uid]) &&
+          // Đảm bảo học sinh không thể thay đổi các thông tin khác của lớp
+          request.resource.data.keys().diff(resource.data.keys()).unchanged.hasAll(
+            ['className', 'teacherId', 'subjectId', 'grade', 'classCode', 'assignments']
+          )
+        );
+      allow delete: if isAdmin() || (isTeacher() && resource.data.teacherId == request.auth.uid);
+    }
+
+    // =====================================================================
+    // Collection: SUBMISSIONS (Bài nộp)
+    // =====================================================================
+    match /submissions/{submissionId} {
+      // Học sinh tự tạo bài nộp của mình
+      allow create: if isStudent() && request.resource.data.studentId == request.auth.uid;
+
+      // Cho phép `get()` để kiểm tra xem đã nộp bài chưa
+      allow get: if isSignedIn();
+
+      // Phân quyền đọc kết quả
+      allow read: if
+        isAdmin() ||
+        (isStudent() && resource.data.studentId == request.auth.uid) ||
+        (
+          isTeacher() &&
+          exists(/databases/$(database)/documents/classrooms/$(resource.data.classId)) &&
+          get(/databases/$(database)/documents/classrooms/$(resource.data.classId)).data.teacherId == request.auth.uid
+        );
+
+      // Bài đã nộp thì không thể sửa hoặc xóa
+      allow update, delete: if false;
+    }
+
+    // =====================================================================
+    // Collection: FEEDBACK (Góp ý)
+    // =====================================================================
+    match /feedback/{feedbackId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // =====================================================================
+    // Collection: TEST_SESSIONS (Giám sát Real-time)
+    // =====================================================================
+    match /test_sessions/{sessionId} {
+      // Giáo viên của lớp có thể đọc và CẬP NHẬT (để duyệt/từ chối vi phạm)
+      allow read, update: if isTeacher() && 
+                   exists(/databases/$(database)/documents/classrooms/$(resource.data.classId)) &&
+                   get(/databases/$(database)/documents/classrooms/$(resource.data.classId)).data.teacherId == request.auth.uid;
+
+      // Học sinh có thể tạo, đọc, cập nhật, và xóa session của chính mình.
+      // `request.resource.data` dùng cho CREATE.
+      // `resource.data` dùng cho các thao tác còn lại.
+      allow create: if isStudent() && request.resource.data.studentId == request.auth.uid;
+      allow read, update, delete: if isStudent() && resource.data.studentId == request.auth.uid;
+    }
+
+    // =====================================================================
+    // Collection: SYSTEM_SETTINGS (Cài đặt hệ thống)
+    // =====================================================================
+    match /system_settings/general {
+      allow read: if true; // Mọi người đều có thể đọc
+      allow write: if isAdmin();
+    }
+    match /system_settings/api_keys {
+      allow read: if isSignedIn(); // Chỉ người dùng đã đăng nhập mới có thể đọc
+      allow write: if isAdmin();
+    }
+
+    // =====================================================================
+    // Collection: CHAT_SESSIONS (Lịch sử Chatbot)
+    // =====================================================================
+    match /chat_sessions/{sessionId} {
+      // Chỉ học sinh sở hữu phiên chat mới có thể đọc/ghi
+      allow read, write: if isStudent() && isUser(sessionId);
+    }
+  }
+}

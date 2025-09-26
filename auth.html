@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập & Đăng ký - AIGEO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        :root {
+            --font-main: 'Be Vietnam Pro', sans-serif;
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+            --text-dark: #1E293B;
+            --text-light: #475569;
+            --border-color: #E2E8F0;
+        }
+        body {
+            font-family: var(--font-main);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        #auth-background {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            z-index: -1;
+            background: linear-gradient(-45deg, #e0f2f1, #e0f2fe, #eef2ff, #f1f5f9);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .auth-card {
+            background-color: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .input-group { position: relative; margin-bottom: 1.5rem; }
+        .input-field {
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem; width: 100%;
+            padding: 1rem 2.75rem; font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background-color: rgba(255, 255, 255, 0.8); color: var(--text-dark);
+        }
+        select.input-field { padding-right: 3.5rem; }
+        .input-field:focus {
+            outline: none; border-color: var(--primary-teal);
+            box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+            background-color: #fff;
+        }
+        .input-label {
+            position: absolute; top: -0.6rem; left: 0.75rem;
+            font-size: 0.75rem; font-weight: 500;
+            color: var(--text-light); background-color: white;
+            padding: 0 0.5rem; pointer-events: none;
+            border-radius: 4px;
+            z-index: 10;
+        }
+        .input-icon {
+            position: absolute; left: 1rem; top: 50%;
+            transform: translateY(-50%); color: #94A3B8;
+            pointer-events: none;
+        }
+        .password-toggle {
+            position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+            color: #94A3B8; cursor: pointer;
+        }
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+        }
+        .cta-button:hover:not(:disabled) {
+            opacity: 0.9; transform: translateY(-2px);
+            box-shadow: 0 7px 25px rgba(13, 148, 136, 0.3);
+        }
+        .cta-button:disabled { background: #94A3B8; cursor: not-allowed; }
+        .tab-button {
+            position: relative; transition: color 0.3s;
+            padding-bottom: 0.75rem;
+        }
+        .tab-button.active {
+            color: var(--primary-teal); font-weight: 600;
+        }
+        .tab-button.active::after {
+            content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+            height: 2px; background-color: var(--primary-teal);
+        }
+        .form-container.hidden { display: none; }
+        .form-step {
+            transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
+            backface-visibility: hidden;
+        }
+        .form-step.hidden {
+            opacity: 0;
+            position: absolute;
+            visibility: hidden;
+            transform: translateX(30px);
+        }
+         .form-step.active {
+            opacity: 1;
+            position: relative;
+            visibility: visible;
+            transform: translateX(0);
+        }
+        /* Password Strength */
+        #password-strength-bar.weak { background-color: #ef4444; width: 25%; }
+        #password-strength-bar.medium { background-color: #f59e0b; width: 60%; }
+        #password-strength-bar.strong { background-color: #10b981; width: 100%; }
+        .password-criteria li.met { color: #10b981; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 sm:p-6">
+    <div id="auth-background"></div>
+
+    <div class="w-full max-w-4xl mx-auto">
+        <div class="auth-card relative rounded-2xl overflow-hidden grid md:grid-cols-2 shadow-2xl">
+            <div class="hidden md:block relative">
+                <img src="https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2070&auto=format&fit=crop" alt="Abstract gradient background" class="absolute h-full w-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-teal-800/30 to-transparent"></div>
+                <div class="relative p-8 text-white flex flex-col justify-end h-full">
+                    <h2 class="text-3xl font-bold leading-tight shadow-black/20 [text-shadow:_0_2px_4px_var(--tw-shadow-color)]">Chào mừng đến với AIGEO</h2>
+                    <p class="mt-2 text-teal-50 shadow-black/20 [text-shadow:_0_1px_2px_var(--tw-shadow-color)]">Khám phá tri thức theo cách của riêng bạn.</p>
+                </div>
+            </div>
+            
+            <div class="p-8 md:p-10 relative">
+                <div class="text-center mb-8">
+                    <a href="/" class="text-3xl font-bold gradient-text">AIGEO</a>
+                </div>
+
+                <div class="flex border-b border-slate-200 mb-6">
+                    <button id="login-tab" class="flex-1 font-semibold text-slate-500 tab-button active">Đăng nhập</button>
+                    <button id="register-tab" class="flex-1 font-semibold text-slate-500 tab-button">Đăng ký</button>
+                </div>
+
+                <div id="message-display" class="hidden p-3 text-sm text-center rounded-lg mb-6"></div>
+                
+                <div id="form-wrapper" class="relative overflow-hidden" style="transition: height 0.4s ease-in-out;">
+                    <div id="login-form-container" class="form-container">
+                         <form id="login-form" novalidate>
+                            <div class="input-group">
+                                <label for="login-email" class="input-label">Email</label>
+                                <i data-feather="mail" class="input-icon"></i>
+                                <input id="login-email" type="email" autocomplete="email" required class="input-field" placeholder="vidu@email.com">
+                            </div>
+                            <div class="input-group">
+                                <label for="login-password" class="input-label">Mật khẩu</label>
+                                <i data-feather="lock" class="input-icon"></i>
+                                <input id="login-password" type="password" autocomplete="current-password" required class="input-field" placeholder="••••••••">
+                                <span class="password-toggle" data-for="login-password">
+                                    <i data-feather="eye-off" class="w-5 h-5"></i>
+                                </span>
+                            </div>
+                            <div class="text-right py-2 -mt-4">
+                                <a href="#" id="forgot-password-link" class="text-sm text-teal-600 hover:underline">Quên mật khẩu?</a>
+                            </div>
+                            <div class="pt-4">
+                                <button type="submit" class="w-full px-4 py-3 flex justify-center items-center font-semibold text-white rounded-lg cta-button">
+                                    <span class="button-text">Đăng nhập</span>
+                                </button>
+                            </div>
+                        </form>
+                         <div class="flex items-center my-6">
+                            <div class="flex-grow border-t border-slate-300"></div>
+                            <span class="mx-4 text-xs text-slate-500">HOẶC</span>
+                            <div class="flex-grow border-t border-slate-300"></div>
+                        </div>
+                        <div>
+                            <button id="google-login-btn" type="button" class="w-full flex items-center justify-center px-4 py-3 border border-slate-300 rounded-lg bg-white hover:bg-slate-50 transition">
+                                <svg class="w-5 h-5 mr-3" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"></path><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"></path><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C41.383 34.613 44 29.833 44 24c0-1.341-.138-2.65-.389-3.917z"></path></svg>
+                                <span class="button-text font-semibold text-slate-700">Đăng nhập bằng Google</span>
+                            </button>
+                            <p class="text-xs text-slate-500 text-center mt-3">Mẹo: Học sinh nên sử dụng email do nhà trường cung cấp.</p>
+                        </div>
+                    </div>
+                    
+                    <div id="register-form-container" class="form-container hidden">
+                        <form id="register-form" novalidate>
+                            <div class="mb-6">
+                                <div class="flex justify-between text-xs font-semibold text-slate-400">
+                                    <span>Thông tin</span>
+                                    <span>Mật khẩu</span>
+                                    <span>Vai trò</span>
+                                    <span>Chi tiết</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-1.5 mt-2">
+                                    <div id="register-progress-bar" class="bg-teal-500 h-1.5 rounded-full transition-all duration-300" style="width: 25%;"></div>
+                                </div>
+                            </div>
+                            
+                            <div id="step-1" class="form-step active">
+                                <div class="input-group">
+                                    <label for="register-name" class="input-label">Họ và tên</label>
+                                    <i data-feather="user" class="input-icon"></i>
+                                    <input id="register-name" type="text" autocomplete="name" required class="input-field">
+                                </div>
+                                <div class="input-group">
+                                    <label for="register-email" class="input-label">Email</label>
+                                    <i data-feather="mail" class="input-icon"></i>
+                                    <input id="register-email" type="email" autocomplete="email" required class="input-field">
+                                </div>
+                                <button type="button" data-next="2" class="w-full mt-4 px-4 py-3 flex justify-center items-center font-semibold text-white rounded-lg cta-button next-btn">Tiếp theo</button>
+                            </div>
+
+                            <div id="step-2" class="form-step hidden">
+                                <div class="input-group">
+                                    <label for="register-password" class="input-label">Mật khẩu</label>
+                                    <i data-feather="lock" class="input-icon"></i>
+                                    <input id="register-password" type="password" autocomplete="new-password" required class="input-field">
+                                    <span class="password-toggle" data-for="register-password"><i data-feather="eye-off" class="w-5 h-5"></i></span>
+                                </div>
+                                
+                                <div id="password-strength-indicator" class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden -mt-4 mb-2 hidden">
+                                    <div id="password-strength-bar" class="h-full rounded-full transition-all duration-300"></div>
+                                </div>
+                                <ul id="password-criteria" class="text-xs text-slate-500 grid grid-cols-2 gap-x-4 gap-y-1 mb-4 hidden">
+                                    <li id="pw-length" class="flex items-center"><i data-feather="x-circle" class="w-3.5 h-3.5 mr-1.5 flex-shrink-0"></i>Ít nhất 6 ký tự</li>
+                                    <li id="pw-uppercase" class="flex items-center"><i data-feather="x-circle" class="w-3.5 h-3.5 mr-1.5 flex-shrink-0"></i>Có chữ hoa</li>
+                                    <li id="pw-lowercase" class="flex items-center"><i data-feather="x-circle" class="w-3.5 h-3.5 mr-1.5 flex-shrink-0"></i>Có chữ thường</li>
+                                    <li id="pw-number" class="flex items-center"><i data-feather="x-circle" class="w-3.5 h-3.5 mr-1.5 flex-shrink-0"></i>Có chữ số</li>
+                                </ul>
+
+                                <div class="input-group">
+                                    <label for="register-password-confirm" class="input-label">Xác nhận mật khẩu</label>
+                                    <i data-feather="check-circle" class="input-icon"></i>
+                                    <input id="register-password-confirm" type="password" autocomplete="new-password" required class="input-field">
+                                </div>
+                                <div class="flex space-x-2 mt-4">
+                                    <button type="button" data-prev="1" class="w-1/3 text-center px-4 py-3 font-semibold text-slate-700 bg-slate-200 rounded-lg prev-btn">Quay lại</button>
+                                    <button type="button" data-next="3" class="w-2/3 px-4 py-3 flex justify-center items-center font-semibold text-white rounded-lg cta-button next-btn">Tiếp theo</button>
+                                </div>
+                            </div>
+
+                            <div id="step-3" class="form-step hidden">
+                                <p class="text-center font-semibold mb-4">Bạn là...</p>
+                                <div class="relative w-full max-w-xs mx-auto p-1 bg-slate-100 rounded-full flex items-center">
+                                    <div id="role-slider-thumb" class="absolute top-1 left-1 w-1/2 h-8 bg-white rounded-full shadow-md transition-transform duration-300 ease-in-out"></div>
+                                    <button type="button" data-role="student" class="role-button flex-1 text-center text-sm font-semibold p-2 rounded-full relative z-10 transition-colors duration-300 text-teal-600">Học sinh</button>
+                                    <button type="button" data-role="teacher" class="role-button flex-1 text-center text-sm font-semibold p-2 rounded-full relative z-10 transition-colors duration-300 text-slate-500">Giáo viên</button>
+                                    <input type="hidden" id="role-input" name="role" value="student">
+                                </div>
+                                <div class="flex space-x-2 mt-8">
+                                    <button type="button" data-prev="2" class="w-1/3 text-center px-4 py-3 font-semibold text-slate-700 bg-slate-200 rounded-lg prev-btn">Quay lại</button>
+                                    <button type="button" data-next="4" class="w-2/3 px-4 py-3 flex justify-center items-center font-semibold text-white rounded-lg cta-button next-btn">Tiếp theo</button>
+                                </div>
+                            </div>
+
+                            <div id="step-4" class="form-step hidden">
+                                <div id="student-fields" class="space-y-4">
+                                    <div class="input-group">
+                                        <label for="register-school-student" class="input-label">Trường học</label>
+                                        <i data-feather="home" class="input-icon"></i>
+                                        <input id="register-school-student" type="text" class="input-field">
+                                    </div>
+                                    <div class="input-group relative">
+                                        <label for="register-grade" class="input-label">Khối lớp</label>
+                                        <i data-feather="layers" class="input-icon"></i>
+                                        <select id="register-grade" class="input-field appearance-none">
+                                            <option value="" disabled selected>Chọn khối lớp</option>
+                                            <option value="10">Lớp 10</option>
+                                            <option value="11">Lớp 11</option>
+                                            <option value="12">Lớp 12</option>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none"><i data-feather="chevron-down" class="w-5 h-5 text-slate-400"></i></div>
+                                    </div>
+                                </div>
+                                <div id="teacher-fields" class="space-y-4 hidden">
+                                    <div class="input-group">
+                                        <label for="register-school-teacher" class="input-label">Trường công tác</label>
+                                        <i data-feather="briefcase" class="input-icon"></i>
+                                        <input id="register-school-teacher" type="text" class="input-field">
+                                    </div>
+                                    <div class="input-group relative">
+                                         <label for="register-subject" class="input-label">Môn giảng dạy</label>
+                                         <i data-feather="book-open" class="input-icon"></i>
+                                         <select id="register-subject" class="input-field appearance-none">
+                                            <option value="" disabled selected>Chọn môn dạy</option>
+                                         </select>
+                                         <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none"><i data-feather="chevron-down" class="w-5 h-5 text-slate-400"></i></div>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2 mt-8">
+                                    <button type="button" data-prev="3" class="w-1/3 text-center px-4 py-3 font-semibold text-slate-700 bg-slate-200 rounded-lg prev-btn">Quay lại</button>
+                                    <button type="submit" class="w-2/3 px-4 py-3 flex justify-center items-center font-semibold text-white rounded-lg cta-button">
+                                        <span class="button-text">Hoàn tất đăng ký</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getRedirectResult, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDpXc-F0y1GyeMYTe3T_omqRJ_uc8UB6iM",
+            authDomain: "ai-quiz-learning2025.firebaseapp.com",
+            projectId: "ai-quiz-learning2025",
+            storageBucket: "ai-quiz-learning2025.appspot.com",
+            messagingSenderId: "137949679960",
+            appId: "1:137949679960:web:4807e8b0476dd00380952d"
+        };
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            // --- DOM Element Declarations ---
+            const wrapper = document.getElementById('form-wrapper');
+            const messageDisplay = document.getElementById('message-display');
+            const loginTab = document.getElementById('login-tab');
+            const registerTab = document.getElementById('register-tab');
+            const loginFormContainer = document.getElementById('login-form-container');
+            const registerFormContainer = document.getElementById('register-form-container');
+            const registerProgressBar = document.getElementById('register-progress-bar');
+            
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const googleLoginBtn = document.getElementById('google-login-btn');
+            const forgotPasswordLink = document.getElementById('forgot-password-link');
+
+            // Password strength elements
+            const registerPasswordInput = document.getElementById('register-password');
+            const strengthIndicator = document.getElementById('password-strength-indicator');
+            const strengthBar = document.getElementById('password-strength-bar');
+            const passwordCriteriaList = document.getElementById('password-criteria');
+            
+            const showMessage = (message, isError = true, duration = 5000) => {
+                messageDisplay.textContent = message;
+                messageDisplay.className = `p-3 text-sm text-center rounded-lg mb-6 transition-all duration-300 ${isError ? "text-red-800 bg-red-100" : "text-green-800 bg-green-100"}`;
+                 setTimeout(adjustWrapperHeight, 50);
+                 if(duration > 0 && duration !== 0) {
+                     setTimeout(hideMessage, duration);
+                 }
+            };
+
+            const hideMessage = () => {
+                messageDisplay.className = 'hidden p-3 text-sm text-center rounded-lg mb-6';
+                 setTimeout(adjustWrapperHeight, 50);
+            };
+            
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) return;
+                
+                const userDocRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(userDocRef);
+
+                if (docSnap.exists()) {
+                    if(sessionStorage.getItem('isNewAuth')) {
+                        showMessage("Đăng nhập thành công! Đang chuyển hướng...", false, 0);
+                        sessionStorage.removeItem('isNewAuth');
+                    }
+                    const { role } = docSnap.data();
+                    const destination = { teacher: "/teacher/index.html", student: "/student/index.html", admin: "/admin/index.html" }[role] || "/student/index.html";
+                    setTimeout(() => { window.location.href = destination; }, 1500);
+                }
+            });
+
+            // --- Multi-step form logic ---
+            let currentStep = 1;
+            const steps = registerFormContainer.querySelectorAll('.form-step');
+            
+            const showStep = (stepNumber) => {
+                steps.forEach((step, index) => {
+                    step.classList.toggle('active', (index + 1) === stepNumber);
+                    step.classList.toggle('hidden', (index + 1) !== stepNumber);
+                });
+                const progress = (stepNumber - 1) * 33.33;
+                registerProgressBar.style.width = `${Math.max(25, progress)}%`;
+                currentStep = stepNumber;
+                setTimeout(adjustWrapperHeight, 50);
+            };
+
+            registerFormContainer.addEventListener('click', (e) => {
+                const target = e.target.closest('.next-btn, .prev-btn');
+                if (!target) return;
+
+                if (target.classList.contains('next-btn')) {
+                    const nextStep = parseInt(target.dataset.next, 10);
+                    if (validateStep(currentStep)) {
+                        showStep(nextStep);
+                    }
+                } else if (target.classList.contains('prev-btn')) {
+                    const prevStep = parseInt(target.dataset.prev, 10);
+                    showStep(prevStep);
+                }
+            });
+
+            const validateStep = (step) => {
+                hideMessage();
+                if (step === 1) {
+                    if (registerForm['register-name'].value.trim() === '' || registerForm['register-email'].value.trim() === '') {
+                        showMessage('Vui lòng điền đầy đủ Họ tên và Email.');
+                        return false;
+                    }
+                } else if (step === 2) {
+                     if (registerForm['register-password'].value.length < 6) {
+                        showMessage('Mật khẩu phải có ít nhất 6 ký tự.');
+                        return false;
+                    }
+                    if (registerForm['register-password'].value !== registerForm['register-password-confirm'].value) {
+                        showMessage('Mật khẩu xác nhận không khớp.');
+                        return false;
+                    }
+                }
+                return true;
+            };
+
+            const adjustWrapperHeight = () => {
+                const activeFormContainer = loginFormContainer.classList.contains('hidden') ? registerFormContainer : loginFormContainer;
+                wrapper.style.height = `${activeFormContainer.offsetHeight}px`;
+            };
+
+            const switchTab = (showLogin) => {
+                hideMessage();
+                loginTab.classList.toggle('active', showLogin);
+                registerTab.classList.toggle('active', !showLogin);
+                loginFormContainer.classList.toggle('hidden', !showLogin);
+                registerFormContainer.classList.toggle('hidden', showLogin);
+                showStep(1); 
+                setTimeout(adjustWrapperHeight, 50);
+            };
+
+            loginTab.addEventListener("click", () => switchTab(true));
+            registerTab.addEventListener("click", () => switchTab(false));
+
+            // --- Login Logic ---
+            loginForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                try {
+                    sessionStorage.setItem('isNewAuth', 'true');
+                    await signInWithEmailAndPassword(auth, loginForm["login-email"].value, loginForm["login-password"].value);
+                } catch (error) {
+                    sessionStorage.removeItem('isNewAuth');
+                    showMessage("Email hoặc mật khẩu không đúng.");
+                }
+            });
+
+            // --- Register Logic ---
+            const roleButtons = document.querySelectorAll('.role-button');
+            const roleSliderThumb = document.getElementById('role-slider-thumb');
+            const studentFields = document.getElementById('student-fields');
+            const teacherFields = document.getElementById('teacher-fields');
+            
+            roleButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const selectedRole = button.dataset.role;
+                    document.getElementById('role-input').value = selectedRole;
+                    roleSliderThumb.style.transform = selectedRole === 'teacher' ? 'translateX(98%)' : 'translateX(0%)';
+                    
+                    roleButtons.forEach(btn => {
+                        btn.classList.toggle('text-teal-600', btn.dataset.role === selectedRole);
+                        btn.classList.toggle('text-slate-500', btn.dataset.role !== selectedRole);
+                    });
+
+                    studentFields.classList.toggle('hidden', selectedRole !== 'student');
+                    teacherFields.classList.toggle('hidden', selectedRole === 'student');
+                    setTimeout(adjustWrapperHeight, 50);
+                });
+            });
+            
+            registerForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                hideMessage();
+                const role = document.getElementById('role-input').value;
+                if (role === 'student' && (registerForm['register-school-student'].value === '' || registerForm['register-grade'].value === '')) {
+                    return showMessage('Vui lòng điền đầy đủ thông tin trường và lớp.');
+                }
+                if (role === 'teacher' && (registerForm['register-school-teacher'].value === '' || registerForm['register-subject'].value === '')) {
+                     return showMessage('Vui lòng điền đầy đủ thông tin trường và môn dạy.');
+                }
+                
+                try {
+                    const email = registerForm["register-email"].value;
+                    const password = registerForm["register-password"].value;
+                    
+                    showMessage("Đang tạo tài khoản...", false, 0);
+
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    
+                    const userData = { 
+                        uid: userCredential.user.uid, 
+                        name: registerForm["register-name"].value, 
+                        email: email, 
+                        role, 
+                        createdAt: serverTimestamp(),
+                        school: role === 'student' ? registerForm['register-school-student'].value : registerForm['register-school-teacher'].value,
+                        ...(role === 'student' && { grade: registerForm['register-grade'].value, selectedGrade: parseInt(registerForm['register-grade'].value, 10) }),
+                        ...(role === 'teacher' && { subject: registerForm['register-subject'].value })
+                    };
+                    await setDoc(doc(db, "users", userCredential.user.uid), userData);
+
+                    sessionStorage.setItem('isNewAuth', 'true');
+                } catch (error) {
+                    showMessage(error.code === 'auth/email-already-in-use' ? 'Email này đã được sử dụng.' : 'Đã có lỗi xảy ra.');
+                }
+            });
+
+            // --- Password Strength Checker ---
+            const updatePasswordStrength = () => {
+                const password = registerPasswordInput.value;
+                const criteria = {
+                    length: password.length >= 6,
+                    uppercase: /[A-Z]/.test(password),
+                    lowercase: /[a-z]/.test(password),
+                    number: /[0-9]/.test(password),
+                };
+                
+                let score = Object.values(criteria).filter(Boolean).length;
+
+                for (const key in criteria) {
+                    const li = document.getElementById(`pw-${key}`);
+                    if (!li) continue;
+                    const iconEl = li.querySelector('i');
+                    const iconName = criteria[key] ? 'check-circle' : 'x-circle';
+                    
+                    if (iconEl.getAttribute('data-feather') !== iconName) {
+                       li.classList.toggle('met', criteria[key]);
+                       iconEl.setAttribute('data-feather', iconName);
+                    }
+                }
+                feather.replace();
+
+                strengthBar.className = 'h-full rounded-full transition-all duration-300';
+                if (score <= 2) strengthBar.classList.add('weak');
+                else if (score === 3) strengthBar.classList.add('medium');
+                else if (score >= 4) strengthBar.classList.add('strong');
+                
+                if (password.length > 0) {
+                    strengthIndicator.classList.remove('hidden');
+                    passwordCriteriaList.classList.remove('hidden');
+                } else {
+                    strengthIndicator.classList.add('hidden');
+                    passwordCriteriaList.classList.add('hidden');
+                }
+                setTimeout(adjustWrapperHeight, 50);
+            };
+            registerPasswordInput.addEventListener('input', updatePasswordStrength);
+
+
+            // --- Forgot Password ---
+             forgotPasswordLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+                hideMessage();
+                const email = loginForm['login-email'].value;
+                if (!email) {
+                    showMessage('Vui lòng nhập email của bạn để đặt lại mật khẩu.');
+                    return;
+                }
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    showMessage('Email đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra hộp thư của bạn.', false);
+                } catch (error) {
+                    showMessage('Không thể gửi email. Email có thể không tồn tại trong hệ thống.');
+                }
+            });
+            
+            // --- Google Login ---
+            googleLoginBtn.addEventListener("click", async () => {
+                hideMessage();
+                const provider = new GoogleAuthProvider();
+                try {
+                    sessionStorage.setItem('isNewAuth', 'true');
+                    const result = await signInWithPopup(auth, provider);
+                    const user = result.user;
+                    const userDocRef = doc(db, "users", user.uid);
+                    const docSnap = await getDoc(userDocRef);
+                    if (!docSnap.exists()) {
+                        await setDoc(userDocRef, { 
+                            uid: user.uid, 
+                            name: user.displayName, 
+                            email: user.email, 
+                            role: "student", 
+                            createdAt: serverTimestamp() 
+                        });
+                    }
+                } catch (error) {
+                    sessionStorage.removeItem('isNewAuth');
+                    if (error.code === 'auth/popup-blocked') {
+                        showMessage('Cửa sổ pop-up bị chặn. Vui lòng cho phép pop-up cho trang này.');
+                    } else if (error.code === 'auth/cancelled-popup-request') {
+                        // User closed the popup, no message needed
+                    } else {
+                        showMessage("Đã có lỗi khi đăng nhập với Google.");
+                    }
+                }
+            });
+            
+            // --- Password Toggle Visibility ---
+            document.querySelectorAll('.password-toggle').forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    const inputId = toggle.dataset.for;
+                    const input = document.getElementById(inputId);
+                    const icon = toggle.querySelector('i');
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.setAttribute('data-feather', 'eye');
+                    } else {
+                        input.type = 'password';
+                        icon.setAttribute('data-feather', 'eye-off');
+                    }
+                    feather.replace();
+                });
+            });
+
+            // --- Populate Subjects for Teachers ---
+            const subjectSelect = document.getElementById('register-subject');
+            getDocs(collection(db, "subjects")).then(snapshot => {
+                const subjects = [];
+                snapshot.forEach(doc => subjects.push(doc.data()));
+                subjects.sort((a, b) => a.name.localeCompare(b.name));
+                subjects.forEach(subject => {
+                    const option = new Option(subject.name, subject.name);
+                    subjectSelect.add(option);
+                });
+            }).catch(error => {
+                console.error("Error fetching subjects: ", error);
+            });
+
+            // ✅ SỬA LỖI: Truyền hàm `adjustWrapperHeight` làm callback
+            setTimeout(adjustWrapperHeight, 100);
+            new ResizeObserver(adjustWrapperHeight).observe(wrapper);
+        });
+    </script>
+</body>
+</html>

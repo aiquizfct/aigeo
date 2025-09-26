@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lớp học của tôi - AIGEO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        :root {
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+        }
+        body { 
+            font-family: 'Be Vietnam Pro', sans-serif; 
+            background-color: #f1f5f9; 
+        }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
+        .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
+        .sidebar-link.active { 
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            color: white; 
+            font-weight: 600; 
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+        }
+        .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
+        .sidebar-link svg { margin-right: 0.75rem; }
+        
+        .brand-gradient-text {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+        }
+        .cta-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+        }
+        .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <aside class="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
+        <div class="h-16 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold brand-gradient-text">AIGEO</a></div>
+        <nav class="flex-grow p-4 space-y-2">
+            <a href="index.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="home"></i>Bảng điều khiển</a>
+            <a href="classrooms.html" class="sidebar-link active"><i data-feather="book"></i>Lớp học của tôi</a>
+            <a href="practice-hub.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="zap"></i>Luyện tập</a>
+            <a href="stats.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="bar-chart-2"></i>Thống kê</a>
+            <a href="chat-bot.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="message-circle"></i>Chatbot AI</a>
+            <a href="account.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="user"></i>Tài khoản</a>
+        </nav>
+        <div class="p-4 border-t"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="bg-white shadow-sm h-16 flex items-center justify-end px-6">
+            <div class="flex items-center">
+                <span id="user-name" class="font-semibold text-gray-700 mr-4">Đang tải...</span>
+                <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=S" alt="Student Avatar">
+            </div>
+        </header>
+        <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-3xl font-bold text-slate-800">Lớp học của tôi</h1>
+                    <a href="join-class.html" class="cta-button text-white font-semibold px-4 py-2 rounded-lg flex items-center shadow-sm">
+                        <i data-feather="plus" class="mr-2 w-5 h-5"></i>Tham gia lớp mới
+                    </a>
+                </div>
+                
+                <div id="classrooms-grid" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Classrooms will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50"></div>
+    
+    <script src="../firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            // --- State ---
+            let currentUser = null;
+
+            // --- Elements ---
+            const classroomsGrid = document.getElementById('classrooms-grid');
+            const toastContainer = document.getElementById('toast-container');
+            
+            // --- Utility Functions ---
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+                toast.className = `toast show ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg`;
+                toast.textContent = message;
+                toastContainer.appendChild(toast);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, 3000);
+            }
+            
+            // --- Auth & Data Loading ---
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    const docSnap = await getDoc(doc(db, "users", user.uid));
+                    if (docSnap.exists() && docSnap.data().role === 'student') {
+                        const userData = docSnap.data();
+                        document.getElementById('user-name').textContent = userData.name || 'Học sinh';
+                        const nameInitial = (userData.name || 'S').charAt(0).toUpperCase();
+                        document.getElementById('user-avatar').src = `https://placehold.co/40x40/10B981/FFFFFF?text=${nameInitial}`;
+                        initPage();
+                    } else {
+                         window.location.href = '../auth.html';
+                    }
+                } else {
+                    window.location.href = '../auth.html';
+                }
+            });
+
+            async function initPage() {
+                try {
+                    const classroomsQuery = query(collection(db, "classrooms"), where("students", "array-contains", currentUser.uid));
+                    const classroomsSnap = await getDocs(classroomsQuery);
+                    
+                    if (classroomsSnap.empty) {
+                        classroomsGrid.innerHTML = `<p class="text-slate-500 md:col-span-2 lg:col-span-3 text-center py-10">Bạn chưa tham gia lớp học nào. Hãy nhấn nút "Tham gia lớp mới" để bắt đầu.</p>`;
+                        return;
+                    }
+
+                    const classrooms = classroomsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+                    const teacherIds = [...new Set(classrooms.map(c => c.teacherId))];
+                    const subjectIds = [...new Set(classrooms.map(c => c.subjectId))];
+                    
+                    const [teacherDocs, subjectDocs] = await Promise.all([
+                        fetchDocsInChunks(collection(db, "users"), "__name__", teacherIds),
+                        fetchDocsInChunks(collection(db, "subjects"), "__name__", subjectIds)
+                    ]);
+                    
+                    const teachers = teacherDocs;
+                    const subjects = subjectDocs;
+
+                    renderClassrooms(classrooms, teachers, subjects);
+
+                } catch (error) {
+                    console.error("Error loading classrooms: ", error);
+                    showToast("Lỗi khi tải danh sách lớp học.", "error");
+                }
+            }
+            
+            async function fetchDocsInChunks(collectionRef, field, ids) {
+                if (!ids || ids.length === 0) return [];
+                const allDocsData = [];
+                for (let i = 0; i < ids.length; i += 30) {
+                    const chunk = ids.slice(i, i + 30);
+                    if (chunk.length > 0) {
+                        const q = query(collectionRef, where(field, "in", chunk));
+                        const snapshot = await getDocs(q);
+                        snapshot.forEach(doc => allDocsData.push({id: doc.id, ...doc.data()}));
+                    }
+                }
+                return allDocsData;
+            }
+            
+            function renderClassrooms(classrooms, teachers, subjects) {
+                classroomsGrid.innerHTML = '';
+                classrooms.forEach(c => {
+                    const subject = subjects.find(s => s.id === c.subjectId);
+                    const teacher = teachers.find(t => t.id === c.teacherId);
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-xl shadow-md p-6 flex flex-col transition-transform transform hover:-translate-y-1";
+                    card.innerHTML = `
+                        <div class="flex-grow">
+                            <span class="text-xs font-semibold bg-teal-100 text-teal-800 px-2 py-1 rounded-full">${subject ? subject.name : 'N/A'} - Lớp ${c.grade}</span>
+                            <h3 class="text-xl font-bold text-slate-800 mt-3">${c.className}</h3>
+                            <p class="text-sm text-slate-500 mt-1">GV: ${teacher ? teacher.name : 'N/A'}</p>
+                        </div>
+                        <div class="mt-6 flex space-x-2">
+                             <a href="classroom-view.html?classId=${c.id}" class="flex-1 text-center cta-button text-white font-semibold px-4 py-2 rounded-lg nav-link">Vào lớp học</a>
+                        </div>
+                    `;
+                    classroomsGrid.appendChild(card);
+                });
+                feather.replace();
+            }
+
+            // --- Event Listeners & Handlers ---
+            function setupEventListeners() {
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        document.body.style.opacity = '0';
+                        setTimeout(() => { window.location.href = this.href; }, 200);
+                    });
+                });
+                document.body.style.transition = 'opacity 0.2s ease-in-out';
+                
+                document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            }
+            
+            setupEventListeners();
+            feather.replace();
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giám sát Thi cử - AIGEO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        :root {
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+        }
+        body { 
+            font-family: 'Be Vietnam Pro', sans-serif; 
+            background-color: #f1f5f9; 
+        }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
+        .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
+        .sidebar-link.active { 
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            color: white; 
+            font-weight: 600; 
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+        }
+        .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
+        .sidebar-link svg { margin-right: 0.75rem; }
+        .brand-gradient-text {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-online { background-color: #22c55e; }
+        .status-offline { background-color: #a1a1aa; }
+        .status-locked { background-color: #ef4444; }
+        .status-finished { background-color: #3b82f6; }
+        .status-waiting { background-color: #6366f1; }
+        .student-card {
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+        }
+        .student-card.status-locked-card {
+            border-color: #ef4444;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+        }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <aside class="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
+        <div class="h-16 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold brand-gradient-text">AIGEO</a></div>
+        <nav class="flex-grow p-4 space-y-2">
+            <a href="index.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="home"></i>Bảng điều khiển</a>
+            <a href="classrooms.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="users"></i>Quản lý Lớp học</a>
+            <a href="question-bank.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="database"></i>Ngân hàng câu hỏi</a>
+            <a href="tests.html" class="sidebar-link active"><i data-feather="file-text"></i>Quản lý đề thi</a>
+            <a href="account.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="user"></i>Tài khoản</a>
+        </nav>
+        <div class="p-4 border-t"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="bg-white shadow-sm h-16 flex items-center justify-end px-6">
+            <div class="flex items-center">
+                <span id="user-name" class="font-semibold text-gray-700 mr-4">Đang tải...</span>
+                <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=T" alt="Teacher Avatar">
+            </div>
+        </header>
+        <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex items-center mb-6">
+                    <a href="tests.html" class="p-2 rounded-md hover:bg-slate-200 mr-4 nav-link"><i data-feather="arrow-left" class="w-6 h-6 text-slate-600"></i></a>
+                    <div>
+                        <h1 id="test-name-header" class="text-3xl font-bold text-slate-800">Giám sát: Đang tải...</h1>
+                        <p id="class-name-header" class="mt-1 text-slate-500"></p>
+                    </div>
+                </div>
+                
+                <div id="monitoring-grid" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    </div>
+            </div>
+        </div>
+    </main>
+    
+    <script src="../firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, where, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            let currentUser = null;
+            let currentTestId = null;
+            let currentClassId = null;
+            let sessionListener = null;
+            let heartbeatInterval = null;
+            let studentSessions = new Map();
+
+            const monitoringGrid = document.getElementById('monitoring-grid');
+            const testNameHeader = document.getElementById('test-name-header');
+            const classNameHeader = document.getElementById('class-name-header');
+            
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    const docSnap = await getDoc(doc(db, "users", user.uid));
+                    if (docSnap.exists() && docSnap.data().role === 'teacher') {
+                        const userData = docSnap.data();
+                        document.getElementById('user-name').textContent = userData.name || 'Giáo viên';
+                        document.getElementById('user-avatar').src = `https://placehold.co/40x40/10B981/FFFFFF?text=${(userData.name || 'T').charAt(0)}`;
+                        initPage();
+                    } else {
+                        window.location.href = `../${docSnap.data()?.role || 'auth'}/index.html`;
+                    }
+                } else {
+                    window.location.href = '../auth.html';
+                }
+            });
+
+            async function initPage() {
+                const urlParams = new URLSearchParams(window.location.search);
+                currentTestId = urlParams.get('testId');
+                currentClassId = urlParams.get('classId');
+
+                if (!currentTestId || !currentClassId) {
+                    monitoringGrid.innerHTML = `<p class="p-8 text-center text-red-600 md:col-span-4">Thông tin không hợp lệ.</p>`;
+                    return;
+                }
+                
+                monitoringGrid.innerHTML = `<p class="p-8 text-center text-slate-500 md:col-span-4">Đang tải dữ liệu giám sát...</p>`;
+
+                try {
+                    const [testDoc, classDoc] = await Promise.all([
+                        getDoc(doc(db, "tests", currentTestId)),
+                        getDoc(doc(db, "classrooms", currentClassId))
+                    ]);
+
+                    if (!testDoc.exists() || !classDoc.exists() || classDoc.data().teacherId !== currentUser.uid) {
+                        throw new Error("Không tìm thấy thông tin hoặc bạn không có quyền truy cập.");
+                    }
+                    
+                    testNameHeader.textContent = `Giám sát: ${testDoc.data().name}`;
+                    classNameHeader.textContent = `Lớp: ${classDoc.data().className}`;
+
+                    listenForSessionUpdates();
+                    setupEventListeners();
+
+                } catch (error) {
+                    monitoringGrid.innerHTML = `<p class="p-8 text-center text-red-600 md:col-span-4">${error.message}</p>`;
+                }
+            }
+
+            function listenForSessionUpdates() {
+                if (sessionListener) sessionListener();
+
+                const q = query(collection(db, "test_sessions"), where("testId", "==", currentTestId), where("classId", "==", currentClassId));
+
+                sessionListener = onSnapshot(q, (snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === "removed") {
+                            studentSessions.delete(change.doc.id);
+                        } else {
+                            studentSessions.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+                        }
+                    });
+                    renderMonitoringGrid();
+                    
+                    if (!heartbeatInterval) {
+                        heartbeatInterval = setInterval(checkHeartbeats, 5000); 
+                    }
+                });
+            }
+            
+            function checkHeartbeats() {
+                const now = Date.now();
+                let needsRender = false;
+                studentSessions.forEach((session, id) => {
+                    const lastUpdated = session.lastUpdated?.toDate().getTime() || 0;
+                    const isOffline = (now - lastUpdated > 15000); 
+                    
+                    if (isOffline && (session.status === 'online' || session.status === 'waiting')) {
+                        session.status = 'offline';
+                        needsRender = true;
+                    }
+                });
+                if (needsRender) {
+                    renderMonitoringGrid();
+                }
+            }
+
+            function renderMonitoringGrid() {
+                const sessions = Array.from(studentSessions.values());
+                if (sessions.length === 0) {
+                    monitoringGrid.innerHTML = `<div class="bg-white p-8 rounded-xl shadow-sm text-center md:col-span-4"><p class="text-slate-500">Chưa có học sinh nào vào phòng thi.</p></div>`;
+                    return;
+                }
+
+                monitoringGrid.innerHTML = '';
+                sessions.forEach(session => {
+                    const getStatusInfo = (status) => {
+                        switch(status) {
+                            case 'waiting': return { text: 'Sẵn sàng', dotClass: 'status-waiting', cardClass: '' };
+                            case 'online': return { text: 'Đang thi', dotClass: 'status-online', cardClass: '' };
+                            case 'locked': return { text: 'Bị khóa', dotClass: 'status-locked', cardClass: 'status-locked-card' };
+                            case 'finished': return { text: 'Đã nộp bài', dotClass: 'status-finished', cardClass: '' };
+                            default: return { text: 'Offline', dotClass: 'status-offline', cardClass: '' };
+                        }
+                    };
+
+                    const statusInfo = getStatusInfo(session.status);
+                    
+                    let actionHTML = '';
+                    if (session.status === 'locked') {
+                        actionHTML = `
+                            <div class="mt-4 pt-4 border-t border-slate-200 flex justify-end space-x-2">
+                                <button data-session-id="${session.id}" data-action="reject" class="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-md">Buộc nộp bài</button>
+                                <button data-session-id="${session.id}" data-action="approve" class="text-xs font-semibold text-white bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded-md">Cho phép thi tiếp</button>
+                            </div>
+                        `;
+                    }
+                    
+                    const progressPercent = session.totalQuestions > 0 ? (session.progress / session.totalQuestions) * 100 : 0;
+
+                    const card = document.createElement('div');
+                    card.className = `student-card bg-white p-5 rounded-xl shadow-sm border-2 border-transparent ${statusInfo.cardClass}`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-slate-800">${session.studentName}</h3>
+                            <div class="flex items-center text-xs font-semibold px-2 py-1 rounded-full ${statusInfo.dotClass.replace('status-', 'bg-').replace('-500', '-100')} ${statusInfo.dotClass.replace('status-', 'text-').replace('-500', '-800')}">
+                                <span class="status-dot ${statusInfo.dotClass} mr-1.5"></span>
+                                ${statusInfo.text}
+                            </div>
+                        </div>
+                        <div class="mt-4 space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Tiến độ</span>
+                                <span class="font-semibold text-slate-700">${session.progress || 0}/${session.totalQuestions || '?'}</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-1.5">
+                                <div class="bg-teal-500 h-1.5 rounded-full" style="width: ${progressPercent}%"></div>
+                            </div>
+                            <div class="flex justify-between pt-1">
+                                <span class="text-slate-500">Vi phạm</span>
+                                <span class="font-bold ${session.warnings > 0 ? 'text-red-500' : 'text-slate-700'}">${session.warnings || 0}</span>
+                            </div>
+                        </div>
+                        ${actionHTML}
+                    `;
+                    monitoringGrid.appendChild(card);
+                });
+            }
+
+            function setupEventListeners() {
+                monitoringGrid.addEventListener('click', async (e) => {
+                    const button = e.target.closest('button[data-action]');
+                    if (!button) return;
+
+                    const sessionId = button.dataset.sessionId;
+                    const action = button.dataset.action;
+                    const sessionRef = doc(db, "test_sessions", sessionId);
+
+                    button.disabled = true;
+
+                    try {
+                        if (action === 'approve') {
+                            await updateDoc(sessionRef, { status: 'online' });
+                        } else if (action === 'reject') {
+                            await updateDoc(sessionRef, { status: 'force_submit' });
+                        }
+                    } catch (error) {
+                        console.error("Lỗi khi xử lý vi phạm:", error);
+                        alert("Đã xảy ra lỗi. Vui lòng thử lại.");
+                        button.disabled = false;
+                    }
+                });
+
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        document.body.style.opacity = '0';
+                        setTimeout(() => { window.location.href = this.href; }, 200);
+                    });
+                });
+                document.body.style.transition = 'opacity 0.2s ease-in-out';
+                
+                document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+                feather.replace();
+            }
+
+        });
+    </script>
+</body>
+</html>

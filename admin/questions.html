@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Câu hỏi - AIGEO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+        }
+        body { 
+            font-family: 'Be Vietnam Pro', sans-serif; 
+            background-color: #f1f5f9; 
+        }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
+        .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
+        .sidebar-link.active { 
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            color: white; 
+            font-weight: 600; 
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+        }
+        .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
+        .sidebar-link svg { margin-right: 0.75rem; }
+        
+        .brand-gradient-text {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+        }
+        .cta-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+        }
+
+        .form-input {
+            width: 100%; padding: 0.75rem 1rem; margin-top: 0.5rem; border: 1px solid #cbd5e1;
+            border-radius: 0.5rem; background-color: #f8fafc; transition: all 0.2s ease-in-out;
+        }
+        .form-input:focus {
+            outline: none; background-color: white; border-color: var(--primary-teal);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+        }
+
+        select:disabled { background-color: #f1f5f9; cursor: not-allowed; }
+        .skeleton { background-color: #e2e8f0; border-radius: 0.25rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 50% { opacity: .5; } }
+        
+        .prose { max-width: none; }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; transform: translateY(-20px); }
+        
+        .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <aside class="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
+        <div class="h-16 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold brand-gradient-text">AIGEO</a></div>
+        <nav class="flex-grow p-4 space-y-2">
+            <a href="index.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="home"></i>Tổng quan</a>
+            <a href="users.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="users"></i>Quản lý người dùng</a>
+            <a href="subjects.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="book-open"></i>Quản lý Học liệu</a>
+            <a href="questions.html" class="sidebar-link active"><i data-feather="help-circle"></i>Quản lý Câu hỏi</a>
+            <a href="tests.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="file-text"></i>Quản lý Đề thi</a>
+            <a href="apikeys.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="key"></i>Quản lý API Key</a>
+            <a href="settings.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="settings"></i>Cài đặt hệ thống</a>
+        </nav>
+        <div class="p-4 border-t"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="bg-white shadow-sm h-16 flex items-center justify-end px-6">
+            <div class="flex items-center">
+                <span id="user-name" class="font-semibold text-gray-700 mr-4">Đang tải...</span>
+                <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=A" alt="Admin Avatar" onerror="this.onerror=null; this.src='https://placehold.co/40x40/f87171/ffffff?text=Lỗi';">
+            </div>
+        </header>
+        <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
+            <div class="max-w-7xl mx-auto">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">Quản lý Câu hỏi</h1>
+                    <p class="mt-2 text-slate-600">Thêm, sửa, xóa và duyệt câu hỏi cho các bài học.</p>
+                </div>
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <select id="filter-subject" class="form-input"></select>
+                    <select id="filter-grade" class="form-input" disabled></select>
+                    <select id="filter-lesson" class="form-input" disabled></select>
+                </div>
+                
+                <div id="questions-area" class="mt-6">
+                    <div class="text-center text-slate-500 bg-white p-10 rounded-lg shadow-sm">
+                        <i data-feather="list" class="w-12 h-12 mx-auto"></i>
+                        <p class="mt-4">Vui lòng chọn một bài học từ bộ lọc ở trên để xem câu hỏi.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Quick Add Modal -->
+    <div id="quick-add-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl modal-content overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4 border-b pb-4">
+                <h2 class="text-xl font-bold text-slate-800">Thêm câu hỏi nhanh</h2>
+                <button id="close-quick-add-btn" class="p-2 hover:bg-slate-100 rounded-full"><i data-feather="x"></i></button>
+            </div>
+            <form id="quick-add-form" class="space-y-4">
+                <!-- Form content will be injected here -->
+            </form>
+            <div class="mt-6 flex justify-between items-center border-t pt-4">
+                <div id="pending-questions-info">
+                     <span class="font-semibold text-slate-600">Số câu hỏi chờ lưu: </span>
+                     <span id="pending-count-display" class="font-bold text-xl text-teal-600">0</span>
+                </div>
+                <div class="flex space-x-3">
+                    <button type="button" id="save-and-add-another-btn" class="bg-slate-100 text-slate-700 font-semibold px-3 py-2 rounded-lg hover:bg-slate-200 flex items-center">
+                        <i data-feather="plus-circle" class="w-4 h-4 sm:mr-2"></i>
+                        <span class="hidden sm:inline">Lưu & Tiếp</span>
+                    </button>
+                    <button type="button" id="save-all-pending-btn" class="cta-button text-white font-semibold px-3 py-2 rounded-lg disabled:bg-slate-400 flex items-center">
+                        <i data-feather="save" class="w-4 h-4 sm:mr-2"></i>
+                        <span class="hidden sm:inline">Lưu tất cả</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Edit Question Modal -->
+    <div id="edit-question-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl modal-content overflow-y-auto max-h-[90vh]">
+            <h2 class="text-xl font-bold mb-4">Chỉnh sửa câu hỏi</h2>
+            <form id="edit-question-form" class="space-y-4">
+                <!-- Form content for editing will be injected here -->
+            </form>
+             <div class="flex justify-end space-x-3 mt-6 border-t pt-4">
+                <button type="button" id="edit-cancel-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">Hủy</button>
+                <button type="submit" form="edit-question-form" id="edit-submit-btn" class="cta-button text-white px-4 py-2 rounded-md">Lưu thay đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div id="delete-confirm-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm modal-content">
+            <h2 class="text-xl font-bold">Xác nhận xóa</h2>
+            <p id="delete-confirm-text" class="mt-2 text-gray-600">Bạn có chắc chắn muốn xóa câu hỏi này không?</p>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button id="delete-cancel-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 font-semibold">Hủy</button>
+                <button id="delete-confirm-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 font-semibold">Xóa</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+    
+    <!-- IMPORTANT: Make sure this path is correct for your project structure -->
+    <script src="../firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp, orderBy, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            
+            // --- DOM Elements ---
+            const questionsArea = document.getElementById('questions-area');
+            const filters = { subject: document.getElementById('filter-subject'), grade: document.getElementById('filter-grade'), lesson: document.getElementById('filter-lesson') };
+            const toastContainer = document.getElementById('toast-container');
+            
+            // Edit Modal
+            const editModal = document.getElementById('edit-question-modal');
+            const editForm = document.getElementById('edit-question-form');
+            const editCancelBtn = document.getElementById('edit-cancel-btn');
+            const editSubmitBtn = document.getElementById('edit-submit-btn');
+
+            // Quick Add Modal
+            const quickAddModal = document.getElementById('quick-add-modal');
+            const quickAddForm = document.getElementById('quick-add-form');
+            const closeQuickAddBtn = document.getElementById('close-quick-add-btn');
+            const saveAndAddAnotherBtn = document.getElementById('save-and-add-another-btn');
+            const saveAllPendingBtn = document.getElementById('save-all-pending-btn');
+            const pendingCountDisplay = document.getElementById('pending-count-display');
+
+            // Delete Modal
+            const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+            const deleteCancelBtn = document.getElementById('delete-cancel-btn');
+            const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
+            const deleteConfirmText = document.getElementById('delete-confirm-text');
+            
+            // --- State ---
+            let allData = { subjects: [], lessons: [], users: [] };
+            let lessonQuestions = [];
+            let pendingQuestions = [];
+            let currentUser = null;
+            let currentLessonId = null;
+            let currentEditingQuestion = null;
+            let itemToDeleteId = null;
+            let questionListener = null;
+
+            // --- Reusable Form HTML Generator ---
+            const generateQuestionFormHTML = (prefix) => `
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="col-span-2">
+                        <label for="${prefix}-q-type" class="block text-sm font-medium text-gray-700">Loại câu hỏi</label>
+                        <select id="${prefix}-q-type" class="form-input mt-1">
+                            <option value="multiple_choice">Trắc nghiệm nhiều lựa chọn</option>
+                            <option value="true_false_group">Trắc nghiệm Đúng/Sai</option>
+                            <option value="short_answer">Trả lời ngắn</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="${prefix}-q-difficulty" class="block text-sm font-medium text-gray-700">Độ khó</label>
+                        <select id="${prefix}-q-difficulty" class="form-input mt-1">
+                            <option value="nhan_biet">Nhận biết</option>
+                            <option value="thong_hieu">Thông hiểu</option>
+                            <option value="van_dung">Vận dụng</option>
+                            <option value="van_dung_cao">Vận dụng cao</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="${prefix}-q-content" class="block text-sm font-medium text-gray-700">Nội dung câu hỏi / Dẫn đề</label>
+                    <textarea id="${prefix}-q-content" rows="3" class="form-input mt-1" required></textarea>
+                </div>
+                <div id="${prefix}-mc-options-wrapper">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Các lựa chọn và đáp án đúng</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex items-center"><span class="font-semibold mr-2">A</span><input type="text" id="${prefix}-q-option-a" class="form-input"></div>
+                        <div class="flex items-center"><span class="font-semibold mr-2">B</span><input type="text" id="${prefix}-q-option-b" class="form-input"></div>
+                        <div class="flex items-center"><span class="font-semibold mr-2">C</span><input type="text" id="${prefix}-q-option-c" class="form-input"></div>
+                        <div class="flex items-center"><span class="font-semibold mr-2">D</span><input type="text" id="${prefix}-q-option-d" class="form-input"></div>
+                    </div>
+                    <div class="mt-4"><label for="${prefix}-q-mc-answer" class="text-sm font-medium text-gray-700">Đáp án đúng:</label><select id="${prefix}-q-mc-answer" class="ml-2 form-input w-auto !mt-0"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+                </div>
+                <div id="${prefix}-true-false-group-wrapper" class="hidden space-y-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Các mệnh đề và đáp án Đúng/Sai</label>
+                    ${[...Array(4)].map((_, i) => `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 items-center">
+                            <div><textarea id="${prefix}-q-tf-statement-${i+1}" placeholder="Nội dung mệnh đề ${i+1}" class="form-input" rows="2"></textarea></div>
+                            <div class="flex items-center space-x-4">
+                                <label><input type="radio" name="${prefix}-q-tf-answer-${i+1}" value="true" class="h-4 w-4 text-teal-600 border-gray-300"> Đúng</label>
+                                <label><input type="radio" name="${prefix}-q-tf-answer-${i+1}" value="false" class="h-4 w-4 text-teal-600 border-gray-300"> Sai</label>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div id="${prefix}-short-answer-wrapper" class="hidden">
+                    <label for="${prefix}-q-sa-answer" class="block text-sm font-medium text-gray-700">Đáp án đúng</label>
+                    <input type="text" id="${prefix}-q-sa-answer" class="form-input mt-1">
+                </div>
+                <div>
+                    <label for="${prefix}-q-explanation" class="block text-sm font-medium text-gray-700">Giải thích chi tiết (tùy chọn)</label>
+                    <textarea id="${prefix}-q-explanation" rows="3" class="form-input mt-1"></textarea>
+                </div>
+            `;
+            
+            // Inject form HTML
+            quickAddForm.innerHTML = generateQuestionFormHTML('qa');
+            editForm.innerHTML = generateQuestionFormHTML('edit');
+
+            // --- Utility Functions ---
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+                const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+                toast.className = `toast show ${bgColor} text-white p-4 rounded-lg shadow-lg flex items-center space-x-3`;
+                toast.innerHTML = `<i data-feather="${icon}" class="w-5 h-5"></i><span>${message}</span>`;
+                toastContainer.appendChild(toast);
+                feather.replace();
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, 3000);
+            }
+
+            function renderMathWithKaTeX(elem) {
+                if (window.renderMathInElement) {
+                    window.renderMathInElement(elem, {
+                        delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ]
+                    });
+                }
+            }
+            
+            function cleanPrefix(text) {
+                if (!text) return '';
+                return text.replace(/^(Câu|Bài|Phần|Mục)\s*[\dIVXLC]+\s*[:.]?\s*/i, '').trim();
+            }
+
+            function populateSelect(selectElement, data, placeholder, shouldCleanPrefix = false) {
+                selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = shouldCleanPrefix ? cleanPrefix(item.name) : (item.name || '');
+                    selectElement.appendChild(option);
+                });
+            }
+            
+            // --- AUTH & Initialization ---
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    const docSnap = await getDoc(doc(db, "users", user.uid));
+                    if (docSnap.exists() && docSnap.data().role === 'admin') {
+                        const userData = docSnap.data();
+                        document.getElementById('user-name').textContent = userData.name || 'Admin';
+                        const nameInitial = (userData.name || 'A').charAt(0).toUpperCase();
+                        document.getElementById('user-avatar').src = `https://placehold.co/40x40/DC2626/FFFFFF?text=${nameInitial}`;
+                        initQuestionsPage();
+                    } else {
+                        const userRole = docSnap.data()?.role;
+                        window.location.href = userRole ? `../${userRole}/index.html` : '../auth.html';
+                    }
+                } else {
+                    window.location.href = '../auth.html';
+                }
+            });
+
+            async function initQuestionsPage() {
+                try {
+                    const [subjectsSnap, lessonsSnap, usersSnap] = await Promise.all([
+                        getDocs(collection(db, "subjects")),
+                        getDocs(collection(db, "lessons")),
+                        getDocs(collection(db, "users"))
+                    ]);
+                    allData.subjects = subjectsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    allData.lessons = lessonsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    allData.users = usersSnap.docs.map(d => ({ id: d.id, uid: d.id, ...d.data() }));
+                    
+                    setupFilters();
+                    setupEventListeners();
+                } catch (error) {
+                    console.error("Initialization Error: ", error);
+                    showToast("Lỗi khi tải dữ liệu ban đầu.", "error");
+                }
+            }
+
+            function setupFilters() {
+                const sortedSubjects = [...allData.subjects].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+                populateSelect(filters.subject, sortedSubjects, 'Chọn Môn học');
+            }
+
+            function listenForQuestions(lessonId) {
+                if (questionListener) questionListener();
+                renderQuestionsSkeleton();
+                const q = query(collection(db, "questions"), where("lessonId", "==", lessonId), orderBy("createdAt", "desc"));
+                questionListener = onSnapshot(q, (snapshot) => {
+                    lessonQuestions = snapshot.docs.map(d => ({ id: d.id, ...d.data()}));
+                    renderQuestionsForLesson(lessonId);
+                }, (error) => {
+                    // Fallback for missing index
+                    const qWithoutOrder = query(collection(db, "questions"), where("lessonId", "==", lessonId));
+                    questionListener = onSnapshot(qWithoutOrder, (snapshot) => {
+                        lessonQuestions = snapshot.docs.map(d => ({ id: d.id, ...d.data()})).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                        renderQuestionsForLesson(lessonId);
+                    });
+                });
+            }
+            
+            function renderQuestionsForLesson(lessonId) {
+                const lesson = allData.lessons.find(l => l.id === lessonId);
+                questionsArea.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-sm">
+                        <div class="p-4 border-b flex justify-between items-center">
+                             <h2 class="text-xl font-bold text-slate-800">Câu hỏi cho: ${cleanPrefix(lesson.name)}</h2>
+                             <button data-action="add-question-btn" class="cta-button text-white px-3 py-2 text-sm rounded-lg flex items-center"><i data-feather="plus" class="mr-2 w-4 h-4"></i>Thêm câu hỏi nhanh</button>
+                        </div>
+                        <div id="questions-table-container" class="overflow-x-auto">
+                            ${renderQuestionsTable(lessonQuestions)}
+                        </div>
+                    </div>`;
+                renderMathWithKaTeX(questionsArea);
+                feather.replace();
+            }
+
+            function renderQuestionsTable(questions) {
+                if (questions.length === 0) return `<p class="p-4 text-center text-slate-500">Bài học này chưa có câu hỏi nào.</p>`;
+                
+                const getStatusBadge = (status) => {
+                    if (status === 'approved') return `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Đã duyệt</span>`;
+                    if (status === 'rejected') return `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Bị từ chối</span>`;
+                    return `<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Chờ duyệt</span>`;
+                };
+
+                let tableHTML = `<table class="w-full text-sm text-left">
+                    <thead class="bg-slate-50"><tr>
+                        <th class="p-3 font-semibold">Nội dung</th>
+                        <th class="p-3 font-semibold text-center">Người tạo</th>
+                        <th class="p-3 font-semibold text-center">Trạng thái</th>
+                        <th class="p-3 font-semibold text-right">Hành động</th>
+                    </tr></thead><tbody>`;
+                questions.forEach(q => {
+                    const author = allData.users.find(u => u.uid === q.authorId);
+                    const authorName = author ? author.name : 'Không rõ';
+                    const isPendingTeacherQuestion = author && author.role === 'teacher' && q.status !== 'approved' && q.status !== 'rejected';
+                    
+                    tableHTML += `<tr class="border-t">
+                        <td class="p-3 max-w-xl">
+                            <div class="prose prose-sm">${cleanPrefix(q.content)}</div>
+                        </td>
+                        <td class="p-3 text-center text-slate-500">${authorName}</td>
+                        <td class="p-3 text-center">${getStatusBadge(q.status)}</td>
+                        <td class="p-3 text-right">
+                           <div class="flex items-center justify-end space-x-1">
+                                ${isPendingTeacherQuestion ? `<button title="Duyệt" data-action="approve" data-id="${q.id}" class="p-2 text-green-600 hover:bg-green-100 rounded-md"><i data-feather="check" class="w-4 h-4"></i></button><button title="Từ chối" data-action="reject" data-id="${q.id}" class="p-2 text-red-600 hover:bg-red-100 rounded-md"><i data-feather="x" class="w-4 h-4"></i></button>` : ''}
+                                <button title="Chỉnh sửa" data-action="edit-question" data-id="${q.id}" class="p-2 text-slate-500 hover:bg-slate-100 rounded-md"><i data-feather="edit-2" class="w-4 h-4"></i></button>
+                                <button title="Xóa" data-action="delete-question" data-id="${q.id}" class="p-2 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-md"><i data-feather="trash-2" class="w-4 h-4"></i></button>
+                           </div>
+                        </td>
+                    </tr>`;
+                });
+                tableHTML += `</tbody></table>`;
+                return tableHTML;
+            }
+
+            function setupEventListeners() {
+                document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+                
+                // Filter listeners
+                filters.subject.addEventListener('change', () => {
+                    const subjectId = filters.subject.value;
+                    resetFilters(['grade', 'lesson']);
+                    if (subjectId) {
+                        const subjectLessons = allData.lessons.filter(l => l.subjectId === subjectId);
+                        const grades = [...new Set(subjectLessons.map(l => l.grade))].sort((a,b) => a-b);
+                        populateSelect(filters.grade, grades.map(g => ({id: g, name: `Lớp ${g}`})), 'Chọn Lớp');
+                        filters.grade.disabled = false;
+                    }
+                });
+
+                filters.grade.addEventListener('change', () => {
+                    const subjectId = filters.subject.value;
+                    const grade = filters.grade.value;
+                    resetFilters(['lesson']);
+                    if (grade) {
+                        const lessons = allData.lessons.filter(l => l.subjectId === subjectId && l.grade == grade).sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity));
+                        populateSelect(filters.lesson, lessons, 'Chọn Bài học', true);
+                        filters.lesson.disabled = false;
+                    }
+                });
+                
+                filters.lesson.addEventListener('change', () => {
+                    currentLessonId = filters.lesson.value;
+                    if (currentLessonId) {
+                        listenForQuestions(currentLessonId);
+                        hideQuickAddModal();
+                        pendingQuestions = [];
+                        updatePendingCount();
+                    }
+                    else renderInitialView();
+                });
+                
+                // Event delegation on body to catch all dynamic buttons
+                document.body.addEventListener('click', (e) => {
+                    const button = e.target.closest('button[data-action]');
+                    if(!button) return;
+                    
+                    const action = button.dataset.action;
+                    const id = button.dataset.id;
+                    
+                    if (action === 'add-question-btn') {
+                        showQuickAddModal();
+                    } else if(action === 'edit-question') {
+                        const questionData = lessonQuestions.find(q => q.id === id);
+                        if (questionData) showEditModal(questionData);
+                    } else if (action === 'delete-question') {
+                        showDeleteConfirmModal(id);
+                    } else if (action === 'approve') {
+                        updateQuestionStatus(id, 'approved');
+                    } else if (action === 'reject') {
+                         updateQuestionStatus(id, 'rejected');
+                    }
+                });
+
+                // Quick Add Listeners
+                closeQuickAddBtn.onclick = hideQuickAddModal;
+                saveAndAddAnotherBtn.onclick = handleSaveAndAddAnother;
+                saveAllPendingBtn.onclick = handleSaveAllPending;
+                
+                // Edit Modal Listeners
+                editForm.onsubmit = handleEditFormSubmit;
+                editCancelBtn.onclick = hideEditModal;
+
+                // Delete Modal Listeners
+                deleteConfirmBtn.onclick = handleDeleteQuestion;
+                deleteCancelBtn.onclick = hideDeleteConfirmModal;
+                
+                // Dynamic form listeners
+                quickAddForm.querySelector('#qa-q-type').onchange = () => toggleAnswerFields(quickAddForm, 'qa');
+                editForm.querySelector('#edit-q-type').onchange = () => toggleAnswerFields(editForm, 'edit');
+            }
+
+            // --- Form Handling ---
+            function getQuestionPayloadFromForm(formElement, prefix) {
+                const type = formElement.querySelector(`#${prefix}-q-type`).value;
+                const payload = {
+                    content: formElement.querySelector(`#${prefix}-q-content`).value.trim(),
+                    type: type,
+                    difficulty: formElement.querySelector(`#${prefix}-q-difficulty`).value,
+                    explanation: formElement.querySelector(`#${prefix}-q-explanation`).value.trim(),
+                };
+
+                if (type === 'multiple_choice') {
+                    payload.options = [...'abcd'].map(c => formElement.querySelector(`#${prefix}-q-option-${c}`).value.trim());
+                    payload.correctAnswer = formElement.querySelector(`#${prefix}-q-mc-answer`).value;
+                } else if (type === 'short_answer') {
+                    payload.correctAnswer = formElement.querySelector(`#${prefix}-q-sa-answer`).value.trim();
+                } else if (type === 'true_false_group') {
+                    payload.statements = {}; payload.answers = {};
+                    [...Array(4)].forEach((_, i) => {
+                        const statement = formElement.querySelector(`#${prefix}-q-tf-statement-${i+1}`).value.trim();
+                        if (statement) {
+                            payload.statements[i+1] = statement;
+                            const answerRadio = formElement.querySelector(`input[name="${prefix}-q-tf-answer-${i+1}"]:checked`);
+                            payload.answers[i+1] = answerRadio ? (answerRadio.value === 'true') : null;
+                        }
+                    });
+                }
+                return payload;
+            }
+
+            // Quick Add Logic
+            function handleSaveAndAddAnother() {
+                const payload = getQuestionPayloadFromForm(quickAddForm, 'qa');
+                if (!payload.content) {
+                    showToast('Vui lòng nhập nội dung câu hỏi.', 'error');
+                    return;
+                }
+                pendingQuestions.push(payload);
+                updatePendingCount();
+                quickAddForm.reset();
+                toggleAnswerFields(quickAddForm, 'qa');
+                showToast(`Đã thêm 1 câu hỏi vào hàng đợi.`, 'success');
+            }
+
+            async function handleSaveAllPending() {
+                if (pendingQuestions.length === 0) {
+                    showToast('Không có câu hỏi nào trong hàng đợi.', 'error');
+                    return;
+                }
+                saveAllPendingBtn.disabled = true;
+                saveAllPendingBtn.innerHTML = `<i data-feather="loader" class="animate-spin w-4 h-4 sm:mr-2"></i><span class="hidden sm:inline">Đang lưu...</span>`;
+                feather.replace();
+
+                try {
+                    const batch = writeBatch(db);
+                    const q = query(collection(db, 'questions'), where('lessonId', '==', currentLessonId));
+                    const snapshot = await getDocs(q);
+                    let maxOrder = snapshot.docs.reduce((max, doc) => Math.max(max, doc.data().order || 0), 0);
+
+                    pendingQuestions.forEach(questionPayload => {
+                        maxOrder++;
+                        const newDocRef = doc(collection(db, 'questions'));
+                        batch.set(newDocRef, {
+                            ...questionPayload,
+                            lessonId: currentLessonId,
+                            authorId: currentUser.uid,
+                            status: 'approved',
+                            createdAt: serverTimestamp(),
+                            order: maxOrder
+                        });
+                    });
+                    await batch.commit();
+                    showToast(`Đã lưu thành công ${pendingQuestions.length} câu hỏi!`, 'success');
+                    pendingQuestions = [];
+                    updatePendingCount();
+                    quickAddForm.reset();
+                    hideQuickAddModal();
+                } catch (error) {
+                    console.error("Error saving pending questions:", error);
+                    showToast('Lỗi khi lưu câu hỏi.', 'error');
+                } finally {
+                    saveAllPendingBtn.disabled = false;
+                    saveAllPendingBtn.innerHTML = `<i data-feather="save" class="w-4 h-4 sm:mr-2"></i><span class="hidden sm:inline">Lưu tất cả</span>`;
+                    feather.replace();
+                }
+            }
+
+            function updatePendingCount() {
+                pendingCountDisplay.textContent = pendingQuestions.length;
+                saveAllPendingBtn.disabled = pendingQuestions.length === 0;
+            }
+
+            // --- Modal Logic ---
+            function showQuickAddModal() {
+                quickAddModal.classList.remove('hidden');
+                quickAddModal.classList.add('flex');
+            }
+
+            function hideQuickAddModal() {
+                quickAddModal.classList.add('hidden');
+                quickAddModal.classList.remove('flex');
+            }
+            
+            function showEditModal(questionData) {
+                currentEditingQuestion = questionData;
+                populateForm(editForm, 'edit', questionData);
+                editModal.classList.remove('hidden');
+                editModal.classList.add('flex');
+            }
+
+            function hideEditModal() {
+                editModal.classList.add('hidden');
+                editModal.classList.remove('flex');
+            }
+
+            function populateForm(formElement, prefix, data) {
+                formElement.reset();
+                formElement.querySelector(`#${prefix}-q-content`).value = data.content || '';
+                formElement.querySelector(`#${prefix}-q-type`).value = data.type || 'multiple_choice';
+                formElement.querySelector(`#${prefix}-q-difficulty`).value = data.difficulty || 'nhan_biet';
+                formElement.querySelector(`#${prefix}-q-explanation`).value = data.explanation || '';
+                
+                if (data.type === 'multiple_choice') {
+                    (data.options || []).forEach((opt, i) => {
+                        const char = String.fromCharCode(97 + i);
+                        formElement.querySelector(`#${prefix}-q-option-${char}`).value = opt;
+                    });
+                    formElement.querySelector(`#${prefix}-q-mc-answer`).value = data.correctAnswer || 'A';
+                } else if (data.type === 'short_answer') {
+                    formElement.querySelector(`#${prefix}-q-sa-answer`).value = data.correctAnswer || '';
+                } else if (data.type === 'true_false_group') {
+                    [...Array(4)].forEach((_, i) => {
+                        const key = i + 1;
+                        formElement.querySelector(`#${prefix}-q-tf-statement-${key}`).value = data.statements?.[key] || '';
+                        const answer = data.answers?.[key];
+                        if (answer !== undefined) {
+                            const radio = formElement.querySelector(`input[name="${prefix}-q-tf-answer-${key}"][value="${answer}"]`);
+                            if (radio) radio.checked = true;
+                        }
+                    });
+                }
+                toggleAnswerFields(formElement, prefix);
+            }
+
+            async function handleEditFormSubmit(e) {
+                e.preventDefault();
+                editSubmitBtn.disabled = true;
+                const payload = getQuestionPayloadFromForm(editForm, 'edit');
+                try {
+                    await updateDoc(doc(db, 'questions', currentEditingQuestion.id), payload);
+                    showToast('Cập nhật câu hỏi thành công!', 'success');
+                    hideEditModal();
+                } catch (error) {
+                    showToast('Lỗi khi cập nhật câu hỏi.', 'error');
+                } finally {
+                    editSubmitBtn.disabled = false;
+                }
+            }
+            
+            async function handleDeleteQuestion() {
+                if (!itemToDeleteId) return;
+                deleteConfirmBtn.disabled = true;
+                try {
+                    await deleteDoc(doc(db, 'questions', itemToDeleteId));
+                    showToast('Xóa câu hỏi thành công!');
+                } catch (error) {
+                    showToast('Lỗi khi xóa câu hỏi.', 'error');
+                } finally {
+                    hideDeleteConfirmModal();
+                    itemToDeleteId = null;
+                    deleteConfirmBtn.disabled = false;
+                }
+            }
+
+            async function updateQuestionStatus(id, newStatus) {
+                try {
+                    await updateDoc(doc(db, 'questions', id), { status: newStatus });
+                    showToast(`Đã ${newStatus === 'approved' ? 'duyệt' : 'từ chối'} câu hỏi.`);
+                } catch (error) {
+                    showToast('Lỗi khi cập nhật trạng thái.', 'error');
+                }
+            }
+            
+            function toggleAnswerFields(formElement, prefix) {
+                const type = formElement.querySelector(`#${prefix}-q-type`).value;
+                formElement.querySelector(`#${prefix}-mc-options-wrapper`).classList.toggle('hidden', type !== 'multiple_choice');
+                formElement.querySelector(`#${prefix}-true-false-group-wrapper`).classList.toggle('hidden', type !== 'true_false_group');
+                formElement.querySelector(`#${prefix}-short-answer-wrapper`).classList.toggle('hidden', type !== 'short_answer');
+            }
+            
+            function showDeleteConfirmModal(id) {
+                itemToDeleteId = id;
+                const question = lessonQuestions.find(q => q.id === id);
+                deleteConfirmText.textContent = `Bạn có chắc chắn muốn xóa câu hỏi "${(question.content || "").substring(0, 50)}..." không?`;
+                deleteConfirmModal.classList.remove('hidden');
+                deleteConfirmModal.classList.add('flex');
+            }
+            
+            function hideDeleteConfirmModal() {
+                deleteConfirmModal.classList.add('hidden');
+                deleteConfirmModal.classList.remove('flex');
+            }
+            
+            function renderQuestionsSkeleton() {
+                let skeletonHTML = `<div class="bg-white rounded-lg shadow-sm"><div class="p-4 border-b flex justify-between items-center"><div class="skeleton h-6 w-1/2"></div><div class="skeleton h-9 w-40"></div></div><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead class="bg-slate-50"><tr><th class="p-3 font-semibold">Nội dung</th><th class="p-3 font-semibold">Loại</th><th class="p-3 font-semibold"></th></tr></thead><tbody>`;
+                for(let i=0; i<3; i++) { skeletonHTML += `<tr class="border-t"><td class="p-3"><div class="skeleton h-4 w-3/4"></div></td><td class="p-3"><div class="skeleton h-4 w-20"></div></td><td class="p-3 text-right"><div class="skeleton h-6 w-16 inline-block"></div></td></tr>`; }
+                skeletonHTML += `</tbody></table></div></div>`;
+                questionsArea.innerHTML = skeletonHTML;
+            }
+
+            function renderInitialView() {
+                questionsArea.innerHTML = `<div class="text-center text-slate-500 bg-white p-10 rounded-lg shadow-sm">
+                    <i data-feather="list" class="w-12 h-12 mx-auto"></i>
+                    <p class="mt-4">Vui lòng chọn một bài học từ bộ lọc ở trên để xem câu hỏi.</p>
+                </div>`;
+                feather.replace();
+            }
+
+            function resetFilters(filterNames) {
+                filterNames.forEach(name => {
+                    const filterEl = document.getElementById(`filter-${name}`);
+                    if (filterEl) {
+                        const placeholder = { grade: 'Chọn Lớp', lesson: 'Chọn Bài học'}[name] || '';
+                        filterEl.innerHTML = `<option value="">${placeholder}</option>`;
+                        filterEl.disabled = true;
+                    }
+                });
+            }
+            
+            feather.replace();
+        });
+    </script>
+</body>
+</html>
+

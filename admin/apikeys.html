@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý API Key - AIGEO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        :root {
+            --font-main: 'Be Vietnam Pro', sans-serif;
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+        }
+        body { 
+            font-family: var(--font-main); 
+            background-color: #f1f5f9; 
+        }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
+        .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
+        .sidebar-link.active { 
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            color: white; 
+            font-weight: 600; 
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+        }
+        .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
+        .sidebar-link svg { margin-right: 0.75rem; }
+        .brand-gradient-text {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .skeleton {
+            background-color: #e2e8f0;
+            border-radius: 0.25rem;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse { 50% { opacity: .5; } }
+
+        /* Animation cho các dòng key */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+
+        @keyframes fadeOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
+        .fade-out { animation: fadeOut 0.3s ease-out forwards; }
+
+        .api-key-input {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease-in-out;
+        }
+        .api-key-input:focus {
+            background-color: white;
+            border-color: var(--primary-teal);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+        }
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+        }
+        .cta-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+        }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <aside class="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
+        <div class="h-16 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold brand-gradient-text">AIGEO</a></div>
+        <nav class="flex-grow p-4 space-y-2">
+            <a href="index.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="home"></i>Tổng quan</a>
+            <a href="users.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="users"></i>Quản lý người dùng</a>
+            <a href="subjects.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="book-open"></i>Quản lý Học liệu</a>
+            <a href="questions.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="help-circle"></i>Quản lý Câu hỏi</a>
+            <a href="tests.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="file-text"></i>Quản lý Đề thi</a>
+            <a href="apikeys.html" class="sidebar-link active"><i data-feather="key"></i>Quản lý API Key</a>
+            <a href="settings.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="settings"></i>Cài đặt hệ thống</a>
+        </nav>
+        <div class="p-4 border-t"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="bg-white shadow-sm h-16 flex items-center justify-end px-6">
+            <div class="flex items-center">
+                <span id="user-name" class="font-semibold text-gray-700 mr-4">Đang tải...</span>
+                <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=A" alt="Admin Avatar">
+            </div>
+        </header>
+        <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-3xl font-bold text-slate-800">Quản lý API Keys</h1>
+                <p class="mt-2 text-slate-600">Thêm, xóa và quản lý các khóa API cho các dịch vụ bên ngoài.</p>
+                
+                <div class="mt-8 bg-white rounded-xl shadow-lg p-8">
+                    <h2 class="text-xl font-bold text-slate-800 mb-2">ImgBB API Keys</h2>
+                    <p class="text-sm text-slate-500 mb-6">Các key này dùng để tải ảnh lên. Hệ thống sẽ tự động luân phiên sử dụng.</p>
+                    <div id="imgbb-keys-container" class="space-y-4">
+                        <div class="space-y-4">
+                            <div class="skeleton h-14 w-full rounded-lg"></div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button id="add-imgbb-key-btn" class="bg-slate-100 text-slate-700 font-semibold px-4 py-2 rounded-lg hover:bg-slate-200 flex items-center transition-colors text-sm">
+                            <i data-feather="plus" class="w-4 h-4 mr-2"></i>Thêm Key ImgBB
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-white rounded-xl shadow-lg p-8">
+                    <h2 class="text-xl font-bold text-slate-800 mb-2">Gemini API Keys</h2>
+                    <p class="text-sm text-slate-500 mb-6">Các key này dùng cho các tính năng AI như tạo câu hỏi, duyệt câu hỏi.</p>
+                    <div id="gemini-keys-container" class="space-y-4">
+                        <div class="space-y-4">
+                            <div class="skeleton h-14 w-full rounded-lg"></div>
+                        </div>
+                    </div>
+                     <div class="mt-4">
+                        <button id="add-gemini-key-btn" class="bg-slate-100 text-slate-700 font-semibold px-4 py-2 rounded-lg hover:bg-slate-200 flex items-center transition-colors text-sm">
+                            <i data-feather="plus" class="w-4 h-4 mr-2"></i>Thêm Key Gemini
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-end">
+                    <button id="save-keys-btn" class="cta-button text-white font-semibold px-6 py-3 rounded-lg disabled:bg-slate-400">
+                        Lưu tất cả thay đổi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+    
+    <script src="../firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            const userNameEl = document.getElementById('user-name');
+            const userAvatarEl = document.getElementById('user-avatar');
+            const geminiKeysContainer = document.getElementById('gemini-keys-container');
+            const imgbbKeysContainer = document.getElementById('imgbb-keys-container');
+            const addGeminiKeyBtn = document.getElementById('add-gemini-key-btn');
+            const addImgbbKeyBtn = document.getElementById('add-imgbb-key-btn');
+            const saveKeysBtn = document.getElementById('save-keys-btn');
+            const toastContainer = document.getElementById('toast-container');
+            const apiKeyDocRef = doc(db, "system_settings", "api_keys");
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.body.style.opacity = '0';
+                    setTimeout(() => { window.location.href = this.href; }, 300);
+                });
+            });
+            document.body.style.transition = 'opacity 0.3s ease-in-out';
+
+            onAuthStateChanged(auth, async (user) => {
+                 if (user) {
+                    const docSnap = await getDoc(doc(db, "users", user.uid));
+                    if (docSnap.exists() && docSnap.data().role === 'admin') {
+                        const userData = docSnap.data();
+                        userNameEl.textContent = userData.name || 'Admin';
+                        const nameInitial = (userData.name || 'A').charAt(0).toUpperCase();
+                        userAvatarEl.src = `https://placehold.co/40x40/DC2626/FFFFFF?text=${nameInitial}`;
+                        
+                        initApiKeysLogic();
+                    } else {
+                        const userRole = docSnap.data()?.role;
+                        if (userRole === 'teacher' || userRole === 'student') {
+                            window.location.href = `../${userRole}/index.html`;
+                        } else {
+                            window.location.href = '../auth.html';
+                        }
+                    }
+                 } else {
+                    window.location.href = '../auth.html';
+                 }
+            });
+
+            async function initApiKeysLogic() {
+                try {
+                    const docSnap = await getDoc(apiKeyDocRef);
+                    geminiKeysContainer.innerHTML = '';
+                    imgbbKeysContainer.innerHTML = '';
+                    
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        const geminiKeys = data.gemini_keys || [];
+                        const imgbbKeys = data.imgbb_keys || [];
+
+                        if (geminiKeys.length > 0) {
+                            geminiKeys.forEach(key => renderKeyInput(key, 'gemini'));
+                        } else {
+                            renderKeyInput('', 'gemini');
+                        }
+
+                        if (imgbbKeys.length > 0) {
+                            imgbbKeys.forEach(key => renderKeyInput(key, 'imgbb'));
+                        } else {
+                            renderKeyInput('', 'imgbb');
+                        }
+
+                    } else {
+                        renderKeyInput('', 'gemini');
+                        renderKeyInput('', 'imgbb');
+                    }
+                    feather.replace();
+                } catch (error) {
+                    console.error("Error fetching API keys:", error);
+                    showToast('Không thể tải danh sách API key.', 'error');
+                }
+            }
+            
+            function renderKeyInput(keyValue = '', type) {
+                const container = type === 'gemini' ? geminiKeysContainer : imgbbKeysContainer;
+                const inputWrapper = document.createElement('div');
+                inputWrapper.className = 'key-item relative flex items-center space-x-3 fade-in';
+                
+                inputWrapper.innerHTML = `
+                    <i data-feather="key" class="text-slate-400 flex-shrink-0"></i>
+                    <div class="relative w-full">
+                        <input type="password" class="api-key-input block w-full pr-20 p-3 rounded-lg shadow-sm" data-key-type="${type}" placeholder="Dán khóa API của bạn vào đây" value="${keyValue}">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center space-x-2">
+                            <button type="button" class="toggle-visibility-btn text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-slate-100">
+                                <i data-feather="eye" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" class="delete-key-btn text-gray-400 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors">
+                        <i data-feather="trash-2" class="w-5 h-5"></i>
+                    </button>
+                `;
+                container.appendChild(inputWrapper);
+                feather.replace();
+            }
+
+            addGeminiKeyBtn.addEventListener('click', () => renderKeyInput('', 'gemini'));
+            addImgbbKeyBtn.addEventListener('click', () => renderKeyInput('', 'imgbb'));
+            
+            function handleContainerClick(e) {
+                const toggleBtn = e.target.closest('.toggle-visibility-btn');
+                const deleteBtn = e.target.closest('.delete-key-btn');
+
+                if (toggleBtn) {
+                    const input = toggleBtn.closest('.relative').querySelector('.api-key-input');
+                    const icon = toggleBtn.querySelector('i');
+                    const isPassword = input.type === 'password';
+                    input.type = isPassword ? 'text' : 'password';
+                    icon.setAttribute('data-feather', isPassword ? 'eye-off' : 'eye');
+                    feather.replace();
+                }
+
+                if (deleteBtn) {
+                    const itemToRemove = deleteBtn.closest('.key-item');
+                    itemToRemove.classList.add('fade-out');
+                    itemToRemove.addEventListener('animationend', () => itemToRemove.remove());
+                }
+            }
+            geminiKeysContainer.addEventListener('click', handleContainerClick);
+            imgbbKeysContainer.addEventListener('click', handleContainerClick);
+
+
+            saveKeysBtn.addEventListener('click', async () => {
+                const geminiInputs = geminiKeysContainer.querySelectorAll('input[data-key-type="gemini"]');
+                const imgbbInputs = imgbbKeysContainer.querySelectorAll('input[data-key-type="imgbb"]');
+                
+                const geminiKeysToSave = Array.from(geminiInputs).map(input => input.value.trim()).filter(key => key !== '');
+                const imgbbKeysToSave = Array.from(imgbbInputs).map(input => input.value.trim()).filter(key => key !== '');
+
+                saveKeysBtn.disabled = true;
+                saveKeysBtn.textContent = 'Đang lưu...';
+
+                try {
+                    await setDoc(apiKeyDocRef, { 
+                        gemini_keys: geminiKeysToSave,
+                        imgbb_keys: imgbbKeysToSave
+                    }, { merge: true });
+                    showToast('Lưu API keys thành công!', 'success');
+                } catch (error) {
+                    console.error("Error saving API keys:", error);
+                    showToast('Có lỗi xảy ra khi lưu.', 'error');
+                } finally {
+                    saveKeysBtn.disabled = false;
+                    saveKeysBtn.textContent = 'Lưu tất cả thay đổi';
+                }
+            });
+
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+                toast.className = `toast show ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg`;
+                toast.textContent = message;
+                
+                toastContainer.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, 3000);
+            }
+
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+        });
+    </script>
+</body>
+</html>
