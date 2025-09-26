@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết quả Bài làm - AIGEO</title>
+    <!-- 
+      Lưu ý: Link CDN của Tailwind này phù hợp cho việc phát triển. 
+      Đối với website thực tế (production), bạn nên cài đặt Tailwind CSS trực tiếp vào dự án
+      để tối ưu tốc độ tải trang theo khuyến nghị trong console.
+    -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
@@ -112,8 +117,8 @@
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4">
                          <h2 class="text-xl font-bold text-slate-700">Xem lại chi tiết bài làm</h2>
                          <div class="flex space-x-2">
-                            <a id="back-to-hub" href="practice-hub.html" class="bg-white text-slate-700 font-semibold px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition nav-link flex items-center"><i data-feather="zap" class="w-4 h-4 mr-2"></i>Luyện tập tiếp</a>
-                            <a id="back-to-dashboard" href="index.html" class="cta-button text-white font-semibold px-4 py-2 rounded-lg nav-link flex items-center"><i data-feather="home" class="w-4 h-4 mr-2"></i>Về trang chủ</a>
+                             <a id="back-to-hub" href="practice-hub.html" class="bg-white text-slate-700 font-semibold px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition nav-link flex items-center"><i data-feather="zap" class="w-4 h-4 mr-2"></i>Luyện tập tiếp</a>
+                             <a id="back-to-dashboard" href="index.html" class="cta-button text-white font-semibold px-4 py-2 rounded-lg nav-link flex items-center"><i data-feather="home" class="w-4 h-4 mr-2"></i>Về trang chủ</a>
                          </div>
                     </div>
                     <div id="review-container" class="space-y-6">
@@ -166,9 +171,9 @@
             });
             
              function cleanPrefix(text) {
-                if (!text) return '';
-                return text.replace(/^(Bài|Chương|Phần|Câu)\s*\d+\s*[:.]?\s*/i, '').trim();
-            }
+                 if (!text) return '';
+                 return text.replace(/^(Bài|Chương|Phần|Câu)\s*\d+\s*[:.]?\s*/i, '').trim();
+             }
 
             async function initResultPage() {
                 try {
@@ -336,13 +341,15 @@
                 `;
                 
                 try {
-                    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`;
+                    // SỬA LỖI TẠI ĐÂY: Đổi "v1beta" thành "v1"
+                    const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${geminiApiKey}`;
+                    
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
                     
                     const data = await response.json();
                     if (!data.candidates || data.candidates.length === 0) throw new Error("Phản hồi từ AI không hợp lệ.");
@@ -421,4 +428,3 @@
     </script>
 </body>
 </html>
-
