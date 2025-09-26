@@ -496,7 +496,10 @@
                     if (isCorrect) {
                         score++;
                     } else {
-                        incorrectQuestions.push({ questionContent: q.content, lessonId: q.lessonId });
+                        incorrectQuestions.push({ 
+                            questionContent: q.content, 
+                            lessonId: q.lessonId || null 
+                        });
                     }
                 });
                 
@@ -516,21 +519,23 @@
                     const submissionRef = doc(db, 'submissions', submissionId);
                     const teacherIds = await getTeacherIdsForSubject(practiceContext.subjectId);
 
-                    await setDoc(submissionRef, {
+                    const submissionData = {
                         studentId: currentUser.uid,
                         testId: finalTestId,
                         testName: finalTestName,
-                        subjectId: practiceContext.subjectId,
+                        subjectId: practiceContext.subjectId || null,
                         score: score,
                         totalQuestions: questions.length,
                         timeTaken: timeElapsed,
                         completedAt: serverTimestamp(),
                         incorrectQuestions: incorrectQuestions,
-                        questionIds: questions.map(q => q.id.startsWith('embedded_') ? null : q.id).filter(id => id), // Chỉ lưu ID thật
-                        embeddedQuestions: questions.filter(q => q.id.startsWith('embedded_')), // Lưu câu hỏi nhúng
+                        questionIds: questions.map(q => q.id.startsWith('embedded_') ? null : q.id).filter(id => id),
+                        embeddedQuestions: questions.filter(q => q.id.startsWith('embedded_')),
                         userAnswers: userAnswers,
                         teacherIds: teacherIds
-                    });
+                    };
+
+                    await setDoc(submissionRef, submissionData);
 
                     sessionStorage.setItem('latestResultId', submissionId);
                     window.location.href = 'result.html';
@@ -558,3 +563,4 @@
     </script>
 </body>
 </html>
+
