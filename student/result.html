@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết quả Bài làm - AIGEO</title>
-    <!-- 
-      Lưu ý: Link CDN của Tailwind này phù hợp cho việc phát triển. 
-      Đối với website thực tế (production), bạn nên cài đặt Tailwind CSS trực tiếp vào dự án
-      để tối ưu tốc độ tải trang theo khuyến nghị trong console.
-    -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
@@ -82,7 +77,6 @@
             <div id="result-page-content" class="max-w-4xl mx-auto opacity-0 transition-opacity duration-500">
                 <h1 id="test-name-title" class="text-3xl font-bold text-slate-800">Kết quả Bài làm</h1>
                 
-                <!-- Summary Card -->
                 <div class="mt-6 bg-white p-6 rounded-xl shadow-lg grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                     <div>
                         <p class="text-sm font-semibold text-slate-500">ĐIỂM SỐ</p>
@@ -197,10 +191,9 @@
                     completedAtDisplay.textContent = completedAt.toDate().toLocaleDateString('vi-VN');
                     if(tenPointScore >= 8) launchConfetti();
                     
-                    const [fetchedQuestions, allLessons, apiKeySnap] = await Promise.all([
+                    const [fetchedQuestions, allLessons] = await Promise.all([
                         fetchQuestions(questionIds),
                         fetchAllLessons(),
-                        getDoc(doc(db, "system_settings", "api_keys"))
                     ]);
                     
                     const finalQuestions = [...fetchedQuestions, ...(embeddedQuestions || [])];
@@ -213,8 +206,7 @@
                         ? topicsToReview.map(l => `<li><i data-feather="target" class="w-4 h-4 inline-block mr-2 text-red-500"></i>${cleanPrefix(l.name)}</li>`).join('')
                         : `<li><i data-feather="check-circle" class="w-4 h-4 inline-block mr-2 text-green-500"></i>Làm tốt lắm, không có lỗi sai!</li>`;
                     
-                    const apiKeysData = apiKeySnap.exists() ? apiKeySnap.data() : null;
-                    getAiFeedback(incorrectQuestions || [], topicsToReview, score, totalQuestions, apiKeysData);
+                    getAiFeedback(incorrectQuestions || [], topicsToReview, score, totalQuestions);
                     
                     resultPageContent.classList.add('opacity-100');
                     feather.replace();
@@ -281,7 +273,7 @@
                         answerHTML = `<div class="mt-4"><p><strong>Đáp án đúng:</strong> <span class="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">${q.correctAnswer}</span></p><p><strong>Câu trả lời của bạn:</strong> <span class="font-mono ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded">${userAnswer || '(bỏ trống)'}</span></p></div>`;
                     } else if (q.type === 'true_false') {
                         isCorrect = (q.statements || []).every((stmt, i) => {
-                            if (!stmt.statement) return true;
+                            if (!stmt.statement) return true; // Bỏ qua mệnh đề trống
                             return (userAnswer ? userAnswer[i] : undefined) === stmt.answer;
                         });
 
@@ -311,19 +303,28 @@
                 renderMathWithKaTeX(reviewContainerEl);
             }
 
-            async function getAiFeedback(incorrectQuestions, topicsToReview, score, total, apiKeysData) {
-                const geminiApiKeys = apiKeysData?.gemini_keys;
-
-                if (!geminiApiKeys || geminiApiKeys.length === 0) {
-                    aiFeedbackEl.innerHTML = "Tính năng nhận xét AI chưa được quản trị viên cấu hình. Vui lòng liên hệ để được hỗ trợ.";
+            async function getAiFeedback(incorrectQuestions, topicsToReview, score, total) {
+                let geminiApiKey = null;
+                // Step 1: Try to read the API key from Firestore
+                try {
+                    const apiKeySnap = await getDoc(doc(db, "system_settings", "api_keys"));
+                    if (apiKeySnap.exists() && apiKeySnap.data().gemini_keys && apiKeySnap.data().gemini_keys.length > 0) {
+                        geminiApiKey = apiKeySnap.data().gemini_keys[0];
+                    } else {
+                        aiFeedbackEl.innerHTML = "Lỗi: Không tìm thấy Gemini API key trong cài đặt hệ thống. Vui lòng liên hệ quản trị viên.";
+                        return;
+                    }
+                } catch (error) {
+                    console.error("Firebase Error:", error);
+                    aiFeedbackEl.innerHTML = "Lỗi khi đọc API key từ Firestore. Vui lòng kiểm tra lại quy tắc bảo mật (Security Rules).";
                     return;
                 }
+
                 if(incorrectQuestions.length === 0) {
                     aiFeedbackEl.innerHTML = "<strong>Xuất sắc!</strong><p>Bạn đã trả lời đúng tất cả các câu hỏi. Hãy tiếp tục phát huy nhé!</p>";
                     return;
                 }
-                
-                const geminiApiKey = geminiApiKeys[0];
+
                 const incorrectContent = incorrectQuestions.slice(0, 5).map(q => `- ${q.questionContent.replace(/\s+/g, ' ').substring(0, 100)}...`).join('\n');
                 const topicsContent = topicsToReview.map(t => t.name).join(', ');
 
@@ -339,26 +340,55 @@
                     3.  Đề xuất hành động cụ thể (ví dụ: "hãy xem lại lý thuyết về...", "chú ý dạng bài tập...").
                     4.  Sử dụng định dạng HTML với các thẻ <p>, <strong> và <ul><li>. Bắt đầu bằng <strong> và không bao gồm markdown hay backticks.
                 `;
-                
+
+                // Step 2: Use the fetched API key to call Google Gemini
                 try {
-                    // SỬA LỖI TẠI ĐÂY: Đổi "v1beta" thành "v1"
-                    // Đúng
-                    const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${geminiApiKey}`;
+                    // Use the stable gemini-pro model with the streaming endpoint
+                    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?key=${geminiApiKey}&alt=sse`;
+
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
-                    
-                    const data = await response.json();
-                    if (!data.candidates || data.candidates.length === 0) throw new Error("Phản hồi từ AI không hợp lệ.");
-                    
-                    const text = data.candidates[0].content.parts[0].text;
-                    aiFeedbackEl.innerHTML = text;
+
+                    if (!response.ok) {
+                         const errorBody = await response.text();
+                         console.error("Gemini API Error Body:", errorBody);
+                         throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let fullResponse = "";
+
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        const jsonLines = lines
+                            .map(line => line.replace(/^data: /, '').trim())
+                            .filter(line => line.startsWith('{'))
+                            .map(line => JSON.parse(line));
+
+                        for (const json of jsonLines) {
+                            const textPart = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                            if (textPart) {
+                                fullResponse += textPart;
+                            }
+                        }
+                    }
+
+                    if (!fullResponse) {
+                        throw new Error("Phản hồi từ AI không hợp lệ.");
+                    }
+                    aiFeedbackEl.innerHTML = fullResponse;
+
                 } catch (error) {
                     console.error("AI Feedback Error:", error);
-                    aiFeedbackEl.innerHTML = "Rất tiếc, không thể tạo nhận xét tự động lúc này. Vui lòng tự xem lại các câu sai ở bên dưới nhé.";
+                    aiFeedbackEl.innerHTML = "Rất tiếc, không thể tạo nhận xét tự động lúc này. Vui lòng thử lại sau. Chi tiết lỗi: " + error.message;
                 }
             }
             
