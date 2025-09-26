@@ -179,7 +179,7 @@
                     if (!resultSnap.exists()) throw new Error("Không tìm thấy dữ liệu kết quả.");
                     
                     const resultData = resultSnap.data();
-                    const { score, totalQuestions, userAnswers, incorrectQuestions, questionIds, timeTaken, completedAt, testName } = resultData;
+                    const { score, totalQuestions, userAnswers, incorrectQuestions, questionIds, embeddedQuestions, timeTaken, completedAt, testName } = resultData;
                     
                     // Populate Summary Card
                     const tenPointScore = totalQuestions > 0 ? (score / totalQuestions) * 10 : 0;
@@ -192,15 +192,17 @@
                     completedAtDisplay.textContent = completedAt.toDate().toLocaleDateString('vi-VN');
                     if(tenPointScore >= 8) launchConfetti();
                     
-                    const [questions, allLessons, apiKeySnap] = await Promise.all([
+                    const [fetchedQuestions, allLessons, apiKeySnap] = await Promise.all([
                         fetchQuestions(questionIds),
                         fetchAllLessons(),
                         getDoc(doc(db, "system_settings", "api_keys"))
                     ]);
                     
-                    renderReviewSection(questions, userAnswers, allLessons);
+                    const finalQuestions = [...fetchedQuestions, ...(embeddedQuestions || [])];
+
+                    renderReviewSection(finalQuestions, userAnswers, allLessons);
                     
-                    const uniqueIncorrectLessonIds = [...new Set((incorrectQuestions || []).map(q => q.lessonId))];
+                    const uniqueIncorrectLessonIds = [...new Set((incorrectQuestions || []).map(q => q.lessonId).filter(id => id))];
                     const topicsToReview = allLessons.filter(l => uniqueIncorrectLessonIds.includes(l.id));
                     reviewTopicsEl.innerHTML = topicsToReview.length > 0
                         ? topicsToReview.map(l => `<li><i data-feather="target" class="w-4 h-4 inline-block mr-2 text-red-500"></i>${cleanPrefix(l.name)}</li>`).join('')
@@ -255,29 +257,35 @@
                     let isCorrect = false;
                     let answerHTML = '';
                     if (q.type === 'multiple_choice') {
-                        isCorrect = userAnswer === q.correctAnswer;
-                        answerHTML = (q.options || []).map((option, i) => {
+                         const originalAnswer = q.shuffledOptions?.find(opt => opt.originalLetter === q.correctAnswer);
+                         const selectedOption = q.shuffledOptions?.find((opt, i) => String.fromCharCode(65 + i) === userAnswer);
+                         isCorrect = selectedOption?.originalLetter === q.correctAnswer;
+
+                        answerHTML = (q.shuffledOptions || []).map((optionData, i) => {
                             const optionLetter = String.fromCharCode(65 + i);
                             let classes = 'answer-option border-2 border-slate-200 p-4 rounded-lg mt-2 flex items-start';
-                            if(optionLetter === q.correctAnswer) classes += ' correct';
+                            if(optionData.originalLetter === q.correctAnswer) classes += ' correct';
                             else if (optionLetter === userAnswer && !isCorrect) classes += ' incorrect';
-                            return `<div class="${classes}"><span class="font-bold mr-2">${optionLetter}.</span> <div>${option}</div></div>`;
+                            return `<div class="${classes}"><span class="font-bold mr-2">${optionLetter}.</span> <div>${optionData.content}</div></div>`;
                         }).join('');
+
                     } else if (q.type === 'short_answer') {
                         const formattedCorrectAnswer = String(q.correctAnswer).trim().toLowerCase();
                         const formattedUserAnswer = String(userAnswer || "").trim().toLowerCase();
                         isCorrect = formattedUserAnswer === formattedCorrectAnswer;
                         answerHTML = `<div class="mt-4"><p><strong>Đáp án đúng:</strong> <span class="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">${q.correctAnswer}</span></p><p><strong>Câu trả lời của bạn:</strong> <span class="font-mono ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded">${userAnswer || '(bỏ trống)'}</span></p></div>`;
-                    } else if (q.type === 'true_false_group') {
-                        const correctAnswers = q.answers || {};
-                        const statements = q.statements || {};
-                        const statementKeys = Object.keys(statements).filter(k => statements[k]);
-                        isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => userAnswer[key] === correctAnswers[key]);
-                        answerHTML = statementKeys.map(key => {
-                            const userAns = userAnswer ? userAnswer[key] : undefined;
-                            const correctAns = correctAnswers[key];
+                    } else if (q.type === 'true_false') {
+                        isCorrect = (q.statements || []).every((stmt, i) => {
+                            if (!stmt.statement) return true;
+                            return (userAnswer ? userAnswer[i] : undefined) === stmt.answer;
+                        });
+
+                        answerHTML = (q.statements || []).map((stmt, i) => {
+                             if(!stmt.statement) return '';
+                            const userAns = userAnswer ? userAnswer[i] : undefined;
+                            const correctAns = stmt.answer;
                             const isSubCorrect = userAns === correctAns;
-                            return `<div class="p-3 border-t"><p>${key}) ${statements[key]}</p><div class="text-sm mt-2"><span>Đáp án: <strong class="${correctAns ? 'text-green-600' : 'text-red-600'}">${correctAns ? 'Đúng' : 'Sai'}</strong></span> | <span>Bạn chọn: <strong class="${isSubCorrect ? 'text-green-600' : 'text-red-600'}">${userAns === undefined ? '(bỏ trống)' : (userAns ? 'Đúng' : 'Sai')}</strong></span></div></div>`;
+                            return `<div class="p-3 border-t"><p>${i+1}) ${stmt.statement}</p><div class="text-sm mt-2"><span>Đáp án: <strong class="${correctAns ? 'text-green-600' : 'text-red-600'}">${correctAns ? 'Đúng' : 'Sai'}</strong></span> | <span>Bạn chọn: <strong class="${isSubCorrect ? 'text-green-600' : 'text-red-600'}">${userAns === undefined ? '(bỏ trống)' : (userAns ? 'Đúng' : 'Sai')}</strong></span></div></div>`;
                         }).join('');
                         answerHTML = `<div class="mt-4 border rounded-lg divide-y">${answerHTML}</div>`;
                     }
@@ -328,7 +336,7 @@
                 `;
                 
                 try {
-                    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`;
+                    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
