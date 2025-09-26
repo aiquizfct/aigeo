@@ -343,8 +343,8 @@
 
                 // Step 2: Use the fetched API key to call Google Gemini
                 try {
-                    // Use the stable gemini-pro model with the streaming endpoint
-                    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?key=${geminiApiKey}&alt=sse`;
+                    // **SỬA LỖI CUỐI CÙNG**: Dùng model `gemini-1.5-flash-latest` với endpoint streaming
+                    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:streamGenerateContent?key=${geminiApiKey}&alt=sse`;
 
                     const response = await fetch(API_URL, {
                         method: 'POST',
