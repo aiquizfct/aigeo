@@ -77,7 +77,6 @@
             <div id="result-page-content" class="max-w-4xl mx-auto opacity-0 transition-opacity duration-500">
                 <h1 id="test-name-title" class="text-3xl font-bold text-slate-800">Kết quả Bài làm</h1>
                 
-                <!-- Summary Card -->
                 <div class="mt-6 bg-white p-6 rounded-xl shadow-lg grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                     <div>
                         <p class="text-sm font-semibold text-slate-500">ĐIỂM SỐ</p>
@@ -103,18 +102,18 @@
                         <div id="ai-feedback" class="prose prose-sm text-slate-600"><div class="skeleton h-24 w-full"></div></div>
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-sm">
-                         <h3 class="font-bold text-slate-700 mb-3 flex items-center"><i data-feather="target" class="w-5 h-5 mr-2 text-red-500"></i>Nội dung cần ôn lại</h3>
-                         <ul id="review-topics" class="space-y-2 text-slate-600"><li class="skeleton h-5 w-full"></li><li class="skeleton h-5 w-3/4"></li></ul>
+                        <h3 class="font-bold text-slate-700 mb-3 flex items-center"><i data-feather="target" class="w-5 h-5 mr-2 text-red-500"></i>Nội dung cần ôn lại</h3>
+                        <ul id="review-topics" class="space-y-2 text-slate-600"><li class="skeleton h-5 w-full"></li><li class="skeleton h-5 w-3/4"></li></ul>
                     </div>
                 </div>
 
                 <div class="mt-8">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4">
-                         <h2 class="text-xl font-bold text-slate-700">Xem lại chi tiết bài làm</h2>
-                         <div class="flex space-x-2">
+                        <h2 class="text-xl font-bold text-slate-700">Xem lại chi tiết bài làm</h2>
+                        <div class="flex space-x-2">
                             <a id="back-to-hub" href="practice-hub.html" class="bg-white text-slate-700 font-semibold px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition nav-link flex items-center"><i data-feather="zap" class="w-4 h-4 mr-2"></i>Luyện tập tiếp</a>
                             <a id="back-to-dashboard" href="index.html" class="cta-button text-white font-semibold px-4 py-2 rounded-lg nav-link flex items-center"><i data-feather="home" class="w-4 h-4 mr-2"></i>Về trang chủ</a>
-                         </div>
+                        </div>
                     </div>
                     <div id="review-container" class="space-y-6">
                         <div class="skeleton h-40 w-full"></div>
@@ -165,7 +164,7 @@
                 }
             });
             
-             function cleanPrefix(text) {
+            function cleanPrefix(text) {
                 if (!text) return '';
                 return text.replace(/^(Bài|Chương|Phần|Câu)\s*\d+\s*[:.]?\s*/i, '').trim();
             }
@@ -256,10 +255,11 @@
                     const userAnswer = userAnswers[q.id];
                     let isCorrect = false;
                     let answerHTML = '';
+                    
                     if (q.type === 'multiple_choice') {
-                         const originalAnswer = q.shuffledOptions?.find(opt => opt.originalLetter === q.correctAnswer);
-                         const selectedOption = q.shuffledOptions?.find((opt, i) => String.fromCharCode(65 + i) === userAnswer);
-                         isCorrect = selectedOption?.originalLetter === q.correctAnswer;
+                        const originalAnswer = q.shuffledOptions?.find(opt => opt.originalLetter === q.correctAnswer);
+                        const selectedOption = q.shuffledOptions?.find((opt, i) => String.fromCharCode(65 + i) === userAnswer);
+                        isCorrect = selectedOption?.originalLetter === q.correctAnswer;
 
                         answerHTML = (q.shuffledOptions || []).map((optionData, i) => {
                             const optionLetter = String.fromCharCode(65 + i);
@@ -274,21 +274,35 @@
                         const formattedUserAnswer = String(userAnswer || "").trim().toLowerCase();
                         isCorrect = formattedUserAnswer === formattedCorrectAnswer;
                         answerHTML = `<div class="mt-4"><p><strong>Đáp án đúng:</strong> <span class="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">${q.correctAnswer}</span></p><p><strong>Câu trả lời của bạn:</strong> <span class="font-mono ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded">${userAnswer || '(bỏ trống)'}</span></p></div>`;
-                    } else if (q.type === 'true_false') {
-                        isCorrect = (q.statements || []).every((stmt, i) => {
-                            if (!stmt.statement) return true;
-                            return (userAnswer ? userAnswer[i] : undefined) === stmt.answer;
-                        });
+                    
+                    } else if (q.type === 'true_false_group' || q.type === 'true_false') {
+                        const statementKeys = Object.keys(q.statements || {}).sort();
+                        isCorrect = statementKeys.every(key => (q.answers || {})[key] === (userAnswer || {})[key]);
 
-                        answerHTML = (q.statements || []).map((stmt, i) => {
-                             if(!stmt.statement) return '';
-                            const userAns = userAnswer ? userAnswer[i] : undefined;
-                            const correctAns = stmt.answer;
+                        answerHTML = statementKeys.map(key => {
+                            const statementText = (q.statements || {})[key];
+                            if (!statementText) return '';
+
+                            const userAns = (userAnswer || {})[key];
+                            const correctAns = (q.answers || {})[key];
                             const isSubCorrect = userAns === correctAns;
-                            return `<div class="p-3 border-t"><p>${i+1}) ${stmt.statement}</p><div class="text-sm mt-2"><span>Đáp án: <strong class="${correctAns ? 'text-green-600' : 'text-red-600'}">${correctAns ? 'Đúng' : 'Sai'}</strong></span> | <span>Bạn chọn: <strong class="${isSubCorrect ? 'text-green-600' : 'text-red-600'}">${userAns === undefined ? '(bỏ trống)' : (userAns ? 'Đúng' : 'Sai')}</strong></span></div></div>`;
+                            
+                            const formatAnswer = (ans) => {
+                                if (ans === undefined || ans === null) return '(bỏ trống)';
+                                return ans ? 'Đúng' : 'Sai';
+                            };
+
+                            return `<div class="p-3 border-t">
+                                <p>${key}) ${statementText}</p>
+                                <div class="text-sm mt-2">
+                                    <span>Đáp án: <strong class="${correctAns ? 'text-green-600' : 'text-red-600'}">${formatAnswer(correctAns)}</strong></span> | 
+                                    <span>Bạn chọn: <strong class="${isSubCorrect ? 'text-green-600' : 'text-red-600'}">${formatAnswer(userAns)}</strong></span>
+                                </div>
+                            </div>`;
                         }).join('');
                         answerHTML = `<div class="mt-4 border rounded-lg divide-y">${answerHTML}</div>`;
                     }
+
                     const questionCard = document.createElement('div');
                     questionCard.className = 'bg-white p-6 rounded-xl shadow-sm';
                     questionCard.innerHTML = `
@@ -336,7 +350,7 @@
                 `;
                 
                 try {
-                    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`;
+                    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -421,4 +435,3 @@
     </script>
 </body>
 </html>
-
