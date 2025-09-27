@@ -10,8 +10,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-    <!-- Thêm thư viện DOMPurify để bảo mật -->
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
     <style>
         :root {
             --primary-teal: #0D9488;
@@ -96,11 +94,15 @@
         </header>
         <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
             <div class="max-w-4xl mx-auto">
-                <div class="flex items-center mb-6">
-                    <a href="tests.html" class="p-2 mr-2 hover:bg-slate-200 rounded-full"><i data-feather="arrow-left"></i></a>
-                    <div>
+                <div class="flex items-start mb-6">
+                    <a href="tests.html" class="p-2 mr-2 hover:bg-slate-200 rounded-full mt-1"><i data-feather="arrow-left"></i></a>
+                    <div class="flex-grow">
                         <h1 id="page-title" class="text-3xl font-bold text-slate-800">Soạn nội dung đề thi - Bước 2</h1>
                         <p id="test-name-subtitle" class="text-slate-600 mt-1">Đang tải tên đề thi...</p>
+                    </div>
+                    <div class="ml-auto flex-shrink-0">
+                         <label for="time-limit" class="block text-sm font-medium text-gray-700">Thời gian làm bài (phút)</label>
+                         <input type="number" id="time-limit" value="45" min="1" class="form-input w-32">
                     </div>
                 </div>
                 
@@ -204,6 +206,7 @@
             const qImageInput = document.getElementById('q-image-input');
             const qImageRemoveBtn = document.getElementById('q-image-remove-btn');
             const previewTestBtn = document.getElementById('preview-test-btn');
+            const timeLimitInput = document.getElementById('time-limit');
             
             let currentUser = null;
             let currentTestId = null;
@@ -223,6 +226,22 @@
                     toast.classList.remove('show');
                     toast.addEventListener('transitionend', () => toast.remove());
                 }, 3000);
+            }
+            
+            function sanitizeHtmlContent(htmlString) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlString;
+                tempDiv.querySelectorAll('*').forEach(el => {
+                    el.removeAttribute('style');
+                });
+                tempDiv.querySelectorAll('font').forEach(fontEl => {
+                    const parent = fontEl.parentNode;
+                    while (fontEl.firstChild) {
+                        parent.insertBefore(fontEl.firstChild, fontEl);
+                    }
+                    parent.removeChild(fontEl);
+                });
+                return tempDiv.innerHTML;
             }
 
             onAuthStateChanged(auth, async (user) => {
@@ -247,7 +266,6 @@
                     return;
                 }
                 
-                // Set preview button link
                 previewTestBtn.href = `test-view.html?testId=${currentTestId}`;
 
                 await loadTestData();
@@ -263,6 +281,7 @@
                     testData = docSnap.data();
                     if(!testData.questions) testData.questions = [];
                     document.getElementById('test-name-subtitle').textContent = `Soạn câu hỏi cho: ${testData.name}`;
+                    timeLimitInput.value = testData.timeLimit || 45;
                     renderQuestionsList();
                 } else {
                     showToast("Không tìm thấy đề thi hoặc bạn không có quyền truy cập.", "error");
@@ -275,12 +294,15 @@
                 qType.addEventListener('change', renderAnswerFields);
                 addQuestionForm.addEventListener('submit', handleAddOrUpdateQuestion);
                 cancelEditBtn.addEventListener('click', resetForm);
+                timeLimitInput.addEventListener('change', handleTimeLimitChange);
 
                 qImageInput.addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (file) uploadImage(file);
                 });
-                imageDropZone.addEventListener('paste', handleImagePaste);
+
+                qContent.addEventListener('paste', handlePaste);
+
                 qImageRemoveBtn.addEventListener('click', removeImage);
 
                 imageDropZone.addEventListener('dragover', (e) => {
@@ -364,13 +386,11 @@
                 testData.questions.forEach((q, index) => {
                     const questionDiv = document.createElement('div');
                     questionDiv.className = 'question-block';
-                    let imageHTML = q.imageUrl ? `<img src="${q.imageUrl}" alt="Question image" class="mt-2 rounded-md max-w-sm">` : '';
-
+                    
                     questionDiv.innerHTML = `
                         <div class="flex justify-between items-start">
                              <div class="prose prose-sm max-w-none">
                                 <b>Câu ${index + 1}:</b> ${q.content}
-                                ${imageHTML}
                              </div>
                              <div class="flex space-x-1 flex-shrink-0 ml-4">
                                 <button data-action="edit" data-index="${index}" class="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-md"><i data-feather="edit-2" class="w-4 h-4"></i></button>
@@ -386,7 +406,7 @@
             async function handleAddOrUpdateQuestion(e) {
                 e.preventDefault();
                 const rawContent = qContent.innerHTML.trim();
-                const content = DOMPurify.sanitize(rawContent);
+                const content = sanitizeHtmlContent(rawContent);
 
                 if (!content) {
                     showToast("Vui lòng nhập nội dung câu hỏi.", "error");
@@ -513,15 +533,24 @@
                 }
             }
 
-            function handleImagePaste(e) {
-                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                for (const item of items) {
-                    if (item.kind === 'file' && item.type.startsWith('image/')) {
-                        e.preventDefault();
-                        const file = item.getAsFile();
-                        uploadImage(file);
-                        return;
+            function handlePaste(e) {
+                e.preventDefault();
+                let pasteData = (e.clipboardData || window.clipboardData);
+                let imageFound = false;
+
+                if (pasteData.files && pasteData.files.length > 0) {
+                     for (const item of pasteData.files) {
+                        if (item.type.startsWith('image/')) {
+                            uploadImage(item);
+                            imageFound = true;
+                            break; 
+                        }
                     }
+                }
+                
+                if (!imageFound) {
+                    const text = pasteData.getData('text/plain');
+                    document.execCommand('insertText', false, text);
                 }
             }
             
@@ -541,13 +570,32 @@
                     () => {
                         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
                             currentImageUrl = downloadURL;
-                            qImagePreview.src = downloadURL;
-                            imagePreviewContainer.classList.remove('hidden');
-                            imagePlaceholder.classList.add('hidden');
+                            const imgTag = `<img src="${downloadURL}" alt="Uploaded Image">`;
+                            qContent.innerHTML += imgTag;
                             showToast("Tải ảnh thành công!", "success");
                         });
                     }
                 );
+            }
+
+            async function handleTimeLimitChange() {
+                const newTimeLimit = parseInt(timeLimitInput.value, 10);
+                if (!newTimeLimit || newTimeLimit <= 0) {
+                    showToast("Thời gian làm bài phải là một số dương.", "error");
+                    timeLimitInput.value = testData.timeLimit || 45;
+                    return;
+                }
+
+                testData.timeLimit = newTimeLimit;
+                const docRef = doc(db, "tests", currentTestId);
+                try {
+                    await updateDoc(docRef, { timeLimit: newTimeLimit });
+                    showToast("Đã cập nhật thời gian làm bài!", "success");
+                } catch (error) {
+                    showToast("Lỗi khi cập nhật thời gian làm bài.", "error");
+                    console.error("Error updating time limit:", error);
+                    timeLimitInput.value = testData.timeLimit; 
+                }
             }
 
             feather.replace();
@@ -555,3 +603,4 @@
     </script>
 </body>
 </html>
+
