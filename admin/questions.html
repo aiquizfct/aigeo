@@ -460,6 +460,17 @@
                 return tableHTML;
             }
 
+            function setupPasteListener(prefix) {
+                const contentDiv = document.getElementById(`${prefix}-q-content`);
+                if (contentDiv) {
+                    contentDiv.addEventListener('paste', (e) => {
+                        e.preventDefault();
+                        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                        document.execCommand('insertText', false, text);
+                    });
+                }
+            }
+
             function setupEventListeners() {
                 document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
                 
@@ -532,12 +543,37 @@
 
                 setupImageUpload('qa');
                 setupImageUpload('edit');
+
+                setupPasteListener('qa');
+                setupPasteListener('edit');
+            }
+
+            function sanitizeHtmlContent(htmlString) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlString;
+                
+                tempDiv.querySelectorAll('*').forEach(el => {
+                    el.removeAttribute('style');
+                });
+
+                tempDiv.querySelectorAll('font').forEach(fontEl => {
+                    const parent = fontEl.parentNode;
+                    while (fontEl.firstChild) {
+                        parent.insertBefore(fontEl.firstChild, fontEl);
+                    }
+                    parent.removeChild(fontEl);
+                });
+
+                return tempDiv.innerHTML;
             }
 
             function getQuestionPayloadFromForm(formElement, prefix) {
                 const type = formElement.querySelector(`#${prefix}-q-type`).value;
+                const rawContent = formElement.querySelector(`#${prefix}-q-content`).innerHTML.trim();
+                const sanitizedContent = sanitizeHtmlContent(rawContent);
+
                 const payload = {
-                    content: formElement.querySelector(`#${prefix}-q-content`).innerHTML.trim(),
+                    content: sanitizedContent,
                     type: type,
                     difficulty: formElement.querySelector(`#${prefix}-q-difficulty`).value,
                     explanation: formElement.querySelector(`#${prefix}-q-explanation`).value.trim(),
@@ -783,9 +819,10 @@
                 const dropZone = document.getElementById(`${prefix}-image-drop-zone`);
                 const input = document.getElementById(`${prefix}-q-image-input`);
                 const removeBtn = document.getElementById(`${prefix}-q-image-remove-btn`);
+                const contentDiv = document.getElementById(`${prefix}-q-content`);
 
                 input.addEventListener('change', (e) => handleFileSelect(e.target.files[0], prefix));
-                dropZone.addEventListener('paste', (e) => handleImagePaste(e, prefix));
+                contentDiv.addEventListener('paste', (e) => handleImagePaste(e, prefix));
                 removeBtn.addEventListener('click', () => removeImage(prefix));
                 dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-teal-500'); });
                 dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-teal-500'); });
@@ -842,7 +879,6 @@
                         if (prefix === 'qa') qaCurrentImageUrl = downloadURL;
                         else if (prefix === 'edit') editCurrentImageUrl = downloadURL;
                         
-                        // CẬP NHẬT: Thêm ảnh vào vùng nhập liệu
                         const contentDiv = document.getElementById(`${prefix}-q-content`);
                         const imgTag = `<img src="${downloadURL}" alt="Uploaded Image" />`;
                         contentDiv.innerHTML += imgTag;
@@ -859,18 +895,13 @@
             }
             
             function removeImage(prefix) {
-                // This function no longer needs to manage a separate preview,
-                // as images are now part of the content.
-                // We'll keep it to clear the image URL variable if needed during resets.
                 if (prefix === 'qa') qaCurrentImageUrl = '';
                 else if (prefix === 'edit') editCurrentImageUrl = '';
-                // Since the image is in the content div, removing it would require more complex DOM manipulation.
-                // For now, users can manually delete it from the contenteditable div.
             }
 
             function resetQuickAddForm() {
                 quickAddForm.reset();
-                quickAddForm.querySelector('#qa-q-content').innerHTML = ''; // Clear content div
+                quickAddForm.querySelector('#qa-q-content').innerHTML = '';
                 qaCurrentImageUrl = '';
                 toggleAnswerFields(quickAddForm, 'qa');
             }
