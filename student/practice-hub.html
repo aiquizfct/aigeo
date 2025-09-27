@@ -174,21 +174,46 @@
                                 <div id="lesson-list-container-comprehensive" class="mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg">
                                     Vui lòng chọn Môn học và Lớp.
                                 </div>
-                                <div id="question-type-wrapper-comprehensive" class="mt-6 space-y-2 hidden">
-                                    <label class="block text-sm font-medium text-slate-700">Chọn dạng thức câu hỏi:</label>
-                                    <div class="flex flex-wrap gap-x-6 gap-y-2">
-                                        <label class="flex items-center space-x-2 cursor-pointer">
-                                            <input type="checkbox" name="question-type" value="multiple_choice" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" checked>
-                                            <span class="text-sm text-slate-700">Trắc nghiệm</span>
-                                        </label>
-                                        <label class="flex items-center space-x-2 cursor-pointer">
-                                            <input type="checkbox" name="question-type" value="true_false" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" checked>
-                                            <span class="text-sm text-slate-700">Đúng/Sai</span>
-                                        </label>
-                                        <label class="flex items-center space-x-2 cursor-pointer">
-                                            <input type="checkbox" name="question-type" value="short_answer" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" checked>
-                                            <span class="text-sm text-slate-700">Trả lời ngắn</span>
-                                        </label>
+                                <div id="filter-options-wrapper-comprehensive" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700">Chọn dạng thức câu hỏi:</label>
+                                        <div id="question-type-wrapper-comprehensive" class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                                            <label class="flex items-center space-x-2 cursor-pointer">
+                                                <input type="checkbox" name="question-type" value="multiple_choice" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" checked>
+                                                <span class="text-sm text-slate-700">Trắc nghiệm</span>
+                                                <span class="text-xs text-slate-500 ml-1" id="count-type-multiple_choice">(0)</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2 cursor-pointer">
+                                                <input type="checkbox" name="question-type" value="true_false_group" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" checked>
+                                                <span class="text-sm text-slate-700">Đúng/Sai</span>
+                                                <span class="text-xs text-slate-500 ml-1" id="count-type-true_false_group">(0)</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2 cursor-pointer">
+                                                <input type="checkbox" name="question-type" value="short_answer" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" checked>
+                                                <span class="text-sm text-slate-700">Trả lời ngắn</span>
+                                                <span class="text-xs text-slate-500 ml-1" id="count-type-short_answer">(0)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700">Chọn mức độ nhận thức:</label>
+                                        <div id="question-difficulty-wrapper-comprehensive" class="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                                            <label class="flex items-center space-x-2 cursor-pointer">
+                                                <input type="checkbox" name="question-difficulty" value="nhan_biet" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" checked>
+                                                <span class="text-sm text-slate-700">Nhận biết</span>
+                                                <span class="text-xs text-slate-500 ml-1" id="count-difficulty-nhan_biet">(0)</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2 cursor-pointer">
+                                                <input type="checkbox" name="question-difficulty" value="thong_hieu" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" checked>
+                                                <span class="text-sm text-slate-700">Thông hiểu</span>
+                                                <span class="text-xs text-slate-500 ml-1" id="count-difficulty-thong_hieu">(0)</span>
+                                            </label>
+                                            <label class="flex items-center space-x-2 cursor-pointer">
+                                                <input type="checkbox" name="question-difficulty" value="van_dung" class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500" checked>
+                                                <span class="text-sm text-slate-700">Vận dụng</span>
+                                                <span class="text-xs text-slate-500 ml-1" id="count-difficulty-van_dung">(0)</span>
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                                 <div id="question-count-wrapper-comprehensive" class="mt-6 space-y-2 hidden">
@@ -243,11 +268,10 @@
 
             const filtersComp = { subject: document.getElementById('filter-subject-comprehensive'), grade: document.getElementById('filter-grade-comprehensive') };
             const lessonListContainerComp = document.getElementById('lesson-list-container-comprehensive');
-            const questionTypeWrapperComp = document.getElementById('question-type-wrapper-comprehensive');
+            const startCompPracticeBtn = document.getElementById('start-comprehensive-practice-btn');
             const questionCountWrapperComp = document.getElementById('question-count-wrapper-comprehensive');
             const questionCountSliderComp = document.getElementById('question-count-slider-comprehensive');
             const questionCountLabelComp = document.getElementById('question-count-label-comprehensive');
-            const startCompPracticeBtn = document.getElementById('start-comprehensive-practice-btn');
 
             let currentUser = null;
             let userData = {};
@@ -257,7 +281,7 @@
 
             function cleanPrefix(text) {
                 if (!text) return '';
-                return text.replace(/^(Câu|Bài|Phần|Mục)\s*[\dIVXLC]+\s*[:.]?\s*/i, '').trim();
+                return text.replace(/^(Câu|Bài|Phần|Mục)\s*\d+\s*[:.]?\s*/i, '').trim();
             }
 
             onAuthStateChanged(auth, async (user) => {
@@ -286,6 +310,7 @@
 
             async function loadInitialData() {
                 try {
+                    if (!currentUser) return; 
                     const [subjectsSnap, lessonsSnap, testsSnap, submissionsSnap, questionsSnap, usersSnap] = await Promise.all([
                         getDocs(collection(db, "subjects")),
                         getDocs(collection(db, "lessons")),
@@ -309,6 +334,7 @@
             function initializeTabs() {
                 setupEventListeners();
                 loadAiPracticeTab(); 
+                feather.replace();
             }
 
             async function loadAiPracticeTab() {
@@ -411,22 +437,49 @@
                     questionCountSliderLesson.value = availableQuestions;
                 }
                 questionCountLabelLesson.textContent = questionCountSliderLesson.value;
-                startLessonPracticeBtn.disabled = availableQuestions === 0;
+                startLessonPracticeBtn.disabled = availableQuestions === 0 || parseInt(questionCountSliderLesson.value) === 0;
             }
 
             function updateComprehensivePracticeState() {
                 const selectedCheckboxes = lessonListContainerComp.querySelectorAll('input[type="checkbox"]:checked');
-                if (selectedCheckboxes.length === 0) {
-                    questionCountWrapperComp.classList.add('hidden');
-                    questionTypeWrapperComp.classList.add('hidden');
-                    startCompPracticeBtn.disabled = true;
-                    startCompPracticeBtn.textContent = `Bắt đầu (0 câu)`; return;
-                }
-                const selectedLessonIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.lessonId);
-                const selectedTypes = Array.from(document.querySelectorAll('#comprehensive-practice input[name="question-type"]:checked')).map(cb => cb.value);
-                const availableQuestions = allDataCache.questions.filter(q => selectedLessonIds.includes(q.lessonId) && selectedTypes.includes(q.type)).length;
+                const filterOptionsWrapper = document.getElementById('filter-options-wrapper-comprehensive');
                 
-                questionTypeWrapperComp.classList.remove('hidden');
+                if (selectedCheckboxes.length === 0) {
+                    filterOptionsWrapper.classList.add('hidden');
+                    questionCountWrapperComp.classList.add('hidden');
+                    startCompPracticeBtn.disabled = true;
+                    startCompPracticeBtn.textContent = `Bắt đầu (0 câu)`; 
+                    return;
+                }
+
+                const selectedLessonIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.lessonId);
+                const lessonQuestionPool = allDataCache.questions.filter(q => selectedLessonIds.includes(q.lessonId));
+
+                // --- NEW LOGIC: Update counts for each filter option ---
+                const types = ['multiple_choice', 'true_false_group', 'short_answer'];
+                types.forEach(type => {
+                    const count = lessonQuestionPool.filter(q => q.type === type).length;
+                    const countElement = document.getElementById(`count-type-${type}`);
+                    if(countElement) countElement.textContent = `(${count})`;
+                });
+
+                const difficulties = ['nhan_biet', 'thong_hieu', 'van_dung'];
+                difficulties.forEach(difficulty => {
+                    const count = lessonQuestionPool.filter(q => q.difficulty === difficulty).length;
+                    const countElement = document.getElementById(`count-difficulty-${difficulty}`);
+                    if(countElement) countElement.textContent = `(${count})`;
+                });
+                // --- END OF NEW LOGIC ---
+
+                const selectedTypes = Array.from(document.querySelectorAll('#comprehensive-practice input[name="question-type"]:checked')).map(cb => cb.value);
+                const selectedDifficulties = Array.from(document.querySelectorAll('#comprehensive-practice input[name="question-difficulty"]:checked')).map(cb => cb.value);
+
+                const availableQuestions = lessonQuestionPool.filter(q => 
+                    (selectedTypes.length === 0 ? true : selectedTypes.includes(q.type)) &&
+                    (selectedDifficulties.length === 0 ? true : selectedDifficulties.includes(q.difficulty))
+                ).length;
+                
+                filterOptionsWrapper.classList.remove('hidden');
                 questionCountWrapperComp.classList.remove('hidden');
                 
                 questionCountSliderComp.max = Math.min(50, availableQuestions);
@@ -446,6 +499,10 @@
                 if (!selectedRadio) return;
                 const lessonId = selectedRadio.dataset.lessonId;
                 const questionCount = parseInt(questionCountSliderLesson.value, 10);
+                if (questionCount === 0) {
+                    showToast("Vui lòng chọn số lượng câu hỏi lớn hơn 0.", "error");
+                    return;
+                }
                 const questionPool = allDataCache.questions.filter(q => q.lessonId === lessonId).map(q => q.id);
                 const finalQuestionIds = questionPool.sort(() => 0.5 - Math.random()).slice(0, questionCount);
                 sessionStorage.setItem('practiceTestQuestions', JSON.stringify(finalQuestionIds));
@@ -458,38 +515,33 @@
                 if (selectedCheckboxes.length === 0) return;
                 const selectedLessonIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.lessonId);
                 const totalQuestionCount = parseInt(questionCountSliderComp.value, 10);
+                if (totalQuestionCount === 0) {
+                    showToast("Vui lòng chọn số lượng câu hỏi lớn hơn 0.", "error");
+                    return;
+                }
+                
                 const selectedTypes = Array.from(document.querySelectorAll('#comprehensive-practice input[name="question-type"]:checked')).map(cb => cb.value);
+                const selectedDifficulties = Array.from(document.querySelectorAll('#comprehensive-practice input[name="question-difficulty"]:checked')).map(cb => cb.value);
 
                 if(selectedTypes.length === 0) {
                     showToast("Vui lòng chọn ít nhất một dạng thức câu hỏi.", "error");
                     return;
                 }
+                if(selectedDifficulties.length === 0) {
+                    showToast("Vui lòng chọn ít nhất một mức độ nhận thức.", "error");
+                    return;
+                }
                 
                 const questionPool = allDataCache.questions.filter(q => 
-                    selectedLessonIds.includes(q.lessonId) && selectedTypes.includes(q.type)
+                    selectedLessonIds.includes(q.lessonId) &&
+                    selectedTypes.includes(q.type) &&
+                    selectedDifficulties.includes(q.difficulty)
                 );
                 
-                const byType = {};
-                selectedTypes.forEach(type => {
-                    byType[type] = questionPool.filter(q => q.type === type);
-                });
-                
-                Object.values(byType).forEach(arr => arr.sort(() => 0.5 - Math.random()));
-                let finalQuestions = [];
-                let typeIndex = 0;
-                const typesToCycle = Object.keys(byType);
-
-                while(finalQuestions.length < totalQuestionCount && Object.values(byType).some(arr => arr.length > 0)) {
-                    const currentType = typesToCycle[typeIndex % typesToCycle.length];
-                    if (byType[currentType] && byType[currentType].length > 0) {
-                        finalQuestions.push(byType[currentType].pop().id);
-                    }
-                    typeIndex++;
-                }
+                const finalQuestions = questionPool.sort(() => 0.5 - Math.random()).slice(0, totalQuestionCount).map(q => q.id);
 
                 if (finalQuestions.length === 0) {
-                    showToast("Không tìm thấy câu hỏi phù hợp với lựa chọn của bạn.", "error");
-                    return;
+                    showToast("Không tìm thấy câu hỏi phù hợp với lựa chọn của bạn.", "error"); return;
                 }
 
                 sessionStorage.setItem('practiceTestQuestions', JSON.stringify(finalQuestions));
@@ -538,9 +590,42 @@
                         window.location.href = viewResultBtn.href;
                     }
                 });
+                
+                function handleSubjectChangeLesson() {
+                    const subjectId = filtersLesson.subject.value;
+                    populateGrades(filtersLesson, subjectId);
+                    handleGradeChangeLesson();
+                }
+                function handleGradeChangeLesson() {
+                    const subjectId = filtersLesson.subject.value;
+                    const grade = parseInt(filtersLesson.grade.value, 10);
+                    if (subjectId && grade) {
+                        renderLessonList(lessonListContainerLesson, subjectId, grade, 'radio');
+                    } else {
+                        lessonListContainerLesson.innerHTML = '<p class="text-slate-500">Vui lòng chọn một Lớp.</p>';
+                        lessonListContainerLesson.className = 'mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg';
+                    }
+                    updateLessonPracticeState();
+                }
+                function handleSubjectChangeComp() {
+                    const subjectId = filtersComp.subject.value;
+                    populateGrades(filtersComp, subjectId);
+                    handleGradeChangeComp();
+                }
+                function handleGradeChangeComp() {
+                    const subjectId = filtersComp.subject.value;
+                    const grade = parseInt(filtersComp.grade.value, 10);
+                    if (subjectId && grade) {
+                        renderLessonList(lessonListContainerComp, subjectId, grade, 'checkbox');
+                    } else {
+                        lessonListContainerComp.innerHTML = '<p class="text-slate-500">Vui lòng chọn một Lớp.</p>';
+                        lessonListContainerComp.className = 'mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg';
+                    }
+                    updateComprehensivePracticeState();
+                }
 
-                filtersLesson.subject.onchange = () => handleFilterChange(filtersLesson, (sid) => populateGrades(filtersLesson, sid), (sid, g) => renderLessonList(lessonListContainerLesson, sid, g, 'radio'));
-                filtersLesson.grade.onchange = () => handleFilterChange(filtersLesson, null, (sid, g) => renderLessonList(lessonListContainerLesson, sid, g, 'radio'));
+                filtersLesson.subject.onchange = handleSubjectChangeLesson;
+                filtersLesson.grade.onchange = handleGradeChangeLesson;
                 lessonListContainerLesson.onchange = updateLessonPracticeState;
                 questionCountSliderLesson.oninput = (e) => {
                     questionCountLabelLesson.textContent = e.target.value;
@@ -548,29 +633,19 @@
                 };
                 startLessonPracticeBtn.onclick = handleStartLessonPractice;
 
-                filtersComp.subject.onchange = () => handleFilterChange(filtersComp, (sid) => populateGrades(filtersComp, sid), (sid, g) => renderLessonList(lessonListContainerComp, sid, g, 'checkbox'));
-                filtersComp.grade.onchange = () => handleFilterChange(filtersComp, null, (sid, g) => renderLessonList(lessonListContainerComp, sid, g, 'checkbox'));
+                filtersComp.subject.onchange = handleSubjectChangeComp;
+                filtersComp.grade.onchange = handleGradeChangeComp;
                 lessonListContainerComp.onchange = updateComprehensivePracticeState;
                 document.getElementById('comprehensive-practice').addEventListener('change', (e) => {
-                    if (e.target.name === 'question-type') updateComprehensivePracticeState();
+                    if (e.target.name === 'question-type' || e.target.name === 'question-difficulty') {
+                        updateComprehensivePracticeState();
+                    }
                 });
                 questionCountSliderComp.oninput = (e) => {
                     questionCountLabelComp.textContent = e.target.value;
                     updateComprehensivePracticeState();
                 };
                 startCompPracticeBtn.onclick = handleStartComprehensivePractice;
-            }
-            
-            function handleFilterChange(filterGroup, populateGradesCallback, renderLessonsCallback) {
-                const subjectId = filterGroup.subject.value;
-                if (populateGradesCallback) {
-                    populateGradesCallback(subjectId);
-                } else {
-                    const grade = parseInt(filterGroup.grade.value, 10);
-                    if (subjectId && grade) {
-                        renderLessonsCallback(subjectId, grade);
-                    }
-                }
             }
 
             function populateGrades(filterGroup, subjectId) {
@@ -591,7 +666,7 @@
                 tests.forEach(test => {
                     const subject = allDataCache.subjects.find(s => s.id === test.subjectId);
                     const submissionKey = `practice_admin_${test.id}`;
-                    const submission = allDataCache.submissions.find(s => s.id.startsWith(submissionKey) || s.testId === test.id);
+                    const submission = allDataCache.submissions.find(s => s.id.startsWith(submissionKey) || (s.testId === test.id && s.classId === undefined));
                     
                     const card = document.createElement('div');
                     card.className = "bg-white p-6 rounded-xl shadow-sm flex items-center justify-between";
@@ -603,7 +678,7 @@
                     card.innerHTML = `
                         <div>
                             <h3 class="font-bold text-lg text-slate-800">${test.name}</h3>
-                            <p class="text-sm text-slate-500 mt-1">${subject?.name || ''} - ${test.questions?.length || 0} câu</p>
+                            <p class="text-sm text-slate-500 mt-1">${subject?.name || ''} - ${test.questionIds?.length || 0} câu</p>
                         </div>
                         <div>${buttonHTML}</div>`;
                     container.appendChild(card);
@@ -628,8 +703,6 @@
                     toast.addEventListener('transitionend', () => toast.remove());
                 }, 3000);
             }
-             
-            feather.replace();
         });
     </script>
 </body>
