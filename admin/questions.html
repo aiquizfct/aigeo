@@ -170,17 +170,18 @@
     
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
     
-    <!-- IMPORTANT: Make sure this path is correct for your project structure -->
     <script src="../firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, getDocs, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp, orderBy, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
         
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
             const db = getFirestore(app);
+            const storage = getStorage(app);
             
             // --- DOM Elements ---
             const questionsArea = document.getElementById('questions-area');
@@ -216,6 +217,8 @@
             let currentEditingQuestion = null;
             let itemToDeleteId = null;
             let questionListener = null;
+            let qaCurrentImageUrl = ''; // Image URL for Quick Add form
+            let editCurrentImageUrl = ''; // Image URL for Edit form
 
             // --- Reusable Form HTML Generator ---
             const generateQuestionFormHTML = (prefix) => `
@@ -241,6 +244,25 @@
                 <div>
                     <label for="${prefix}-q-content" class="block text-sm font-medium text-gray-700">Nội dung câu hỏi / Dẫn đề</label>
                     <textarea id="${prefix}-q-content" rows="3" class="form-input mt-1" required></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Hình ảnh đính kèm (tùy chọn)</label>
+                    <div id="${prefix}-image-drop-zone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div class="space-y-1 text-center">
+                            <div id="${prefix}-image-preview-container" class="hidden">
+                                <img id="${prefix}-q-image-preview" src="" alt="Image preview" class="mx-auto h-24 w-auto rounded-md">
+                                <button type="button" id="${prefix}-q-image-remove-btn" class="mt-2 text-sm text-red-600 hover:text-red-800 font-semibold">Xóa ảnh</button>
+                            </div>
+                            <div id="${prefix}-image-placeholder">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="${prefix}-q-image-input" class="relative cursor-pointer bg-white rounded-md font-medium text-teal-600 hover:text-teal-500 focus-within:outline-none"><span >Tải lên một file</span><input id="${prefix}-q-image-input" type="file" class="sr-only" accept="image/*"></label>
+                                    <p class="pl-1">hoặc kéo thả, hoặc dán</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PNG, JPG, GIF</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div id="${prefix}-mc-options-wrapper">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Các lựa chọn và đáp án đúng</label>
@@ -368,7 +390,6 @@
                     lessonQuestions = snapshot.docs.map(d => ({ id: d.id, ...d.data()}));
                     renderQuestionsForLesson(lessonId);
                 }, (error) => {
-                    // Fallback for missing index
                     const qWithoutOrder = query(collection(db, "questions"), where("lessonId", "==", lessonId));
                     questionListener = onSnapshot(qWithoutOrder, (snapshot) => {
                         lessonQuestions = snapshot.docs.map(d => ({ id: d.id, ...d.data()})).sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
@@ -416,6 +437,7 @@
                     
                     tableHTML += `<tr class="border-t">
                         <td class="p-3 max-w-xl">
+                            ${q.imageUrl ? `<img src="${q.imageUrl}" class="max-w-[200px] h-auto rounded my-2" alt="Question Image">` : ''}
                             <div class="prose prose-sm">${cleanPrefix(q.content)}</div>
                         </td>
                         <td class="p-3 text-center text-slate-500">${authorName}</td>
@@ -436,7 +458,6 @@
             function setupEventListeners() {
                 document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
                 
-                // Filter listeners
                 filters.subject.addEventListener('change', () => {
                     const subjectId = filters.subject.value;
                     resetFilters(['grade', 'lesson']);
@@ -470,7 +491,6 @@
                     else renderInitialView();
                 });
                 
-                // Event delegation on body to catch all dynamic buttons
                 document.body.addEventListener('click', (e) => {
                     const button = e.target.closest('button[data-action]');
                     if(!button) return;
@@ -508,9 +528,12 @@
                 // Dynamic form listeners
                 quickAddForm.querySelector('#qa-q-type').onchange = () => toggleAnswerFields(quickAddForm, 'qa');
                 editForm.querySelector('#edit-q-type').onchange = () => toggleAnswerFields(editForm, 'edit');
+
+                // Image Upload Listeners
+                setupImageUpload('qa');
+                setupImageUpload('edit');
             }
 
-            // --- Form Handling ---
             function getQuestionPayloadFromForm(formElement, prefix) {
                 const type = formElement.querySelector(`#${prefix}-q-type`).value;
                 const payload = {
@@ -518,6 +541,7 @@
                     type: type,
                     difficulty: formElement.querySelector(`#${prefix}-q-difficulty`).value,
                     explanation: formElement.querySelector(`#${prefix}-q-explanation`).value.trim(),
+                    imageUrl: prefix === 'qa' ? qaCurrentImageUrl : editCurrentImageUrl,
                 };
 
                 if (type === 'multiple_choice') {
@@ -539,7 +563,6 @@
                 return payload;
             }
 
-            // Quick Add Logic
             function handleSaveAndAddAnother() {
                 const payload = getQuestionPayloadFromForm(quickAddForm, 'qa');
                 if (!payload.content) {
@@ -548,8 +571,7 @@
                 }
                 pendingQuestions.push(payload);
                 updatePendingCount();
-                quickAddForm.reset();
-                toggleAnswerFields(quickAddForm, 'qa');
+                resetQuickAddForm();
                 showToast(`Đã thêm 1 câu hỏi vào hàng đợi.`, 'success');
             }
 
@@ -584,7 +606,7 @@
                     showToast(`Đã lưu thành công ${pendingQuestions.length} câu hỏi!`, 'success');
                     pendingQuestions = [];
                     updatePendingCount();
-                    quickAddForm.reset();
+                    resetQuickAddForm();
                     hideQuickAddModal();
                 } catch (error) {
                     console.error("Error saving pending questions:", error);
@@ -595,14 +617,14 @@
                     feather.replace();
                 }
             }
-
+            
             function updatePendingCount() {
                 pendingCountDisplay.textContent = pendingQuestions.length;
                 saveAllPendingBtn.disabled = pendingQuestions.length === 0;
             }
 
-            // --- Modal Logic ---
             function showQuickAddModal() {
+                resetQuickAddForm();
                 quickAddModal.classList.remove('hidden');
                 quickAddModal.classList.add('flex');
             }
@@ -631,6 +653,15 @@
                 formElement.querySelector(`#${prefix}-q-difficulty`).value = data.difficulty || 'nhan_biet';
                 formElement.querySelector(`#${prefix}-q-explanation`).value = data.explanation || '';
                 
+                // Image handling
+                removeImage(prefix); // Reset first
+                if (data.imageUrl) {
+                    if (prefix === 'edit') editCurrentImageUrl = data.imageUrl;
+                    document.getElementById(`${prefix}-q-image-preview`).src = data.imageUrl;
+                    document.getElementById(`${prefix}-image-preview-container`).classList.remove('hidden');
+                    document.getElementById(`${prefix}-image-placeholder`).classList.add('hidden');
+                }
+                
                 if (data.type === 'multiple_choice') {
                     (data.options || []).forEach((opt, i) => {
                         const char = String.fromCharCode(97 + i);
@@ -642,7 +673,8 @@
                 } else if (data.type === 'true_false_group') {
                     [...Array(4)].forEach((_, i) => {
                         const key = i + 1;
-                        formElement.querySelector(`#${prefix}-q-tf-statement-${key}`).value = data.statements?.[key] || '';
+                        const statementInput = formElement.querySelector(`#${prefix}-q-tf-statement-${key}`);
+                        if(statementInput) statementInput.value = data.statements?.[key] || '';
                         const answer = data.answers?.[key];
                         if (answer !== undefined) {
                             const radio = formElement.querySelector(`input[name="${prefix}-q-tf-answer-${key}"][value="${answer}"]`);
@@ -737,10 +769,84 @@
                     }
                 });
             }
+
+            // --- Image Upload Functions ---
+            function setupImageUpload(prefix) {
+                const dropZone = document.getElementById(`${prefix}-image-drop-zone`);
+                const input = document.getElementById(`${prefix}-q-image-input`);
+                const removeBtn = document.getElementById(`${prefix}-q-image-remove-btn`);
+
+                input.addEventListener('change', (e) => handleFileSelect(e.target.files[0], prefix));
+                dropZone.addEventListener('paste', (e) => handleImagePaste(e, prefix));
+                removeBtn.addEventListener('click', () => removeImage(prefix));
+                dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-teal-500'); });
+                dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-teal-500'); });
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('border-teal-500');
+                    handleFileSelect(e.dataTransfer.files[0], prefix);
+                });
+            }
+            
+            function handleFileSelect(file, prefix) {
+                if (file && file.type.startsWith('image/')) {
+                    uploadImage(file, prefix);
+                }
+            }
+
+            function handleImagePaste(e, prefix) {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                for (const item of items) {
+                    if (item.kind === 'file' && item.type.startsWith('image/')) {
+                        e.preventDefault();
+                        uploadImage(item.getAsFile(), prefix);
+                        return;
+                    }
+                }
+            }
+
+            function uploadImage(file, prefix) {
+                if (!currentLessonId) {
+                    showToast("Vui lòng chọn một bài học trước khi tải ảnh lên.", "error");
+                    return;
+                }
+                const storageRef = ref(storage, `question_images/${currentLessonId}/${Date.now()}_${file.name}`);
+                const uploadTask = uploadBytesResumable(storageRef, file);
+                showToast("Đang tải ảnh lên...");
+                uploadTask.on('state_changed', null, 
+                    (error) => { showToast("Lỗi tải ảnh lên.", "error"); }, 
+                    () => {
+                        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                            if (prefix === 'qa') qaCurrentImageUrl = downloadURL;
+                            else if (prefix === 'edit') editCurrentImageUrl = downloadURL;
+                            
+                            document.getElementById(`${prefix}-q-image-preview`).src = downloadURL;
+                            document.getElementById(`${prefix}-image-preview-container`).classList.remove('hidden');
+                            document.getElementById(`${prefix}-image-placeholder`).classList.add('hidden');
+                            showToast("Tải ảnh thành công!", "success");
+                        });
+                    }
+                );
+            }
+            
+            function removeImage(prefix) {
+                if (prefix === 'qa') qaCurrentImageUrl = '';
+                else if (prefix === 'edit') editCurrentImageUrl = '';
+                document.getElementById(`${prefix}-q-image-preview`).src = '';
+                document.getElementById(`${prefix}-image-preview-container`).classList.add('hidden');
+                document.getElementById(`${prefix}-image-placeholder`).classList.remove('hidden');
+                const input = document.getElementById(`${prefix}-q-image-input`);
+                if (input) input.value = '';
+            }
+
+            function resetQuickAddForm() {
+                quickAddForm.reset();
+                removeImage('qa');
+                toggleAnswerFields(quickAddForm, 'qa');
+            }
             
             feather.replace();
         });
     </script>
 </body>
 </html>
-
