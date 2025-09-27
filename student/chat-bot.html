@@ -7,11 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
-    <!-- KaTeX for Math Rendering -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-    <!-- Marked.js for Markdown Parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
@@ -39,7 +37,6 @@
             -webkit-text-fill-color: transparent;
         }
         
-        /* New Gemini-style layout */
         .chat-container { display: flex; flex-direction: column; height: 100%; }
         #chat-messages {
             flex-grow: 1; overflow-y: auto;
@@ -56,27 +53,14 @@
         .bot .message-content { background-color: #ffffff; color: #334155; border: 1px solid #e2e8f0; border-bottom-left-radius: 0.25rem; }
         
         .prose { max-width: none; white-space: pre-wrap; }
-        .prose p { margin-top: 0.25em; margin-bottom: 0.25em; }
-        .prose ul, .prose ol { margin: 0.5em 0; padding-left: 1.5rem; }
-        .prose li { margin: 0.1em 0; }
-        .prose code { background-color: #f1f5f9; color: #1e293b; padding: 0.2em 0.4em; border-radius: 4px; font-size: 90%; border: 1px solid #e2e8f0; }
-        .prose pre { background-color: #f1f5f9; padding: 1rem; border-radius: 0.5rem; }
-        .prose pre code { background-color: transparent; padding: 0; border: none; }
-        
-        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
+        .prose p, .prose ul, .prose ol { margin-top: 0.5em; margin-bottom: 0.5em; }
 
         .typing-indicator span {
             height: 8px; width: 8px; margin: 0 2px; background-color: #9ca3af;
             display: inline-block; border-radius: 100%; animation: a-b 1.4s infinite;
         }
-        .typing-indicator span:nth-child(2) { animation-delay: .2s; }
-        .typing-indicator span:nth-child(3) { animation-delay: .4s; }
         @keyframes a-b { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
         
-        #chat-messages::-webkit-scrollbar { width: 6px; }
-        #chat-messages::-webkit-scrollbar-track { background: transparent; }
-        #chat-messages::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
-
         #chat-input-wrapper {
             background-color: #f0f4f9;
             border-radius: 1.5rem;
@@ -103,8 +87,11 @@
 
     <main class="flex-1 flex flex-col overflow-hidden bg-white">
         <header class="bg-white/80 backdrop-blur-sm h-16 flex items-center justify-between px-6 border-b z-10 flex-shrink-0">
-            <h2 class="text-lg font-semibold text-slate-700">Trò chuyện với Trợ lý AI</h2>
+            <h2 class="text-lg font-semibold text-slate-700">Trò chuyện với Trợ lý AI (DeepSeek V3.1)</h2>
             <div class="flex items-center">
+                 <button id="clear-chat-btn" class="text-sm font-medium text-red-500 hover:text-red-700 mr-4 flex items-center transition-colors">
+                    <i data-feather="trash-2" class="w-4 h-4 mr-1"></i>Xóa trò chuyện
+                </button>
                 <span id="user-name" class="font-semibold text-gray-700 mr-4">Đang tải...</span>
                 <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=S" alt="Student Avatar">
             </div>
@@ -112,10 +99,7 @@
         
         <div class="flex-1 overflow-hidden">
             <div class="max-w-4xl mx-auto h-full chat-container">
-                <div id="chat-messages" class="p-6 space-y-6">
-                    <!-- Chat messages will be appended here -->
-                </div>
-                
+                <div id="chat-messages" class="p-6 space-y-6"></div>
                 <div class="chat-input-area p-4 md:p-6 bg-white/80 backdrop-blur-sm">
                     <div id="typing-indicator-container" class="h-10 mb-2 hidden items-center">
                         <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center">
@@ -125,11 +109,7 @@
                              <div class="typing-indicator"><span></span><span></span><span></span></div>
                         </div>
                     </div>
-
                     <div id="chat-input-wrapper" class="flex items-center space-x-2">
-                        <button id="show-questions-btn" class="flex-shrink-0 p-2 text-slate-500 hover:bg-slate-200 rounded-full disabled:text-slate-300" title="Hỏi về câu đã làm">
-                            <i data-feather="help-circle" class="w-5 h-5"></i>
-                        </button>
                         <textarea id="chat-input" class="flex-1 p-2 disabled:bg-transparent" placeholder="Nhập câu hỏi của bạn..." rows="1"></textarea>
                         <button id="send-btn" class="flex-shrink-0 bg-teal-600 hover:bg-teal-700 text-white p-2.5 rounded-full transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed">
                             <i data-feather="arrow-up" class="w-5 h-5"></i>
@@ -140,311 +120,251 @@
         </div>
     </main>
     
-    <!-- Questions Modal -->
-    <div id="questions-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl flex flex-col max-h-[80vh]">
-            <h2 class="text-xl font-bold text-slate-800 mb-4 flex-shrink-0">Chọn một câu hỏi bạn đã làm để hỏi AI</h2>
-            <div id="questions-list" class="flex-grow overflow-y-auto space-y-3 pr-2"></div>
-             <div class="flex justify-end mt-6 flex-shrink-0 border-t pt-4">
-                <button type="button" id="close-questions-modal-btn" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-300 font-semibold">Đóng</button>
-            </div>
-        </div>
-    </div>
-
-
     <script src="../firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, query, where, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
 
-        let currentUser = null, geminiApiKey = null, chatHistory = [];
-        let userName = 'Học sinh', nameInitial = 'S';
+            let currentUser = null, chatHistory = [];
+            let openRouterKeys = [], currentKeyIndex = 0;
+            let userName = 'Học sinh', nameInitial = 'S';
+            
+            // Khắc phục lỗi: Định nghĩa getNextApiKey ở phạm vi này
+            const getNextApiKey = () => {
+                if (openRouterKeys.length === 0) return null;
+                const key = openRouterKeys[currentKeyIndex];
+                // Luan phien key
+                currentKeyIndex = (currentKeyIndex + 1) % openRouterKeys.length;
+                sessionStorage.setItem('orKeyIndex', currentKeyIndex.toString());
+                return key;
+            };
 
-        // --- DOM Elements ---
-        const chatMessages = document.getElementById('chat-messages');
-        const chatInput = document.getElementById('chat-input');
-        const sendBtn = document.getElementById('send-btn');
-        const showQuestionsBtn = document.getElementById('show-questions-btn');
-        const questionsModal = document.getElementById('questions-modal');
-        const closeQuestionsModalBtn = document.getElementById('close-questions-modal-btn');
-        const questionsList = document.getElementById('questions-list');
-        const typingIndicator = document.getElementById('typing-indicator-container');
+            const userNameEl = document.getElementById('user-name');
+            const userAvatarEl = document.getElementById('user-avatar');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatInput = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('send-btn');
+            const typingIndicator = document.getElementById('typing-indicator-container');
+            const clearChatBtn = document.getElementById('clear-chat-btn');
+        
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) { window.location.href = '../auth.html'; return; }
+                currentUser = user;
+                const userDocSnap = await getDoc(doc(db, "users", user.uid));
+                if (userDocSnap.exists() && userDocSnap.data().role === 'student') {
+                    const userData = userDocSnap.data();
+                    userName = userData.name || 'Học sinh';
+                    nameInitial = (userData.name || 'S').charAt(0).toUpperCase();
+                    userNameEl.textContent = userName;
+                    userAvatarEl.src = `https://placehold.co/40x40/10B981/FFFFFF?text=${nameInitial}`;
+                    
+                    await loadApiKeys();
+                    await loadChatHistory();
+                    setupEventListeners();
+                    if (chatHistory.length === 0) {
+                        addMessage("Chào bạn, tôi là trợ lý AI của AIGEO. Tôi có thể giúp gì cho bạn?", "assistant");
+                    }
+                } else {
+                     window.location.href = `../${userDocSnap.data()?.role || 'auth'}/index.html`;
+                }
+            });
+            
+            async function loadApiKeys() {
+                 const apiKeySnap = await getDoc(doc(db, "system_settings", "api_keys"));
+                if (apiKeySnap.exists() && apiKeySnap.data().openrouter_keys && apiKeySnap.data().openrouter_keys.length > 0) {
+                    openRouterKeys = apiKeySnap.data().openrouter_keys;
+                    // Đảm bảo index nằm trong phạm vi hợp lệ
+                    currentKeyIndex = parseInt(sessionStorage.getItem('orKeyIndex') || '0', 10) % openRouterKeys.length;
+                }
+            }
+            async function loadChatHistory() {
+                const chatSessionRef = doc(db, "chat_sessions", currentUser.uid);
+                const chatDoc = await getDoc(chatSessionRef);
+                if (chatDoc.exists()) {
+                    chatHistory = chatDoc.data().history || [];
+                    chatMessages.innerHTML = '';
+                    chatHistory.forEach(msg => addMessage(msg.content, msg.role, true));
+                }
+                setTimeout(() => chatMessages.scrollTop = chatMessages.scrollHeight, 100);
+            }
+            async function saveChatHistory(newHistory) {
+                const chatSessionRef = doc(db, "chat_sessions", currentUser.uid);
+                await setDoc(chatSessionRef, { history: newHistory, lastUpdated: serverTimestamp() }, { merge: true });
+                chatHistory = newHistory;
+            }
+            
+            function renderContent(element, text) {
+                const safeText = text || "";
+                const rawHtml = marked.parse(safeText);
+                element.innerHTML = rawHtml;
+                renderMathInElement(element, { // Render KaTeX after parsing markdown
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true}, 
+                        {left: "$", right: "$", display: false}
+                    ]
+                });
+            }
 
-        // --- AUTH & PAGE LOAD ---
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) { window.location.href = '../auth.html'; return; }
-            currentUser = user;
-            const userDocSnap = await getDoc(doc(db, "users", user.uid));
-            if (userDocSnap.exists() && userDocSnap.data().role === 'student') {
-                const userData = userDocSnap.data();
-                userName = userData.name || 'Học sinh';
-                nameInitial = (userData.name || 'S').charAt(0).toUpperCase();
-                document.getElementById('user-name').textContent = userName;
-                document.getElementById('user-avatar').src = `https://placehold.co/40x40/10B981/FFFFFF?text=${nameInitial}`;
+            function addMessage(text, role, isLoading = false) {
+                const isUser = role === 'user';
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `flex items-start gap-4 message-wrapper ${isUser ? 'user justify-end' : 'bot'}`;
+                const avatar = document.createElement('div');
+                avatar.className = 'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white';
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'flex-1 max-w-xl';
+                const bubble = document.createElement('div');
+                bubble.className = `prose prose-sm message-content`;
                 
-                await loadApiKey();
-                await loadChatHistory();
-                setupEventListeners();
-                if (chatHistory.length === 0) {
-                    addMessage("Chào bạn, tôi là trợ lý AI của AIGEO. Bạn cần giúp đỡ về vấn đề gì?", "bot");
+                renderContent(bubble, text);
+                contentWrapper.appendChild(bubble);
+
+                if (isUser) {
+                    avatar.textContent = nameInitial;
+                    avatar.classList.add('bg-slate-500');
+                    messageWrapper.appendChild(contentWrapper);
+                    messageWrapper.appendChild(avatar);
+                } else {
+                    avatar.innerHTML = `<i data-feather="cpu" class="w-6 h-6 text-white"></i>`;
+                    avatar.classList.add('bg-gradient-to-br', 'from-teal-400', 'to-emerald-500');
+                    messageWrapper.appendChild(avatar);
+                    messageWrapper.appendChild(contentWrapper);
                 }
-            } else {
-                 window.location.href = `../${userDocSnap.data()?.role || 'auth'}/index.html`;
-            }
-        });
-        
-        // --- DATA & HISTORY ---
-        async function loadApiKey() {
-             const apiKeySnap = await getDoc(doc(db, "system_settings", "api_keys"));
-            if (apiKeySnap.exists() && apiKeySnap.data().gemini_keys) {
-                geminiApiKey = apiKeySnap.data().gemini_keys[0]; 
-            }
-        }
-        async function loadChatHistory() {
-            const chatSessionRef = doc(db, "chat_sessions", currentUser.uid);
-            const chatDoc = await getDoc(chatSessionRef);
-            if (chatDoc.exists()) {
-                chatHistory = chatDoc.data().history || [];
-                chatMessages.innerHTML = '';
-                chatHistory.forEach(msg => addMessage(msg.text, msg.role, true));
-            }
-            setTimeout(() => chatMessages.scrollTop = chatMessages.scrollHeight, 100);
-        }
-        async function saveChatHistory() {
-            const chatSessionRef = doc(db, "chat_sessions", currentUser.uid);
-             await setDoc(chatSessionRef, { 
-                history: chatHistory, 
-                lastUpdated: serverTimestamp() 
-            }, { merge: true });
-        }
-        
-        // --- UI & RENDERING ---
-        function renderContent(element, text) {
-            const rawHtml = marked.parse(text);
-            element.innerHTML = rawHtml;
-            renderMathWithKaTeX(element);
-        }
-
-        function addMessage(text, role, isLoading = false) {
-            const messageWrapper = document.createElement('div');
-            messageWrapper.className = `flex items-start gap-4 message-wrapper ${role === 'user' ? 'user justify-end' : 'bot'}`;
-
-            const avatar = document.createElement('div');
-            avatar.className = 'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white';
-            
-            const contentWrapper = document.createElement('div');
-            contentWrapper.className = 'flex-1 max-w-xl';
-
-            const bubble = document.createElement('div');
-            bubble.className = `prose prose-sm message-content`;
-            
-            renderContent(bubble, text);
-            contentWrapper.appendChild(bubble);
-
-            if (role === 'user') {
-                avatar.textContent = nameInitial;
-                avatar.classList.add('bg-slate-500');
-                messageWrapper.appendChild(contentWrapper);
-                messageWrapper.appendChild(avatar);
-
-            } else {
-                avatar.innerHTML = `<i data-feather="cpu" class="w-6 h-6 text-white"></i>`;
-                avatar.classList.add('bg-gradient-to-br', 'from-teal-400', 'to-emerald-500');
-                messageWrapper.appendChild(avatar);
-                messageWrapper.appendChild(contentWrapper);
+                chatMessages.appendChild(messageWrapper);
+                if(!isLoading) chatMessages.scrollTop = chatMessages.scrollHeight;
+                feather.replace();
+                return bubble;
             }
             
-            chatMessages.appendChild(messageWrapper);
-            
-            if(!isLoading) chatMessages.scrollTop = chatMessages.scrollHeight;
+            function setChatInputDisabled(isDisabled) {
+                chatInput.disabled = isDisabled;
+                sendBtn.disabled = isDisabled;
+            }
 
-            feather.replace();
-            return bubble;
-        }
-        
-        async function openQuestionsModal() {
-            questionsList.innerHTML = `<div class="text-center p-4">Đang tải câu hỏi...</div>`;
-            questionsModal.classList.remove('hidden');
-            questionsModal.classList.add('flex');
-            
-            try {
-                const submissionsQuery = query(collection(db, "submissions"), where("studentId", "==", currentUser.uid));
-                const submissionsSnap = await getDocs(submissionsQuery);
-                if (submissionsSnap.empty) {
-                    questionsList.innerHTML = `<p class="text-slate-500">Bạn chưa làm bài thi nào.</p>`;
-                    return;
-                }
+            async function handleSendMessage() {
+                const userInput = chatInput.value.trim();
+                if (!userInput) return;
                 
-                const questionIds = [...new Set(submissionsSnap.docs.flatMap(doc => doc.data().questionIds || []))];
-                if (questionIds.length === 0) {
-                     questionsList.innerHTML = `<p class="text-slate-500">Không tìm thấy câu hỏi nào từ các bài làm của bạn.</p>`;
-                     return;
-                }
+                setChatInputDisabled(true);
+                typingIndicator.classList.remove('hidden');
+                typingIndicator.classList.add('flex');
                 
-                const questions = [];
-                for (let i = 0; i < questionIds.length; i += 30) {
-                    const chunk = questionIds.slice(i, i + 30);
-                    const q = query(collection(db, "questions"), where("__name__", "in", chunk));
-                    const snapshot = await getDocs(q);
-                    snapshot.forEach(doc => questions.push({ id: doc.id, ...doc.data() }));
-                }
+                try {
+                    // 1. Cap nhat history cục bộ VÀ lưu vào Firestore
+                    const newHistory = [...chatHistory, { role: 'user', content: userInput }];
+                    addMessage(userInput, "user");
+                    chatInput.value = '';
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                questionsList.innerHTML = '';
-                questions.forEach(q => {
-                    const questionItem = document.createElement('button');
-                    questionItem.className = 'w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm';
-                    questionItem.textContent = q.content.substring(0, 100) + '...';
-                    questionItem.onclick = () => {
-                         const questionText = `Giải thích giúp tôi câu hỏi sau: "${q.content}"`;
-                         chatInput.value = questionText;
-                         handleSendMessage();
-                         questionsModal.classList.add('hidden');
-                         questionsModal.classList.remove('flex');
-                    };
-                    questionsList.appendChild(questionItem);
+                    // 2. Lay phan hoi AI (chi gui tin nhan cuoi cung)
+                    const aiResponse = await getOpenRouterResponse(userInput);
+                    
+                    // 3. Cap nhat history voi phan hoi AI va luu lai
+                    const finalHistory = [...newHistory, { role: 'assistant', content: aiResponse }];
+                    addMessage(aiResponse, 'assistant');
+                    await saveChatHistory(finalHistory); // Cap nhat ca history local va Firestore
+                    
+                } catch (error) {
+                    addMessage(`Rất tiếc, đã có lỗi xảy ra: ${error.message}`, 'assistant');
+                } finally {
+                    setChatInputDisabled(false);
+                    typingIndicator.classList.add('hidden');
+                    chatInput.focus();
+                }
+            }
+            
+            async function getOpenRouterResponse(latestUserMessage) {
+                const apiKey = getNextApiKey();
+                if (!apiKey) throw new Error("Chưa cấu hình OpenRouter API Key trên trang Admin.");
+
+                const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+                
+                // Chi gui tin nhan he thong va tin nhan cuoi cung cua nguoi dung
+                const messagesToSend = [
+                    { role: "system", content: "You are a helpful AI assistant for AIGEO, a geography learning platform. Keep your answers concise and helpful for students, focusing on geography and related science topics. Respond in Vietnamese. Use KaTeX for math equations." },
+                    { role: "user", content: latestUserMessage }
+                ];
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`,
+                        'X-Title': 'AIGEO Student Chat'
+                    },
+                    body: JSON.stringify({
+                        model: "deepseek/deepseek-chat-v3.1:free",
+                        messages: messagesToSend
+                    })
                 });
 
-            } catch(error) {
-                console.error("Error fetching questions:", error);
-                questionsList.innerHTML = `<p class="text-red-500">Lỗi khi tải câu hỏi.</p>`;
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error.message || `Lỗi API: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                const generatedText = result.choices[0]?.message?.content;
+
+                if (!generatedText) throw new Error("Phản hồi từ AI không hợp lệ.");
+                return generatedText.trim();
             }
-        }
-        
-        function setChatInputDisabled(isDisabled) {
-            chatInput.disabled = isDisabled;
-            sendBtn.disabled = isDisabled;
-            showQuestionsBtn.disabled = isDisabled;
-            if (isDisabled) {
-                chatInput.rows = 1;
-            }
-        }
-
-        // --- CHAT LOGIC WITH STREAMING ---
-        async function handleSendMessage() {
-            const userInput = chatInput.value.trim();
-            if (!userInput) return;
             
-            setChatInputDisabled(true);
-
-            addMessage(userInput, "user");
-            chatHistory.push({ role: 'user', text: userInput });
-            chatInput.value = '';
-            chatInput.style.height = 'auto';
-            
-            typingIndicator.classList.remove('hidden');
-            typingIndicator.classList.add('flex');
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-
-            try {
-                await getAiResponseStream(userInput);
-                await saveChatHistory();
-            } catch (error) {
-                addMessage(`Rất tiếc, đã có lỗi xảy ra: ${error.message}`, 'bot');
-            } finally {
-                setChatInputDisabled(false);
-                chatInput.focus();
-            }
-        }
-        
-        async function getAiResponseStream(userInput) {
-            if (!geminiApiKey) throw new Error("Chưa cấu hình API Key.");
-
-            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:streamGenerateContent?key=${geminiApiKey}&alt=sse`;
-            
-            const recentHistory = chatHistory.slice(-10).map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.text }]
-            }));
-            
-            const payload = { contents: [...recentHistory] };
-
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) throw new Error(`Lỗi API: ${response.statusText}`);
-
-            typingIndicator.classList.add('hidden');
-            typingIndicator.classList.remove('flex');
-            
-            const botMessageContent = addMessage("", "bot");
-            let fullResponse = "";
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
-                const jsonLines = lines
-                    .map(line => line.replace(/^data: /, '').trim())
-                    .filter(line => line.startsWith('{'))
-                    .map(line => JSON.parse(line));
-                
-                for (const json of jsonLines) {
-                    const textPart = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (textPart) {
-                        fullResponse += textPart;
-                        renderContent(botMessageContent, fullResponse + " ▌");
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+            async function handleClearChat() {
+                if(confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện này không? Hành động này không thể hoàn tác.")) {
+                    try {
+                        setChatInputDisabled(true);
+                        const chatSessionRef = doc(db, "chat_sessions", currentUser.uid);
+                        await updateDoc(chatSessionRef, { history: deleteField() }); // Xoa truong history
+                        
+                        chatHistory = []; // Reset local state
+                        chatMessages.innerHTML = ''; // Clear display
+                        
+                        // Gui tin nhan chao mung moi
+                        addMessage("Chào bạn, tôi là trợ lý AI của AIGEO. Tôi có thể giúp gì cho bạn?", "assistant");
+                        
+                        setChatInputDisabled(false);
+                    } catch (error) {
+                        alert("Lỗi khi xóa lịch sử trò chuyện: " + error.message);
+                        setChatInputDisabled(false);
                     }
                 }
             }
             
-            renderContent(botMessageContent, fullResponse); // Final render without cursor
-            chatHistory.push({ role: 'bot', text: fullResponse });
-        }
-        
-        // --- UTILITIES ---
-        function renderMathWithKaTeX(elem) {
-            if (window.renderMathInElement) {
-                renderMathInElement(elem, {
-                    delimiters: [ {left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false} ],
-                    throwOnError: false
+            function setupEventListeners() {
+                sendBtn.onclick = handleSendMessage;
+                clearChatBtn.onclick = handleClearChat;
+                
+                chatInput.onkeydown = (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && !chatInput.disabled) {
+                        e.preventDefault();
+                        handleSendMessage();
+                    }
+                };
+                chatInput.addEventListener('input', () => {
+                    chatInput.style.height = 'auto';
+                    let scrollHeight = chatInput.scrollHeight;
+                    const maxHeight = 200; 
+                    if (scrollHeight > maxHeight) {
+                        chatInput.style.height = maxHeight + 'px';
+                        chatInput.style.overflowY = 'auto';
+                    } else {
+                        chatInput.style.height = scrollHeight + 'px';
+                        chatInput.style.overflowY = 'hidden';
+                    }
                 });
+                document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
             }
-        }
-        
-        function setupEventListeners() {
-            sendBtn.onclick = handleSendMessage;
-            chatInput.onkeydown = (e) => {
-                if (e.key === 'Enter' && !e.shiftKey && !chatInput.disabled) {
-                    e.preventDefault();
-                    handleSendMessage();
-                }
-            };
-            // Auto-resize textarea
-            chatInput.addEventListener('input', () => {
-                chatInput.style.height = 'auto';
-                let scrollHeight = chatInput.scrollHeight;
-                const maxHeight = 200; 
-                if (scrollHeight > maxHeight) {
-                    chatInput.style.height = maxHeight + 'px';
-                    chatInput.style.overflowY = 'auto';
-                } else {
-                    chatInput.style.height = scrollHeight + 'px';
-                    chatInput.style.overflowY = 'hidden';
-                }
-            });
             
-            showQuestionsBtn.onclick = openQuestionsModal;
-            closeQuestionsModalBtn.onclick = () => {
-                questionsModal.classList.add('hidden');
-                questionsModal.classList.remove('flex');
-            };
-            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-        }
-        
-        feather.replace();
+            feather.replace();
+        });
     </script>
 </body>
 </html>

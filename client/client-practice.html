@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trung tâm Luyện tập - AIGEO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        :root {
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+        }
+        body { 
+            font-family: 'Be Vietnam Pro', sans-serif; 
+            background-color: #f1f5f9; 
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+        }
+        .cta-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+        }
+        .skeleton { background-color: #e2e8f0; border-radius: 0.5rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 50% { opacity: .5; } }
+        .tab-button { transition: all 0.2s; border-bottom: 3px solid transparent; padding: 0.75rem 0.25rem; font-weight: 600; color: #475569; cursor:pointer; }
+        .tab-button.active { border-color: var(--primary-teal); color: var(--primary-teal); }
+        .tab-button:hover:not(.active) { color: var(--primary-teal); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .lesson-card { transition: all 0.2s ease-in-out; }
+        .lesson-card:has(input:checked) {
+             border-color: var(--primary-teal);
+             background-color: #f0fdfa;
+             transform: translateY(-2px);
+             box-shadow: 0 4px 10px rgba(13, 148, 136, 0.1);
+        }
+        .lesson-card:has(input:checked) .lesson-check-icon { opacity: 1; transform: scale(1); }
+        .lesson-check-icon { opacity: 0; transform: scale(0.5); transition: all 0.2s ease-in-out; }
+        .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold gradient-text">AIGEO (Khách)</a>
+            <a href="../auth.html" class="cta-button text-white px-5 py-2.5 rounded-lg text-sm font-semibold">Đăng nhập / Đăng ký</a>
+        </nav>
+    </header>
+        
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
+        <div class="max-w-7xl mx-auto">
+            <a href="index.html" class="flex items-center text-slate-500 hover:text-teal-600 font-semibold mb-4">
+                <i data-feather="arrow-left" class="mr-2 w-4 h-4"></i>Quay lại
+            </a>
+            <h1 class="text-3xl font-bold text-slate-800">Trung tâm Luyện tập</h1>
+            <p class="mt-2 text-slate-600">Chọn một phương thức luyện tập phù hợp với mục tiêu của bạn.</p>
+
+            <div class="mt-8">
+                <div class="border-b border-gray-200">
+                    <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button class="tab-button active" data-tab="lesson-practice"><i data-feather="target" class="inline-block mr-2 w-5 h-5"></i>Theo Bài</button>
+                        <button class="tab-button" data-tab="comprehensive-practice"><i data-feather="list" class="inline-block mr-2 w-5 h-5"></i>Tổng hợp</button>
+                        <button class="tab-button" data-tab="admin-practice"><i data-feather="shield" class="inline-block mr-2 w-5 h-5"></i>Luyện Đề</button>
+                    </nav>
+                </div>
+
+                <div class="mt-5">
+                    <div id="lesson-practice" class="tab-content active">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-sky-500">
+                            <h2 class="text-xl font-bold text-slate-800">Luyện tập theo bài</h2>
+                            <p class="mt-2 text-slate-500">Chọn Môn học và một bài học cụ thể để tạo đề ngẫu nhiên, giúp nắm vững kiến thức từng phần.</p>
+                            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <select id="filter-subject-lesson" class="p-3 border rounded-lg bg-white w-full"></select>
+                                <select id="filter-grade-lesson" class="p-3 border rounded-lg bg-white w-full" disabled></select>
+                            </div>
+                            <div id="lesson-list-container-lesson" class="mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg">
+                                Vui lòng chọn Môn học và Lớp.
+                            </div>
+                            <div id="question-count-wrapper-lesson" class="mt-6 space-y-2 hidden">
+                                <label for="question-count-lesson" class="text-sm font-medium text-slate-700">Số lượng câu hỏi:</label>
+                                <div class="flex items-center space-x-4">
+                                    <input id="question-count-slider-lesson" type="range" min="5" max="50" value="10" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                                    <span id="question-count-label-lesson" class="font-bold text-slate-800 w-12 text-center">10</span>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex justify-end">
+                                 <button id="start-lesson-practice-btn" class="cta-button text-white font-bold px-8 py-3 rounded-lg disabled:bg-slate-400 disabled:cursor-not-allowed" disabled>
+                                    Bắt đầu
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="comprehensive-practice" class="tab-content">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-amber-500">
+                            <h2 class="text-xl font-bold text-slate-800">Luyện tập tổng hợp</h2>
+                            <p class="mt-2 text-slate-500">Chọn Môn học, sau đó chọn nhiều bài học để hệ thống tạo đề tổng hợp, cân đối các dạng câu hỏi.</p>
+                            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <select id="filter-subject-comprehensive" class="p-3 border rounded-lg bg-white w-full"></select>
+                                <select id="filter-grade-comprehensive" class="p-3 border rounded-lg bg-white w-full" disabled></select>
+                            </div>
+                            <div id="lesson-list-container-comprehensive" class="mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg">
+                                Vui lòng chọn Môn học và Lớp.
+                            </div>
+                            <div id="question-count-wrapper-comprehensive" class="mt-6 space-y-2 hidden">
+                                 <label for="question-count-comprehensive" class="text-sm font-medium text-slate-700">Tổng số câu hỏi:</label>
+                                <div class="flex items-center space-x-4">
+                                    <input id="question-count-slider-comprehensive" type="range" min="10" max="50" value="20" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                                    <span id="question-count-label-comprehensive" class="font-bold text-slate-800 w-12 text-center">20</span>
+                                </div>
+                            </div>
+                            <div class="mt-6 flex justify-end">
+                                 <button id="start-comprehensive-practice-btn" class="cta-button text-white font-bold px-8 py-3 rounded-lg disabled:bg-slate-400 disabled:cursor-not-allowed" disabled>
+                                    Bắt đầu (0 câu)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="admin-practice" class="tab-content">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-indigo-500">
+                            <h2 class="text-xl font-bold text-slate-800">Luyện Đề từ Ngân hàng chung</h2>
+                            <p class="mt-2 text-slate-500">Đây là danh sách các đề thi đã được xuất bản, phù hợp cho việc ôn tập và củng cố kiến thức tổng quát.</p>
+                            <div id="admin-tests-container" class="mt-6 space-y-4">
+                                <div class="skeleton h-24 w-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </main>
+
+     <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+
+    <script src="../firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            const tabsContainer = document.getElementById('tabs-container');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            const adminTestsContainer = document.getElementById('admin-tests-container');
+            
+            const filtersLesson = { subject: document.getElementById('filter-subject-lesson'), grade: document.getElementById('filter-grade-lesson') };
+            const lessonListContainerLesson = document.getElementById('lesson-list-container-lesson');
+            const questionCountWrapperLesson = document.getElementById('question-count-wrapper-lesson');
+            const questionCountSliderLesson = document.getElementById('question-count-slider-lesson');
+            const questionCountLabelLesson = document.getElementById('question-count-label-lesson');
+            const startLessonPracticeBtn = document.getElementById('start-lesson-practice-btn');
+
+            const filtersComp = { subject: document.getElementById('filter-subject-comprehensive'), grade: document.getElementById('filter-grade-comprehensive') };
+            const lessonListContainerComp = document.getElementById('lesson-list-container-comprehensive');
+            const questionCountWrapperComp = document.getElementById('question-count-wrapper-comprehensive');
+            const questionCountSliderComp = document.getElementById('question-count-slider-comprehensive');
+            const questionCountLabelComp = document.getElementById('question-count-label-comprehensive');
+            const startCompPracticeBtn = document.getElementById('start-comprehensive-practice-btn');
+
+            let allDataCache = { subjects: [], lessons: [], tests: [], questions: [] };
+
+            function cleanPrefix(text) {
+                if (!text) return '';
+                return text.replace(/^(Câu|Bài|Phần|Mục)\s*\d+\s*[:.]?\s*/i, '').trim();
+            }
+            
+            async function loadInitialData() {
+                try {
+                    const [subjectsSnap, lessonsSnap, testsSnap, questionsSnap] = await Promise.all([
+                        getDocs(collection(db, "subjects")),
+                        getDocs(collection(db, "lessons")),
+                        getDocs(query(collection(db, "tests"), where("status", "==", "published"))),
+                        getDocs(query(collection(db, "questions"), where("status", "==", "approved")))
+                    ]);
+                    allDataCache.subjects = subjectsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+                    allDataCache.lessons = lessonsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+                    allDataCache.tests = testsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+                    allDataCache.questions = questionsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+                } catch (error) {
+                    console.error("Error loading initial data:", error);
+                    showToast("Lỗi tải dữ liệu. Vui lòng thử lại.", "error");
+                }
+            }
+            
+            function initializeTabs() {
+                setupEventListeners();
+                loadLessonPracticeTab(); // Load tab đầu tiên
+            }
+
+            function loadAdminPracticeTab() {
+                const adminTests = allDataCache.tests; // Tất cả đề published đều có thể coi là của admin/hệ thống
+                if (adminTests.length === 0) {
+                    adminTestsContainer.innerHTML = `<div class="text-center p-4"><p class="text-slate-500">Hiện chưa có đề luyện tập nào.</p></div>`;
+                    return;
+                }
+                renderTestsList(adminTests, adminTestsContainer);
+            }
+            
+            function loadLessonPracticeTab() { populateSelect(filtersLesson.subject, allDataCache.subjects, 'Chọn Môn học'); }
+            function loadComprehensivePracticeTab() { populateSelect(filtersComp.subject, allDataCache.subjects, 'Chọn Môn học'); }
+
+            function renderLessonList(container, subjectId, grade, inputType) {
+                const lessons = allDataCache.lessons.filter(l => l.subjectId === subjectId && l.grade == grade).sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
+                if (lessons.length === 0) {
+                    container.innerHTML = '<p class="text-slate-500">Không tìm thấy bài học nào cho lựa chọn này.</p>';
+                    return;
+                }
+                container.innerHTML = '';
+                container.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left max-h-80 overflow-y-auto p-2';
+                
+                lessons.forEach(lesson => {
+                    const questionCount = allDataCache.questions.filter(q => q.lessonId === lesson.id).length;
+                    const card = document.createElement('div');
+                    card.className = `relative lesson-card rounded-lg border transition-all duration-200 ${questionCount === 0 ? 'bg-slate-100 cursor-not-allowed opacity-70' : 'bg-white hover:border-teal-400 hover:shadow-md'}`;
+                    
+                    card.innerHTML = `
+                        <input id="${lesson.id}-${inputType}" type="${inputType}" data-lesson-id="${lesson.id}" name="lesson-selection-${inputType}" class="sr-only peer" ${questionCount === 0 ? 'disabled' : ''}>
+                        <label for="${lesson.id}-${inputType}" class="block p-4 cursor-pointer">
+                            <div class="flex items-start justify-between">
+                                <span class="text-xs font-bold ${questionCount === 0 ? 'bg-slate-200 text-slate-500' : 'bg-teal-100 text-teal-800'} px-2 py-1 rounded-full">${questionCount} câu</span>
+                                <div class="w-6 h-6 flex items-center justify-center rounded-full bg-teal-500 text-white lesson-check-icon">
+                                    <i data-feather="check" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                            <span class="block mt-3 font-semibold ${questionCount === 0 ? 'text-slate-400' : 'text-slate-800'}">${cleanPrefix(lesson.name)}</span>
+                        </label>
+                    `;
+                    container.appendChild(card);
+                });
+                feather.replace();
+            }
+
+            function updateLessonPracticeState() {
+                const selectedRadio = lessonListContainerLesson.querySelector('input[type="radio"]:checked');
+                if (!selectedRadio) {
+                    questionCountWrapperLesson.classList.add('hidden');
+                    startLessonPracticeBtn.disabled = true; return;
+                }
+                const selectedLessonId = selectedRadio.dataset.lessonId;
+                const availableQuestions = allDataCache.questions.filter(q => q.lessonId === selectedLessonId).length;
+                
+                questionCountWrapperLesson.classList.remove('hidden');
+                questionCountSliderLesson.max = Math.min(50, availableQuestions);
+                if (parseInt(questionCountSliderLesson.value) > availableQuestions) {
+                    questionCountSliderLesson.value = availableQuestions;
+                }
+                questionCountLabelLesson.textContent = questionCountSliderLesson.value;
+                startLessonPracticeBtn.disabled = availableQuestions === 0 || parseInt(questionCountSliderLesson.value) === 0;
+            }
+
+            function updateComprehensivePracticeState() {
+                const selectedCheckboxes = lessonListContainerComp.querySelectorAll('input[type="checkbox"]:checked');
+                if (selectedCheckboxes.length === 0) {
+                    questionCountWrapperComp.classList.add('hidden');
+                    startCompPracticeBtn.disabled = true;
+                    startCompPracticeBtn.textContent = `Bắt đầu (0 câu)`; return;
+                }
+                const selectedLessonIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.lessonId);
+                const availableQuestions = allDataCache.questions.filter(q => selectedLessonIds.includes(q.lessonId)).length;
+                
+                questionCountWrapperComp.classList.remove('hidden');
+                
+                questionCountSliderComp.max = Math.min(50, availableQuestions);
+                if (parseInt(questionCountSliderComp.value) > availableQuestions) {
+                     questionCountSliderComp.value = availableQuestions;
+                }
+                 if (availableQuestions > 0 && parseInt(questionCountSliderComp.value) === 0) {
+                    questionCountSliderComp.value = Math.min(20, availableQuestions);
+                }
+                questionCountLabelComp.textContent = questionCountSliderComp.value;
+                startCompPracticeBtn.disabled = availableQuestions === 0 || parseInt(questionCountSliderComp.value) === 0;
+                startCompPracticeBtn.textContent = `Bắt đầu (${availableQuestions} câu)`;
+            }
+
+            function handleStartLessonPractice() {
+                const selectedRadio = lessonListContainerLesson.querySelector('input[type="radio"]:checked');
+                if (!selectedRadio) return;
+                const lessonId = selectedRadio.dataset.lessonId;
+                const questionCount = parseInt(questionCountSliderLesson.value, 10);
+                if (questionCount === 0) {
+                    showToast("Vui lòng chọn số lượng câu hỏi lớn hơn 0.", "error");
+                    return;
+                }
+                const questionPool = allDataCache.questions.filter(q => q.lessonId === lessonId).map(q => q.id);
+                const finalQuestionIds = questionPool.sort(() => 0.5 - Math.random()).slice(0, questionCount);
+                sessionStorage.setItem('practiceTestQuestions', JSON.stringify(finalQuestionIds));
+                sessionStorage.setItem('practiceContext', JSON.stringify({ type: 'lesson_practice', subjectId: filtersLesson.subject.value, lessonId: lessonId, testName: `Luyện tập: ${cleanPrefix(allDataCache.lessons.find(l=>l.id===lessonId).name)}` }));
+                window.location.href = 'practice-test.html';
+            }
+
+            function handleStartComprehensivePractice() {
+                const selectedCheckboxes = lessonListContainerComp.querySelectorAll('input[type="checkbox"]:checked');
+                if (selectedCheckboxes.length === 0) return;
+                const selectedLessonIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.lessonId);
+                const totalQuestionCount = parseInt(questionCountSliderComp.value, 10);
+                 if (totalQuestionCount === 0) {
+                    showToast("Vui lòng chọn số lượng câu hỏi lớn hơn 0.", "error");
+                    return;
+                }
+                
+                const questionPool = allDataCache.questions.filter(q => selectedLessonIds.includes(q.lessonId));
+                
+                const finalQuestions = questionPool.sort(() => 0.5 - Math.random()).slice(0, totalQuestionCount).map(q => q.id);
+
+                if (finalQuestions.length === 0) {
+                    showToast("Không tìm thấy câu hỏi phù hợp.", "error"); return;
+                }
+
+                sessionStorage.setItem('practiceTestQuestions', JSON.stringify(finalQuestions));
+                sessionStorage.setItem('practiceContext', JSON.stringify({ type: 'comprehensive_practice', subjectId: filtersComp.subject.value, testName: "Luyện tập tổng hợp" }));
+                window.location.href = 'practice-test.html';
+            }
+
+            function setupEventListeners() {
+                tabsContainer.addEventListener('click', (e) => {
+                    const button = e.target.closest('.tab-button');
+                    if (!button) return;
+                    tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    button.classList.add('active');
+                    const tabId = button.dataset.tab;
+                    document.getElementById(tabId).classList.add('active');
+                    if (tabId === 'admin-practice') loadAdminPracticeTab();
+                    else if (tabId === 'lesson-practice') loadLessonPracticeTab();
+                    else if (tabId === 'comprehensive-practice') loadComprehensivePracticeTab();
+                });
+
+                // --- NEW REFACTORED EVENT LISTENERS ---
+                filtersLesson.subject.onchange = () => {
+                    const subjectId = filtersLesson.subject.value;
+                    populateGrades(filtersLesson, subjectId);
+                    // Reset lesson list when subject changes
+                    lessonListContainerLesson.innerHTML = '<p class="text-slate-500">Vui lòng chọn một Lớp.</p>';
+                    lessonListContainerLesson.className = 'mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg';
+                    updateLessonPracticeState();
+                };
+                filtersLesson.grade.onchange = () => {
+                    const subjectId = filtersLesson.subject.value;
+                    const grade = parseInt(filtersLesson.grade.value, 10);
+                    if (subjectId && grade) {
+                        renderLessonList(lessonListContainerLesson, subjectId, grade, 'radio');
+                    } else {
+                        lessonListContainerLesson.innerHTML = '<p class="text-slate-500">Vui lòng chọn một Lớp.</p>';
+                        lessonListContainerLesson.className = 'mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg';
+                    }
+                    updateLessonPracticeState();
+                };
+
+                filtersComp.subject.onchange = () => {
+                     const subjectId = filtersComp.subject.value;
+                    populateGrades(filtersComp, subjectId);
+                     lessonListContainerComp.innerHTML = '<p class="text-slate-500">Vui lòng chọn một Lớp.</p>';
+                     lessonListContainerComp.className = 'mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg';
+                    updateComprehensivePracticeState();
+                };
+                filtersComp.grade.onchange = () => {
+                    const subjectId = filtersComp.subject.value;
+                    const grade = parseInt(filtersComp.grade.value, 10);
+                     if (subjectId && grade) {
+                        renderLessonList(lessonListContainerComp, subjectId, grade, 'checkbox');
+                    } else {
+                        lessonListContainerComp.innerHTML = '<p class="text-slate-500">Vui lòng chọn một Lớp.</p>';
+                        lessonListContainerComp.className = 'mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg';
+                    }
+                    updateComprehensivePracticeState();
+                };
+                // --- END OF REFACTORED LISTENERS ---
+
+                lessonListContainerLesson.onchange = updateLessonPracticeState;
+                questionCountSliderLesson.oninput = (e) => {
+                    questionCountLabelLesson.textContent = e.target.value;
+                    updateLessonPracticeState();
+                };
+                startLessonPracticeBtn.onclick = handleStartLessonPractice;
+
+                lessonListContainerComp.onchange = updateComprehensivePracticeState;
+                questionCountSliderComp.oninput = (e) => {
+                    questionCountLabelComp.textContent = e.target.value;
+                    updateComprehensivePracticeState();
+                };
+                startCompPracticeBtn.onclick = handleStartComprehensivePractice;
+            }
+
+            function populateGrades(filterGroup, subjectId) {
+                const gradeSelect = filterGroup.grade;
+                const gradeOptions = [...new Set(allDataCache.lessons.filter(l => l.subjectId === subjectId).map(l => l.grade))].sort((a, b) => a - b);
+                populateSelect(gradeSelect, gradeOptions.map(g => ({ id: g, name: `Lớp ${g}` })), 'Chọn Lớp');
+                gradeSelect.disabled = !subjectId;
+            }
+            
+            function renderTestsList(tests, container) {
+                container.innerHTML = '';
+                tests.forEach(test => {
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-50 p-4 rounded-lg flex items-center justify-between";
+                    card.innerHTML = `
+                        <div>
+                            <h3 class="font-bold text-slate-800">${test.name}</h3>
+                            <p class="text-sm text-slate-500 mt-1">${test.questionIds?.length || 0} câu - ${test.timeLimit || 45} phút</p>
+                        </div>
+                        <a href="practice-test.html?testId=${test.id}" class="cta-button text-white font-semibold px-5 py-2 rounded-lg">Làm bài</a>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            function populateSelect(selectElement, data, placeholder) {
+                selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+                (data || []).forEach(item => {
+                    selectElement.innerHTML += `<option value="${item.id || item.value}">${item.name}</option>`;
+                });
+            }
+
+            function showToast(message, type = 'error') {
+                const toast = document.createElement('div');
+                const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+                toast.className = `toast show ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg`;
+                toast.textContent = message;
+                document.getElementById('toast-container').appendChild(toast);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, 3000);
+            }
+             
+            (async () => {
+                await loadInitialData();
+                initializeTabs();
+                feather.replace();
+            })();
+        });
+    </script>
+</body>
+</html>
+

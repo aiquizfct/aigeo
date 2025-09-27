@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết quả Bài làm - AIGEO</title>
-    <!-- 
-      Lưu ý: Link CDN của Tailwind này phù hợp cho việc phát triển. 
-      Đối với website thực tế (production), bạn nên cài đặt Tailwind CSS trực tiếp vào dự án
-      để tối ưu tốc độ tải trang theo khuyến nghị trong console.
-    -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
@@ -25,17 +20,7 @@
             font-family: 'Be Vietnam Pro', sans-serif; 
             background-color: #f1f5f9; 
         }
-        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
-        .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
-        .sidebar-link.active { 
-            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
-            color: white; 
-            font-weight: 600; 
-            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
-        }
-        .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
-        .sidebar-link svg { margin-right: 0.75rem; }
-        .brand-gradient-text {
+        .gradient-text {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -57,74 +42,60 @@
         #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
     </style>
 </head>
-<body class="flex h-screen">
+<body class="flex flex-col min-h-screen">
     <canvas id="confetti-canvas"></canvas>
-    <aside class="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
-        <div class="h-16 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold brand-gradient-text">AIGEO</a></div>
-        <nav class="flex-grow p-4 space-y-2">
-            <a href="index.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="home"></i>Bảng điều khiển</a>
-            <a href="classrooms.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="book"></i>Lớp học của tôi</a>
-            <a href="practice-hub.html" class="sidebar-link active"><i data-feather="zap"></i>Luyện tập</a>
-            <a href="stats.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="bar-chart-2"></i>Thống kê</a>
-            <a href="chat-bot.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="message-circle"></i>Chatbot AI</a>
-            <a href="account.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="user"></i>Tài khoản</a>
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold gradient-text">AIGEO (Khách)</a>
+            <a href="../auth.html" class="cta-button text-white px-5 py-2.5 rounded-lg text-sm font-semibold">Đăng nhập / Đăng ký</a>
         </nav>
-        <div class="p-4 border-t"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
-    </aside>
+    </header>
 
-    <main class="flex-1 flex flex-col overflow-hidden">
-        <header class="bg-white shadow-sm h-16 flex items-center justify-end px-6">
-            <div class="flex items-center">
-                <span id="user-name" class="font-semibold text-gray-700 mr-4">Đang tải...</span>
-                <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=S" alt="Student Avatar">
+    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
+        <div id="result-page-content" class="max-w-4xl mx-auto opacity-0 transition-opacity duration-500">
+            <h1 id="test-name-title" class="text-3xl font-bold text-slate-800">Kết quả Bài làm</h1>
+            
+            <!-- Summary Card -->
+            <div class="mt-6 bg-white p-6 rounded-xl shadow-lg grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                <div>
+                    <p class="text-sm font-semibold text-slate-500">ĐIỂM SỐ</p>
+                    <p class="text-5xl font-bold text-teal-600 mt-2" id="score-display"><span class="skeleton h-12 w-24 inline-block"></span></p>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-slate-500">TRẢ LỜI ĐÚNG</p>
+                    <p class="text-3xl font-bold text-slate-700 mt-2" id="raw-score-display"><span class="skeleton h-9 w-20 inline-block"></span></p>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-slate-500">THỜI GIAN</p>
+                    <p class="text-3xl font-bold text-slate-700 mt-2" id="time-taken-display"><span class="skeleton h-9 w-24 inline-block"></span></p>
+                </div>
+                 <div>
+                    <p class="text-sm font-semibold text-slate-500">NGÀY LÀM</p>
+                    <p class="text-3xl font-bold text-slate-700 mt-2" id="completed-at-display"><span class="skeleton h-9 w-28 inline-block"></span></p>
+                </div>
             </div>
-        </header>
-        <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
-            <div id="result-page-content" class="max-w-4xl mx-auto opacity-0 transition-opacity duration-500">
-                <h1 id="test-name-title" class="text-3xl font-bold text-slate-800">Kết quả Bài làm</h1>
-                
-                <!-- Summary Card -->
-                <div class="mt-6 bg-white p-6 rounded-xl shadow-lg grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                    <div>
-                        <p class="text-sm font-semibold text-slate-500">ĐIỂM SỐ</p>
-                        <p class="text-5xl font-bold text-teal-600 mt-2" id="score-display"><span class="skeleton h-12 w-24 inline-block"></span></p>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-slate-500">TRẢ LỜI ĐÚNG</p>
-                        <p class="text-3xl font-bold text-slate-700 mt-2" id="raw-score-display"><span class="skeleton h-9 w-20 inline-block"></span></p>
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-slate-500">THỜI GIAN</p>
-                        <p class="text-3xl font-bold text-slate-700 mt-2" id="time-taken-display"><span class="skeleton h-9 w-24 inline-block"></span></p>
-                    </div>
-                     <div>
-                        <p class="text-sm font-semibold text-slate-500">NGÀY LÀM</p>
-                        <p class="text-3xl font-bold text-slate-700 mt-2" id="completed-at-display"><span class="skeleton h-9 w-28 inline-block"></span></p>
-                    </div>
-                </div>
 
-                <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm">
-                        <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i data-feather="cpu" class="w-6 h-6 mr-3 text-teal-600"></i>Nhận xét từ AI</h2>
-                        <div id="ai-feedback" class="prose prose-sm text-slate-600"><div class="skeleton h-24 w-full"></div></div>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm">
-                         <h3 class="font-bold text-slate-700 mb-3 flex items-center"><i data-feather="target" class="w-5 h-5 mr-2 text-red-500"></i>Nội dung cần ôn lại</h3>
-                         <ul id="review-topics" class="space-y-2 text-slate-600"><li class="skeleton h-5 w-full"></li><li class="skeleton h-5 w-3/4"></li></ul>
-                    </div>
+            <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm">
+                    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i data-feather="cpu" class="w-6 h-6 mr-3 text-teal-600"></i>Nhận xét từ AI</h2>
+                    <div id="ai-feedback" class="prose prose-sm text-slate-600"><div class="skeleton h-24 w-full"></div></div>
                 </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                     <h3 class="font-bold text-slate-700 mb-3 flex items-center"><i data-feather="target" class="w-5 h-5 mr-2 text-red-500"></i>Nội dung cần ôn lại</h3>
+                     <ul id="review-topics" class="space-y-2 text-slate-600"><li class="skeleton h-5 w-full"></li><li class="skeleton h-5 w-3/4"></li></ul>
+                </div>
+            </div>
 
-                <div class="mt-8">
-                    <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4">
-                         <h2 class="text-xl font-bold text-slate-700">Xem lại chi tiết bài làm</h2>
-                         <div class="flex space-x-2">
-                             <a id="back-to-hub" href="practice-hub.html" class="bg-white text-slate-700 font-semibold px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition nav-link flex items-center"><i data-feather="zap" class="w-4 h-4 mr-2"></i>Luyện tập tiếp</a>
-                             <a id="back-to-dashboard" href="index.html" class="cta-button text-white font-semibold px-4 py-2 rounded-lg nav-link flex items-center"><i data-feather="home" class="w-4 h-4 mr-2"></i>Về trang chủ</a>
-                         </div>
-                    </div>
-                    <div id="review-container" class="space-y-6">
-                        <div class="skeleton h-40 w-full"></div>
-                    </div>
+            <div class="mt-8">
+                <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4">
+                     <h2 class="text-xl font-bold text-slate-700">Xem lại chi tiết bài làm</h2>
+                     <div class="flex space-x-2">
+                         <a id="back-to-hub" href="client-practice.html" class="bg-white text-slate-700 font-semibold px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition flex items-center"><i data-feather="zap" class="w-4 h-4 mr-2"></i>Luyện tập tiếp</a>
+                         <a id="register-btn" href="../auth.html" class="cta-button text-white font-semibold px-4 py-2 rounded-lg flex items-center"><i data-feather="user-plus" class="w-4 h-4 mr-2"></i>Đăng ký ngay</a>
+                     </div>
+                </div>
+                <div id="review-container" class="space-y-6">
+                    <div class="skeleton h-40 w-full"></div>
                 </div>
             </div>
         </div>
@@ -133,16 +104,12 @@
     <script src="../firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
             const db = getFirestore(app);
             
-            const userNameEl = document.getElementById('user-name');
-            const userAvatarEl = document.getElementById('user-avatar');
             const scoreDisplayEl = document.getElementById('score-display');
             const rawScoreDisplayEl = document.getElementById('raw-score-display');
             const timeTakenDisplay = document.getElementById('time-taken-display');
@@ -153,39 +120,22 @@
             const reviewContainerEl = document.getElementById('review-container');
             const resultPageContent = document.getElementById('result-page-content');
             
-            let currentUser = null;
-
-            onAuthStateChanged(auth, async (user) => {
-                if (!user) { window.location.href = '../auth.html'; return; }
-                currentUser = user;
-                const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
-                if (docSnap.exists() && docSnap.data().role === 'student') {
-                    const userData = docSnap.data();
-                    userNameEl.textContent = userData.name || 'Học sinh';
-                    const nameInitial = (userData.name || 'S').charAt(0).toUpperCase();
-                    userAvatarEl.src = `https://placehold.co/40x40/10B981/FFFFFF?text=${nameInitial}`;
-                    initResultPage();
-                } else {
-                    window.location.href = `../${docSnap.data()?.role || 'auth'}/index.html`;
-                }
-            });
-            
-             function cleanPrefix(text) {
+            function cleanPrefix(text) {
                  if (!text) return '';
                  return text.replace(/^(Bài|Chương|Phần|Câu)\s*\d+\s*[:.]?\s*/i, '').trim();
-             }
+            }
 
             async function initResultPage() {
                 try {
-                    const resultId = sessionStorage.getItem('latestResultId');
+                    const resultId = sessionStorage.getItem('latestGuestResultId');
                     if (!resultId) throw new Error("Không tìm thấy mã kết quả. Vui lòng quay lại và thử lại.");
-                    const resultDocRef = doc(db, "submissions", resultId);
+                    
+                    const resultDocRef = doc(db, "guest_submissions", resultId);
                     const resultSnap = await getDoc(resultDocRef);
                     if (!resultSnap.exists()) throw new Error("Không tìm thấy dữ liệu kết quả.");
                     
                     const resultData = resultSnap.data();
-                    const { score, totalQuestions, userAnswers, incorrectQuestions, questionIds, embeddedQuestions, timeTaken, completedAt, testName } = resultData;
+                    const { score, totalQuestions, userAnswers, incorrectQuestions, questionIds, timeTaken, completedAt, testName } = resultData;
                     
                     // Populate Summary Card
                     const tenPointScore = totalQuestions > 0 ? (score / totalQuestions) * 10 : 0;
@@ -204,9 +154,7 @@
                         getDoc(doc(db, "system_settings", "api_keys"))
                     ]);
                     
-                    const finalQuestions = [...fetchedQuestions, ...(embeddedQuestions || [])];
-
-                    renderReviewSection(finalQuestions, userAnswers, allLessons);
+                    renderReviewSection(fetchedQuestions, userAnswers, allLessons);
                     
                     const uniqueIncorrectLessonIds = [...new Set((incorrectQuestions || []).map(q => q.lessonId).filter(id => id))];
                     const topicsToReview = allLessons.filter(l => uniqueIncorrectLessonIds.includes(l.id));
@@ -229,7 +177,7 @@
                             <h2 class="mt-4 text-2xl font-bold text-slate-800">Đã xảy ra lỗi</h2>
                             <p class="mt-2 text-slate-600">${error.message}</p>
                             <a href="index.html" class="mt-6 inline-block cta-button text-white font-semibold px-6 py-3 rounded-lg">
-                                Về trang tổng quan
+                                Về trang chủ
                             </a>
                         </div>`;
                         feather.replace();
@@ -280,20 +228,19 @@
                         const formattedUserAnswer = String(userAnswer || "").trim().toLowerCase();
                         isCorrect = formattedUserAnswer === formattedCorrectAnswer;
                         answerHTML = `<div class="mt-4"><p><strong>Đáp án đúng:</strong> <span class="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">${q.correctAnswer}</span></p><p><strong>Câu trả lời của bạn:</strong> <span class="font-mono ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded">${userAnswer || '(bỏ trống)'}</span></p></div>`;
-                    } else if (q.type === 'true_false') {
-                        isCorrect = (q.statements || []).every((stmt, i) => {
-                            if (!stmt.statement) return true;
-                            return (userAnswer ? userAnswer[i] : undefined) === stmt.answer;
-                        });
-
-                        answerHTML = (q.statements || []).map((stmt, i) => {
-                             if(!stmt.statement) return '';
-                            const userAns = userAnswer ? userAnswer[i] : undefined;
-                            const correctAns = stmt.answer;
-                            const isSubCorrect = userAns === correctAns;
-                            return `<div class="p-3 border-t"><p>${i+1}) ${stmt.statement}</p><div class="text-sm mt-2"><span>Đáp án: <strong class="${correctAns ? 'text-green-600' : 'text-red-600'}">${correctAns ? 'Đúng' : 'Sai'}</strong></span> | <span>Bạn chọn: <strong class="${isSubCorrect ? 'text-green-600' : 'text-red-600'}">${userAns === undefined ? '(bỏ trống)' : (userAns ? 'Đúng' : 'Sai')}</strong></span></div></div>`;
+                    } else if (q.type === 'true_false_group') {
+                        const statements = q.statements || {};
+                        const statementKeys = Object.keys(statements).filter(k => statements[k]);
+                        isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => userAnswer[key] === q.answers[key]);
+                        
+                        answerHTML = Object.keys(statements).map(key => {
+                             if(!statements[key]) return '';
+                             const userAns = userAnswer ? userAnswer[key] : undefined;
+                             const correctAns = q.answers[key];
+                             const isSubCorrect = userAns === correctAns;
+                             return `<div class="p-3 border-t"><p>${key}) ${statements[key]}</p><div class="text-sm mt-2"><span>Đáp án: <strong class="${correctAns ? 'text-green-600' : 'text-red-600'}">${correctAns ? 'Đúng' : 'Sai'}</strong></span> | <span>Bạn chọn: <strong class="${isSubCorrect ? 'text-green-600' : 'text-red-600'}">${userAns === undefined ? '(bỏ trống)' : (userAns ? 'Đúng' : 'Sai')}</strong></span></div></div>`;
                         }).join('');
-                        answerHTML = `<div class="mt-4 border rounded-lg divide-y">${answerHTML}</div>`;
+                         answerHTML = `<div class="mt-4 border rounded-lg divide-y">${answerHTML}</div>`;
                     }
                     const questionCard = document.createElement('div');
                     questionCard.className = 'bg-white p-6 rounded-xl shadow-sm';
@@ -312,91 +259,53 @@
                 renderMathWithKaTeX(reviewContainerEl);
             }
 
-            // START OF MODIFIED AI FEEDBACK FUNCTION
             function getNextApiKey(openRouterKeys) {
+                if (!openRouterKeys || openRouterKeys.length === 0) return null;
                 let currentKeyIndex = parseInt(sessionStorage.getItem('orKeyIndex') || '0', 10) % openRouterKeys.length;
                 const key = openRouterKeys[currentKeyIndex];
-                // Luan phien key cho lan gui tiep theo (neu co)
                 sessionStorage.setItem('orKeyIndex', ((currentKeyIndex + 1) % openRouterKeys.length).toString());
                 return key;
             }
 
             async function getAiFeedback(incorrectQuestions, topicsToReview, score, total, apiKeysData) {
-                // SỬ DỤNG OPENROUTER API VỚI DEEPSEEK V3.1
                 const openRouterKeys = apiKeysData?.openrouter_keys;
-
                 if (!openRouterKeys || openRouterKeys.length === 0) {
-                    aiFeedbackEl.innerHTML = "Tính năng nhận xét AI chưa được quản trị viên cấu hình. Vui lòng liên hệ để được hỗ trợ.";
-                    return;
+                    aiFeedbackEl.innerHTML = "Tính năng nhận xét AI chưa được cấu hình."; return;
                 }
                 if(incorrectQuestions.length === 0) {
-                    aiFeedbackEl.innerHTML = "<strong>Xuất sắc!</strong><p>Bạn đã trả lời đúng tất cả các câu hỏi. Hãy tiếp tục phát huy nhé!</p>";
-                    return;
+                    aiFeedbackEl.innerHTML = "<strong>Xuất sắc!</strong><p>Bạn đã trả lời đúng tất cả các câu hỏi. Hãy tiếp tục phát huy nhé!</p>"; return;
                 }
-                
                 const openRouterApiKey = getNextApiKey(openRouterKeys);
-                
                 const incorrectContent = incorrectQuestions.slice(0, 5).map(q => `- ${q.questionContent.replace(/\s+/g, ' ').substring(0, 100)}...`).join('\n');
                 const topicsContent = topicsToReview.map(t => t.name).join(', ');
-
-                const systemPrompt = "You are a helpful AI assistant for AIGEO, a geography learning platform. Your task is to provide a concise, motivational, and constructive review (about 3-4 sentences) in Vietnamese based on the student's quiz results. The review MUST use HTML formatting (<strong>, <p>, <ul><li>) and start with <strong>. Do not use markdown or backticks.";
-                
-                const userPrompt = `
-                    Một học sinh vừa hoàn thành bài kiểm tra và đạt ${score}/${total} điểm.
-                    Các chủ đề kiến thức bị sai là: ${topicsContent}.
-                    Một vài câu hỏi bị sai:
-                    ${incorrectContent}
-                    Dựa vào thông tin trên, hãy động viên học sinh, chỉ ra các mảng kiến thức chính cần củng cố và đề xuất hành động cụ thể.
-                `;
-
+                const systemPrompt = "You are a helpful AI assistant for AIGEO. Provide a concise, motivational, and constructive review (about 3-4 sentences) in Vietnamese based on the student's quiz results. The review MUST use HTML formatting (<strong>, <p>, <ul><li>) and start with <strong>. Do not use markdown.";
+                const userPrompt = `Một học sinh vừa hoàn thành bài kiểm tra và đạt ${score}/${total} điểm. Các chủ đề kiến thức bị sai là: ${topicsContent}. Một vài câu hỏi bị sai: ${incorrectContent} Dựa vào thông tin trên, hãy động viên, chỉ ra các mảng kiến thức chính cần củng cố và đề xuất hành động cụ thể.`;
                 aiFeedbackEl.innerHTML = '<p class="text-center text-slate-500"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500 mx-auto"></div> Đang tạo nhận xét...</p>';
-
                 try {
-                    const API_URL = `https://openrouter.ai/api/v1/chat/completions`;
-                    
-                    const response = await fetch(API_URL, {
+                    const response = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
                         method: 'POST',
                         headers: { 
-                            'Authorization': `Bearer ${openRouterApiKey}`,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`, 
-                            'X-Title': 'AIGEO Student Review' 
+                            'Authorization': `Bearer ${openRouterApiKey}`, 'Content-Type': 'application/json',
+                            'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`, 'X-Title': 'AIGEO Guest Review' 
                         },
                         body: JSON.stringify({ 
-                            model: "deepseek/deepseek-chat-v3.1:free", // Sử dụng mô hình DeepSeek V3.1
-                            messages: [
-                                { role: "system", content: systemPrompt },
-                                { role: "user", content: userPrompt }
-                            ] 
+                            model: "deepseek/deepseek-chat-v3.1:free",
+                            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }] 
                         })
                     });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error.message || `Lỗi API: ${response.statusText}`);
-                    }
-                    
+                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error.message || `API Error: ${response.statusText}`); }
                     const data = await response.json();
                     const text = data.choices[0]?.message?.content;
-
                     if (!text) throw new Error("Phản hồi từ AI không hợp lệ.");
-                    
                     aiFeedbackEl.innerHTML = text;
                 } catch (error) {
                     console.error("AI Feedback Error:", error);
                     aiFeedbackEl.innerHTML = "Rất tiếc, không thể tạo nhận xét tự động lúc này. Vui lòng tự xem lại các câu sai ở bên dưới nhé.";
                 }
             }
-            // END OF MODIFIED AI FEEDBACK FUNCTION
             
             function renderMathWithKaTeX(elem) {
-                if (window.renderMathInElement) {
-                    renderMathInElement(elem, {
-                        delimiters: [
-                            {left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}, {left: "$", right: "$", display: false}
-                        ]
-                    });
-                }
+                if (window.renderMathInElement) { renderMathInElement(elem, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] }); }
             }
 
             function launchConfetti() {
@@ -408,48 +317,22 @@
                 let confetti = [];
                 const confettiCount = 200;
                 const colors = ['#0D9488', '#10B981', '#34D399', '#6EE7B7'];
-                for (let i = 0; i < confettiCount; i++) {
-                    confetti.push({
-                        x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height,
-                        r: Math.random() * 5 + 2, d: Math.random() * confettiCount,
-                        color: colors[Math.floor(Math.random() * colors.length)],
-                        tilt: Math.floor(Math.random() * 10) - 10,
-                        tiltAngleIncremental: (Math.random() * 0.07) + .05, tiltAngle: 0
-                    });
-                }
+                for (let i = 0; i < confettiCount; i++) { confetti.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height - canvas.height, r: Math.random() * 5 + 2, d: Math.random() * confettiCount, color: colors[Math.floor(Math.random() * colors.length)], tilt: Math.floor(Math.random() * 10) - 10, tiltAngleIncremental: (Math.random() * 0.07) + .05, tiltAngle: 0 }); }
                 function draw() {
                     if (!ctx) return;
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    confetti.forEach((c) => {
-                        ctx.beginPath(); ctx.lineWidth = c.r / 2; ctx.strokeStyle = c.color;
-                        ctx.moveTo(c.x + c.tilt, c.y); ctx.lineTo(c.x, c.y + c.tilt + c.r / 2);
-                        ctx.stroke();
-                    });
+                    confetti.forEach((c) => { ctx.beginPath(); ctx.lineWidth = c.r / 2; ctx.strokeStyle = c.color; ctx.moveTo(c.x + c.tilt, c.y); ctx.lineTo(c.x, c.y + c.tilt + c.r / 2); ctx.stroke(); });
                     update();
                 }
                 function update() {
                     let remaining = 0;
-                    confetti.forEach((c, i) => {
-                        c.tiltAngle += c.tiltAngleIncremental;
-                        c.y += (Math.cos(c.d + i) + 2 + c.r / 2);
-                        c.x += Math.sin(c.d);
-                        c.tilt = (Math.sin(c.tiltAngle - (i / 3))) * 15;
-                        if (c.y < canvas.height) remaining++;
-                    });
+                    confetti.forEach((c) => { c.tiltAngle += c.tiltAngleIncremental; c.y += (Math.cos(c.d) + 2 + c.r / 2); c.x += Math.sin(c.d); c.tilt = (Math.sin(c.tiltAngle - (c.d / 3))) * 15; if (c.y < canvas.height) remaining++; });
                     if (remaining > 0) requestAnimationFrame(draw);
                 }
                 requestAnimationFrame(draw);
             }
 
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    document.body.style.opacity = '0';
-                    setTimeout(() => { window.location.href = this.href; }, 200);
-                });
-            });
-            document.body.style.transition = 'opacity 0.2s ease-in-out';
-            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+            initResultPage();
             feather.replace();
         });
     </script>

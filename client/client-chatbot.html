@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trợ lý AI - AIGEO (Khách)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+        }
+        body { 
+            font-family: 'Be Vietnam Pro', sans-serif; 
+            background-color: #f8fafc; 
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+        }
+        .chat-container { display: flex; flex-direction: column; height: 100%; }
+        #chat-messages {
+            flex-grow: 1; overflow-y: auto;
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 1.5rem 1.5rem;
+        }
+        .message-wrapper { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .message-content { padding: 0.75rem 1.25rem; border-radius: 1.25rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .user .message-content { background-color: #115e59; color: #ccfbf1; border-bottom-right-radius: 0.25rem; }
+        .bot .message-content { background-color: #ffffff; color: #334155; border: 1px solid #e2e8f0; border-bottom-left-radius: 0.25rem; }
+        .prose { max-width: none; white-space: pre-wrap; }
+        .typing-indicator span {
+            height: 8px; width: 8px; margin: 0 2px; background-color: #9ca3af;
+            display: inline-block; border-radius: 100%; animation: a-b 1.4s infinite;
+        }
+        @keyframes a-b { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        #limit-overlay {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+    <header class="bg-white/80 backdrop-blur-sm h-16 flex items-center justify-between px-6 border-b z-10 flex-shrink-0">
+        <a href="index.html" class="text-2xl font-bold gradient-text">AIGEO (Khách)</a>
+        <a href="../auth.html" class="cta-button text-white px-4 py-2 rounded-lg text-sm font-semibold">Đăng ký để học không giới hạn</a>
+    </header>
+    
+    <div class="flex-1 overflow-hidden relative">
+        <div class="max-w-4xl mx-auto h-full chat-container">
+            <div id="chat-messages" class="p-6 space-y-6"></div>
+            <div class="p-4 md:p-6 bg-white/80 backdrop-blur-sm">
+                <div id="typing-indicator-container" class="h-10 mb-2 hidden items-center">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center">
+                         <i data-feather="cpu" class="w-5 h-5 text-white"></i>
+                    </div>
+                     <div class="ml-4 px-4 py-2 rounded-lg text-sm text-slate-500">
+                         <div class="typing-indicator"><span></span><span></span><span></span></div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 border rounded-full p-2 bg-white shadow-sm">
+                    <textarea id="chat-input" class="flex-1 px-2 bg-transparent border-none focus:ring-0 resize-none" placeholder="Nhập câu hỏi của bạn..." rows="1"></textarea>
+                    <button id="send-btn" class="bg-teal-600 hover:bg-teal-700 text-white p-2.5 rounded-full transition-colors disabled:bg-slate-400">
+                        <i data-feather="arrow-up" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Lớp phủ khi hết lượt -->
+        <div id="limit-overlay" class="absolute inset-0 z-20 hidden items-center justify-center text-center p-8">
+            <div>
+                 <i data-feather="lock" class="w-16 h-16 mx-auto text-teal-500"></i>
+                 <h2 class="text-2xl font-bold text-slate-800 mt-4">Bạn đã hết lượt hỏi đáp miễn phí</h2>
+                 <p class="mt-2 text-slate-600">Hãy đăng ký một tài khoản để tiếp tục trò chuyện với trợ lý AI và khám phá nhiều tính năng hơn nữa.</p>
+                 <a href="../auth.html" class="mt-8 inline-block cta-button text-white px-8 py-3 rounded-lg text-lg font-semibold">Đăng ký ngay</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="../firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            feather.replace();
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            const CHAT_LIMIT = 50;
+            const chatMessages = document.getElementById('chat-messages');
+            const chatInput = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('send-btn');
+            const typingIndicator = document.getElementById('typing-indicator-container');
+            const limitOverlay = document.getElementById('limit-overlay');
+            
+            let session = JSON.parse(localStorage.getItem('aigeo_client_session')) || {};
+            let openRouterKeys = [];
+            let chatHistory = [];
+
+            function updateChatLimitDisplay() {
+                const remaining = CHAT_LIMIT - (session.chatCount || 0);
+                chatInput.placeholder = `Nhập câu hỏi của bạn (còn ${remaining > 0 ? remaining : 0} lượt)...`;
+                if (remaining <= 0) {
+                    limitOverlay.classList.remove('hidden');
+                    limitOverlay.classList.add('flex');
+                    chatInput.disabled = true;
+                    sendBtn.disabled = true;
+                    feather.replace();
+                }
+            }
+
+            async function loadApiKeys() {
+                 const apiKeySnap = await getDoc(doc(db, "system_settings", "api_keys"));
+                if (apiKeySnap.exists() && apiKeySnap.data().openrouter_keys) {
+                    openRouterKeys = apiKeySnap.data().openrouter_keys;
+                }
+            }
+            
+            function getNextApiKey() {
+                if (openRouterKeys.length === 0) return null;
+                let currentKeyIndex = parseInt(sessionStorage.getItem('orKeyIndex') || '0', 10) % openRouterKeys.length;
+                const key = openRouterKeys[currentKeyIndex];
+                sessionStorage.setItem('orKeyIndex', ((currentKeyIndex + 1) % openRouterKeys.length).toString());
+                return key;
+            }
+            
+            function renderContent(element, text) {
+                const rawHtml = marked.parse(text || "");
+                element.innerHTML = rawHtml;
+                renderMathInElement(element, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] });
+            }
+
+            function addMessage(text, role) {
+                const isUser = role === 'user';
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `flex items-start gap-4 message-wrapper ${isUser ? 'user justify-end' : 'bot'}`;
+                const avatar = document.createElement('div');
+                avatar.className = 'flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white';
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'flex-1 max-w-xl';
+                const bubble = document.createElement('div');
+                bubble.className = `prose prose-sm message-content`;
+                renderContent(bubble, text);
+                contentWrapper.appendChild(bubble);
+                if (isUser) {
+                    avatar.innerHTML = `<i data-feather="user" class="w-6 h-6 text-white"></i>`;
+                    avatar.classList.add('bg-slate-500');
+                    messageWrapper.appendChild(contentWrapper);
+                    messageWrapper.appendChild(avatar);
+                } else {
+                    avatar.innerHTML = `<i data-feather="cpu" class="w-6 h-6 text-white"></i>`;
+                    avatar.classList.add('bg-gradient-to-br', 'from-teal-400', 'to-emerald-500');
+                    messageWrapper.appendChild(avatar);
+                    messageWrapper.appendChild(contentWrapper);
+                }
+                chatMessages.appendChild(messageWrapper);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                feather.replace();
+            }
+
+            async function getOpenRouterResponse(history) {
+                const apiKey = getNextApiKey();
+                if (!apiKey) throw new Error("Chưa cấu hình API Key trên trang Admin.");
+                const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+                const messagesToSend = [
+                    { role: "system", content: "You are a helpful AI assistant for AIGEO, a geography learning platform. Respond in Vietnamese. Use KaTeX for math." },
+                    ...history
+                ];
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json',
+                        'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`, 'X-Title': 'AIGEO Guest Chat'
+                    },
+                    body: JSON.stringify({ model: "deepseek/deepseek-chat-v3.1:free", messages: messagesToSend })
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error.message || `Lỗi API: ${response.statusText}`);
+                }
+                const result = await response.json();
+                return result.choices[0]?.message?.content?.trim();
+            }
+
+            async function handleSendMessage() {
+                const userInput = chatInput.value.trim();
+                if (!userInput || chatInput.disabled) return;
+                if ((session.chatCount || 0) >= CHAT_LIMIT) {
+                    updateChatLimitDisplay(); return;
+                }
+                
+                chatInput.value = '';
+                chatInput.disabled = true;
+                sendBtn.disabled = true;
+                typingIndicator.classList.remove('hidden');
+                typingIndicator.classList.add('flex');
+                
+                addMessage(userInput, "user");
+                chatHistory.push({ role: 'user', content: userInput });
+
+                try {
+                    const aiResponse = await getOpenRouterResponse(chatHistory);
+                    addMessage(aiResponse, 'assistant');
+                    chatHistory.push({ role: 'assistant', content: aiResponse });
+                    session.chatCount = (session.chatCount || 0) + 1;
+                    localStorage.setItem('aigeo_client_session', JSON.stringify(session));
+                    updateChatLimitDisplay();
+                } catch (error) {
+                    addMessage(`Rất tiếc, đã có lỗi xảy ra: ${error.message}`, 'assistant');
+                } finally {
+                    typingIndicator.classList.add('hidden');
+                    if ((session.chatCount || 0) < CHAT_LIMIT) {
+                        chatInput.disabled = false;
+                        sendBtn.disabled = false;
+                        chatInput.focus();
+                    }
+                }
+            }
+
+            // Initial setup
+            updateChatLimitDisplay();
+            await loadApiKeys();
+            if (openRouterKeys.length === 0) {
+                addMessage("Xin lỗi, tính năng chatbot chưa được cấu hình. Vui lòng quay lại sau.", "assistant");
+                chatInput.disabled = true; sendBtn.disabled = true;
+            } else {
+                 addMessage("Chào bạn, tôi là trợ lý AI của AIGEO. Tôi có thể giúp gì cho bạn?", "assistant");
+                 chatHistory.push({role: 'assistant', content: "Chào bạn..."});
+            }
+
+            sendBtn.onclick = handleSendMessage;
+            chatInput.onkeydown = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !chatInput.disabled) {
+                    e.preventDefault();
+                    handleSendMessage();
+                }
+            };
+        });
+    </script>
+</body>
+</html>
+s

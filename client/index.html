@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chào mừng bạn đến với AIGEO - Chế độ Khách</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        :root {
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+        }
+        body { font-family: 'Be Vietnam Pro', sans-serif; background-color: #f1f5f9; }
+        .gradient-text {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+        }
+        .cta-button:hover:not(:disabled) {
+            transform: translateY(-2px); box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+        }
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold gradient-text">AIGEO (Khách)</a>
+            <a href="../auth.html" class="cta-button text-white px-5 py-2.5 rounded-lg text-sm font-semibold">Đăng nhập / Đăng ký</a>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-16">
+        <div class="text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-slate-800">
+                Trải nghiệm AIGEO <span class="gradient-text">Không Cần Tài Khoản</span>
+            </h1>
+            <p class="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+                Khám phá các tính năng luyện tập và hỏi đáp với AI của chúng tôi ngay bây giờ.
+            </p>
+        </div>
+
+        <div class="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <a href="client-practice.html" class="feature-card block bg-white p-8 rounded-2xl shadow-md">
+                <div class="flex items-center justify-center h-16 w-16 rounded-2xl bg-teal-100 text-teal-600 mb-6">
+                    <i data-feather="zap" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-3 text-slate-800">Luyện tập Tự do</h3>
+                <p class="text-slate-500">Tạo đề thi từ ngân hàng câu hỏi chung, nhận điểm và phân tích từ AI để cải thiện kiến thức.</p>
+                <div class="mt-6 font-semibold text-teal-600 flex items-center">
+                    Bắt đầu luyện tập <i data-feather="arrow-right" class="w-5 h-5 ml-2"></i>
+                </div>
+            </a>
+
+            <a href="client-chatbot.html" class="feature-card block bg-white p-8 rounded-2xl shadow-md">
+                <div class="flex items-center justify-center h-16 w-16 rounded-2xl bg-emerald-100 text-emerald-600 mb-6">
+                    <i data-feather="message-circle" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-3 text-slate-800">Trợ lý AI Chatbot</h3>
+                <p class="text-slate-500">Hỏi đáp mọi thắc mắc về kiến thức. Bạn có <span id="chat-limit-display" class="font-bold">50</span> lượt hỏi miễn phí.</p>
+                 <div class="mt-6 font-semibold text-emerald-600 flex items-center">
+                    Trò chuyện với AI <i data-feather="arrow-right" class="w-5 h-5 ml-2"></i>
+                </div>
+            </a>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+
+            // Khởi tạo client session nếu chưa có
+            if (!localStorage.getItem('aigeo_client_session')) {
+                const session = {
+                    clientId: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    chatCount: 0,
+                    createdAt: new Date().toISOString()
+                };
+                localStorage.setItem('aigeo_client_session', JSON.stringify(session));
+            }
+
+            // Cập nhật số lượt chat còn lại
+            const session = JSON.parse(localStorage.getItem('aigeo_client_session'));
+            const chatLimitDisplay = document.getElementById('chat-limit-display');
+            if (chatLimitDisplay && session) {
+                const remaining = 50 - (session.chatCount || 0);
+                chatLimitDisplay.textContent = remaining > 0 ? remaining : 0;
+            }
+        });
+    </script>
+</body>
+</html>
