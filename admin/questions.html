@@ -460,17 +460,6 @@
                 return tableHTML;
             }
 
-            function setupPasteListener(prefix) {
-                const contentDiv = document.getElementById(`${prefix}-q-content`);
-                if (contentDiv) {
-                    contentDiv.addEventListener('paste', (e) => {
-                        e.preventDefault();
-                        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-                        document.execCommand('insertText', false, text);
-                    });
-                }
-            }
-
             function setupEventListeners() {
                 document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
                 
@@ -840,13 +829,24 @@
             }
 
             function handleImagePaste(e, prefix) {
-                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                // Prevent default text paste behavior
+                e.preventDefault();
+
+                // Handle image paste
+                const items = (e.clipboardData || window.clipboardData).items;
+                let imageFound = false;
                 for (const item of items) {
                     if (item.kind === 'file' && item.type.startsWith('image/')) {
-                        e.preventDefault();
                         uploadImage(item.getAsFile(), prefix);
-                        return;
+                        imageFound = true;
+                        return; // Stop after handling image
                     }
+                }
+
+                // If no image was found, handle plain text paste
+                if (!imageFound) {
+                    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                    document.execCommand('insertText', false, text);
                 }
             }
 
@@ -911,4 +911,5 @@
     </script>
 </body>
 </html>
+
 
