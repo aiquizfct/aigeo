@@ -132,7 +132,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, collection, writeBatch, serverTimestamp, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, writeBatch, serverTimestamp, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
@@ -207,17 +207,26 @@
                     const testData = testDocSnap.data();
                     testNameHeader.textContent = testData.name;
                     editBtn.href = `create-test-step2.html?id=${currentTestId}`;
+                    
                     if (testData.status === 'published') {
-                        publishBtn.disabled = true;
-                        publishBtn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4 mr-2"></i>Đã phân phối';
-                        editBtn.classList.add('hidden');
+                        publishBtn.innerHTML = '<i data-feather="refresh-cw" class="w-4 h-4 mr-2"></i>Phân phối lại';
                         feather.replace();
                     }
 
                     if (testData.questions && testData.questions.length > 0) {
                         questions = testData.questions.map((q, index) => ({...q, id: `local_${index}`}));
+                    } else if (testData.questionIds && testData.questionIds.length > 0) {
+                        const questionIds = testData.questionIds;
+                        const fetchedQuestions = [];
+                        for (let i = 0; i < questionIds.length; i += 30) {
+                            const chunk = questionIds.slice(i, i + 30);
+                            const questionsQuery = query(collection(db, "questions"), where("__name__", "in", chunk));
+                            const questionsSnap = await getDocs(questionsQuery);
+                            questionsSnap.forEach(d => fetchedQuestions.push({id: d.id, ...d.data()}));
+                        }
+                        questions = fetchedQuestions.sort((a, b) => questionIds.indexOf(a.id) - questionIds.indexOf(b.id));
                     } else {
-                        mainContentArea.innerHTML = `<p class="text-center text-slate-500">Đề thi này chưa có câu hỏi hoặc đã được xử lý.</p>`;
+                        mainContentArea.innerHTML = `<p class="text-center text-slate-500">Đề thi này không có câu hỏi.</p>`;
                         return;
                     }
 
@@ -391,37 +400,42 @@
                     const testDocSnap = await getDoc(testDocRef);
                     if (!testDocSnap.exists()) throw new Error("Đề thi không tồn tại.");
                     const testData = testDocSnap.data();
-                    const embeddedQuestions = testData.questions || [];
+                    
+                    // If it's a draft (has embedded questions), process them
+                    if (testData.questions && testData.questions.length > 0) {
+                        const embeddedQuestions = testData.questions;
+                        const batch = writeBatch(db);
+                        const newQuestionIds = [];
 
-                    if (embeddedQuestions.length === 0) {
+                        embeddedQuestions.forEach(q => {
+                            const newQuestionRef = doc(collection(db, 'questions'));
+                            batch.set(newQuestionRef, {
+                                ...q,
+                                authorId: auth.currentUser.uid,
+                                lessonId: null, 
+                                status: 'approved',
+                                createdAt: serverTimestamp(),
+                            });
+                            newQuestionIds.push(newQuestionRef.id);
+                        });
+
+                        batch.update(testDocRef, {
+                            status: 'published',
+                            questionIds: newQuestionIds,
+                            questions: deleteField() 
+                        });
+                        
+                        await batch.commit();
+                        showToast("Đề thi đã được phân phối thành công!", "success");
+                    } else if (testData.status === 'published') {
+                        // If it's already published, just show a message.
+                        showToast("Đề thi này đã được phân phối. Hãy chỉnh sửa để tạo phiên bản mới và phân phối lại.", "success");
+                    } else {
                         throw new Error("Không thể xuất bản đề thi không có câu hỏi.");
                     }
 
-                    const batch = writeBatch(db);
-                    const newQuestionIds = [];
-
-                    embeddedQuestions.forEach(q => {
-                        const newQuestionRef = doc(collection(db, 'questions'));
-                        batch.set(newQuestionRef, {
-                            ...q,
-                            authorId: auth.currentUser.uid,
-                            lessonId: null, 
-                            status: 'approved',
-                            createdAt: serverTimestamp(),
-                        });
-                        newQuestionIds.push(newQuestionRef.id);
-                    });
-
-                    batch.update(testDocRef, {
-                        status: 'published',
-                        questionIds: newQuestionIds,
-                        questions: deleteField() 
-                    });
-                    
-                    await batch.commit();
-
-                    showToast("Đề thi đã được phân phối thành công!", "success");
                     publishBtn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4 mr-2"></i>Đã phân phối';
+                    publishBtn.disabled = true; // Keep it disabled after successful publish/re-publish check
                     editBtn.classList.add('hidden');
                     feather.replace();
 
