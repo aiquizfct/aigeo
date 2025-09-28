@@ -305,19 +305,11 @@
         </div>
     </div>
     
+    <script src="firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getRedirectResult, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyDpXc-F0y1GyeMYTe3T_omqRJ_uc8UB6iM",
-            authDomain: "ai-quiz-learning2025.firebaseapp.com",
-            projectId: "ai-quiz-learning2025",
-            storageBucket: "ai-quiz-learning2025.appspot.com",
-            messagingSenderId: "137949679960",
-            appId: "1:137949679960:web:4807e8b0476dd00380952d"
-        };
         
         document.addEventListener('DOMContentLoaded', () => {
             feather.replace();
@@ -362,17 +354,25 @@
             onAuthStateChanged(auth, async (user) => {
                 if (!user) return;
                 
-                const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
+                try {
+                    const userDocRef = doc(db, "users", user.uid);
+                    const docSnap = await getDoc(userDocRef);
 
-                if (docSnap.exists()) {
-                    if(sessionStorage.getItem('isNewAuth')) {
-                        showMessage("Đăng nhập thành công! Đang chuyển hướng...", false, 0);
-                        sessionStorage.removeItem('isNewAuth');
+                    if (docSnap.exists()) {
+                        if(sessionStorage.getItem('isNewAuth')) {
+                            showMessage("Đăng nhập thành công! Đang chuyển hướng...", false, 0);
+                            sessionStorage.removeItem('isNewAuth');
+                        }
+                        const { role } = docSnap.data();
+                        const destination = { teacher: "/teacher/index.html", student: "/student/index.html", admin: "/admin/index.html" }[role] || "/student/index.html";
+                        setTimeout(() => { window.location.href = destination; }, 1500);
+                    } else {
+                         console.error("User document not found for UID:", user.uid);
+                         showMessage("Không tìm thấy thông tin tài khoản. Vui lòng thử đăng nhập lại.");
                     }
-                    const { role } = docSnap.data();
-                    const destination = { teacher: "/teacher/index.html", student: "/student/index.html", admin: "/admin/index.html" }[role] || "/student/index.html";
-                    setTimeout(() => { window.location.href = destination; }, 1500);
+                } catch (error) {
+                    console.error("Error in onAuthStateChanged:", error);
+                    showMessage("Đã có lỗi xảy ra khi xác thực. Vui lòng thử lại.");
                 }
             });
 
@@ -637,7 +637,6 @@
                 console.error("Error fetching subjects: ", error);
             });
 
-            // ✅ SỬA LỖI: Truyền hàm `adjustWrapperHeight` làm callback
             setTimeout(adjustWrapperHeight, 100);
             new ResizeObserver(adjustWrapperHeight).observe(wrapper);
         });

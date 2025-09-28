@@ -48,9 +48,10 @@
         .prose { max-width: none; }
         .answer-option.correct { background-color: #dcfce7 !important; border-color: #22c55e !important; color: #15803d; font-weight: 600; }
         .answer-option.incorrect { background-color: #fee2e2 !important; border-color: #ef4444 !important; }
-        .question-grid-btn.answered { background-color: #f0fdfa; border-color: #a7f3d0; }
+        
         .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
         .toast.show { transform: translateY(0); opacity: 1; }
+        
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
         .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; transform: translateY(-20px); }
         .question-section:not(:last-child) {
@@ -131,7 +132,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, writeBatch, serverTimestamp, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
@@ -152,10 +153,10 @@
             const publishCancelBtn = document.getElementById('publish-cancel-btn');
             const publishConfirmBtn = document.getElementById('publish-confirm-btn');
             
+            let currentUser = null;
             let currentTestId = null;
             let questions = [];
 
-            // --- UTILS ---
             function showToast(message, type = 'success') {
                 const toast = document.createElement('div');
                 const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
@@ -167,15 +168,14 @@
                     toast.addEventListener('transitionend', () => toast.remove());
                 }, 3000);
             }
-
-            function cleanPrefix(text) {
+             function cleanPrefix(text) {
                 if (!text) return '';
-                return text.replace(/^(Câu|Bài|Phần|Mục)\s*[\dIVXLC]+\s*[:.]?\s*/i, '').trim();
+                return text.replace(/^(Câu|Bài|Phần|Mục)\s*\d+\s*[:.]?\s*/i, '').trim();
             }
 
-            // --- AUTH & DATA LOADING ---
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
+                    currentUser = user;
                     const docSnap = await getDoc(doc(db, "users", user.uid));
                     if (docSnap.exists() && docSnap.data().role === 'admin') {
                         const userData = docSnap.data();
@@ -196,14 +196,12 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 currentTestId = urlParams.get('testId');
                 if (!currentTestId) {
-                    alert("Không tìm thấy ID đề thi.");
                     window.location.href = 'tests.html';
                     return;
                 }
 
                 try {
-                    const testDocRef = doc(db, "tests", currentTestId);
-                    const testDocSnap = await getDoc(testDocRef);
+                    const testDocSnap = await getDoc(doc(db, "tests", currentTestId));
                     if (!testDocSnap.exists()) throw new Error("Đề thi không tồn tại.");
                     
                     const testData = testDocSnap.data();
@@ -216,13 +214,12 @@
                         feather.replace();
                     }
 
-                    if (!testData.questions || testData.questions.length === 0) {
-                        mainContentArea.innerHTML = `<p class="text-center text-slate-500">Đề thi này chưa có câu hỏi nào.</p>`;
+                    if (testData.questions && testData.questions.length > 0) {
+                        questions = testData.questions.map((q, index) => ({...q, id: `local_${index}`}));
+                    } else {
+                        mainContentArea.innerHTML = `<p class="text-center text-slate-500">Đề thi này chưa có câu hỏi hoặc đã được xử lý.</p>`;
                         return;
                     }
-                    
-                    // Admin-created tests have questions embedded directly
-                    questions = testData.questions.map((q, index) => ({...q, id: `local_${index}`}));
 
                     renderFullTest();
                     renderQuestionMap();
@@ -232,7 +229,7 @@
                     showToast(`Lỗi tải đề thi: ${error.message}`, "error");
                 }
             }
-            
+
             function getQuestionHTML(question, questionNumber) {
                 let answerHTML = '';
                 if (question.type === 'multiple_choice') {
@@ -300,8 +297,8 @@
                     return sectionHTML;
                 };
                 
-                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', 'multiple_choice', questionsByType.multiple_choice);
-                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', 'true_false', questionsByType.true_false);
+                fullTestHTML += renderSection('I. TRẮC NGHIỆM', 'multiple_choice', questionsByType.multiple_choice);
+                fullTestHTML += renderSection('II. ĐÚNG/SAI', 'true_false', questionsByType.true_false);
                 fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', 'short_answer', questionsByType.short_answer);
                 
                 mainContentArea.innerHTML = fullTestHTML;
@@ -319,7 +316,6 @@
                 });
             }
 
-            // --- EVENT HANDLING ---
             function setupEventListeners() {
                 document.querySelectorAll('.nav-link').forEach(link => {
                     link.addEventListener('click', function(e) {
@@ -391,14 +387,47 @@
                 
                 try {
                     const testDocRef = doc(db, "tests", currentTestId);
-                    await updateDoc(testDocRef, { status: 'published' });
+                    
+                    const testDocSnap = await getDoc(testDocRef);
+                    if (!testDocSnap.exists()) throw new Error("Đề thi không tồn tại.");
+                    const testData = testDocSnap.data();
+                    const embeddedQuestions = testData.questions || [];
+
+                    if (embeddedQuestions.length === 0) {
+                        throw new Error("Không thể xuất bản đề thi không có câu hỏi.");
+                    }
+
+                    const batch = writeBatch(db);
+                    const newQuestionIds = [];
+
+                    embeddedQuestions.forEach(q => {
+                        const newQuestionRef = doc(collection(db, 'questions'));
+                        batch.set(newQuestionRef, {
+                            ...q,
+                            authorId: auth.currentUser.uid,
+                            lessonId: null, 
+                            status: 'approved',
+                            createdAt: serverTimestamp(),
+                        });
+                        newQuestionIds.push(newQuestionRef.id);
+                    });
+
+                    batch.update(testDocRef, {
+                        status: 'published',
+                        questionIds: newQuestionIds,
+                        questions: deleteField() 
+                    });
+                    
+                    await batch.commit();
+
                     showToast("Đề thi đã được phân phối thành công!", "success");
                     publishBtn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4 mr-2"></i>Đã phân phối';
                     editBtn.classList.add('hidden');
                     feather.replace();
+
                 } catch (error) {
                     console.error("Error publishing test:", error);
-                    showToast("Lỗi khi phân phối đề thi.", "error");
+                    showToast(`Lỗi khi phân phối đề thi: ${error.message}`, "error");
                     publishBtn.disabled = false;
                     publishBtn.innerHTML = '<i data-feather="send" class="w-4 h-4 mr-2"></i>Phân phối Đề thi';
                     feather.replace();
@@ -421,3 +450,4 @@
     </script>
 </body>
 </html>
+
