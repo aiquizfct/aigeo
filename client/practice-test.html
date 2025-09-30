@@ -277,7 +277,7 @@
                                     <span class="flex-1">${optionData.content}</span>
                                 </div>`;
                     }).join('');
-                } else if (question.type === 'true_false_group') {
+                } else if (question.type === 'true_false') {
                     let statementsHTML = '<div class="space-y-4">';
                      const statements = question.statements || {};
                      Object.keys(statements).forEach(key => {
@@ -314,7 +314,7 @@
             }
 
              function renderFullTest() {
-                const questionsByType = { multiple_choice: [], true_false_group: [], short_answer: [] };
+                const questionsByType = { multiple_choice: [], true_false: [], short_answer: [] };
                 questions.forEach(q => { if (questionsByType[q.type]) questionsByType[q.type].push(q); });
                 let fullTestHTML = '', questionCounter = 0;
                 renderedQuestionsOrder = [];
@@ -330,7 +330,7 @@
                     return sectionHTML;
                 };
                 fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', 'multiple_choice', questionsByType.multiple_choice);
-                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', 'true_false_group', questionsByType.true_false_group);
+                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', 'true_false', questionsByType.true_false);
                 fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', 'short_answer', questionsByType.short_answer);
                 mainContentArea.innerHTML = fullTestHTML;
                 renderMathWithKaTeX(mainContentArea);
@@ -443,7 +443,7 @@
                         }
                     } else if (q.type === 'short_answer') {
                         isCorrect = String(userAnswer || "").trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
-                    } else if (q.type === 'true_false_group') {
+                    } else if (q.type === 'true_false') {
                         const statements = q.statements || {};
                         const statementKeys = Object.keys(statements).filter(k => statements[k]);
                         isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => userAnswer[key] === q.answers[key]);
