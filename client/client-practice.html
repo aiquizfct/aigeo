@@ -152,12 +152,12 @@
             let timeElapsed = 0;
             let eventListenersSetup = false;
             let testData = {};
-            let practiceContext = {}; // To store subjectId, etc.
+            let practiceContext = {}; 
             let clientSession = {};
 
             function cleanPrefix(text) {
                 if (!text) return '';
-                return text.replace(/^(Câu|Bài|Phần|Mục)\s*\d+\s*[:.]?\s*/i, '').trim();
+                return text.replace(/^(Câu|Bài|Phần|Mục)\s*[\dIVXLC]+\s*[:.]?\s*/i, '').trim();
             }
             
             function getClientSession() {
@@ -165,7 +165,6 @@
                 if (session) {
                     return JSON.parse(session);
                 }
-                // Nếu không có, tạo mới
                 const newSession = {
                     clientId: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                     chatCount: 0,
@@ -197,7 +196,7 @@
                         testData = { id: testDocSnap.id, ...testDocSnap.data() };
                         testNameHeader.textContent = testData.name;
                         
-                        if (testData.questions && testData.questions.length > 0) { // Handle embedded questions
+                        if (testData.questions && testData.questions.length > 0) {
                              questions = testData.questions.map((q, index) => ({...q, id: `embedded_${index}`}));
                         } else if (testData.questionIds && testData.questionIds.length > 0) {
                             questionIds = testData.questionIds;
@@ -277,41 +276,40 @@
                                     <span class="flex-1">${optionData.content}</span>
                                 </div>`;
                     }).join('');
-                } else if (question.type === 'true_false_group' || question.type === 'true_false') {
+                } else if (question.type === 'true_false') { // Array format from Admin
                     let statementsHTML = '<div class="space-y-4">';
-                    const statements = question.statements || [];
-                    
-                    if (Array.isArray(statements)) { // Handle array of objects from create-test-step2
-                         statements.forEach((stmt, i) => {
-                            if(stmt.statement) {
-                                const savedSubAnswer = savedAnswer ? savedAnswer[i] : undefined;
-                                const isTrueSelected = savedSubAnswer === true;
-                                const isFalseSelected = savedSubAnswer === false;
-                                statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
-                                            <p class="mb-3 text-slate-800">${i + 1}) ${stmt.statement}</p>
-                                            <div class="flex space-x-3" data-statement-key="${i}">
-                                                <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
-                                                <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
-                                            </div>
-                                        </div>`;
-                            }
-                        });
-                    } else { // Handle object of strings from other sources
-                        Object.keys(statements).forEach(key => {
-                             if(statements[key]) {
-                                const savedSubAnswer = savedAnswer ? savedAnswer[key] : undefined;
-                                const isTrueSelected = savedSubAnswer === true;
-                                const isFalseSelected = savedSubAnswer === false;
-                                 statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
-                                            <p class="mb-3 text-slate-800">${statements[key]}</p>
-                                            <div class="flex space-x-3" data-statement-key="${key}">
-                                                <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
-                                                <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
-                                            </div>
-                                        </div>`;
-                             }
-                        });
-                    }
+                    (question.statements || []).forEach((stmt, i) => {
+                         if(stmt.statement) {
+                            const savedSubAnswer = savedAnswer ? savedAnswer[i] : undefined;
+                            const isTrueSelected = savedSubAnswer === true;
+                            const isFalseSelected = savedSubAnswer === false;
+                             statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
+                                        <p class="mb-3 text-slate-800">${i + 1}) ${stmt.statement}</p>
+                                        <div class="flex space-x-3" data-statement-key="${i}">
+                                            <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
+                                            <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
+                                        </div>
+                                    </div>`;
+                         }
+                    });
+                    answerHTML = statementsHTML + '</div>';
+                } else if (question.type === 'true_false_group') { // Object format from Teacher
+                    let statementsHTML = '<div class="space-y-4">';
+                     const statements = question.statements || {};
+                     Object.keys(statements).forEach(key => {
+                         if(statements[key]) {
+                            const savedSubAnswer = savedAnswer ? savedAnswer[key] : undefined;
+                            const isTrueSelected = savedSubAnswer === true;
+                            const isFalseSelected = savedSubAnswer === false;
+                             statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
+                                        <p class="mb-3 text-slate-800">${key}) ${statements[key]}</p>
+                                        <div class="flex space-x-3" data-statement-key="${key}">
+                                            <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
+                                            <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
+                                        </div>
+                                    </div>`;
+                         }
+                    });
                     answerHTML = statementsHTML + '</div>';
                 } else if (question.type === 'short_answer') {
                     answerHTML = `<input type="text" class="mt-2 w-full p-3 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-300 focus:border-teal-500 transition" value="${savedAnswer || ''}" placeholder="Nhập câu trả lời của bạn...">`;
@@ -332,14 +330,14 @@
             }
 
              function renderFullTest() {
-                const questionsByType = { multiple_choice: [], true_false_group: [], short_answer: [] };
-                questions.forEach(q => { 
-                    if (q.type === 'true_false') q.type = 'true_false_group'; // Standardize type
-                    if (questionsByType[q.type]) questionsByType[q.type].push(q); 
-                });
-                let fullTestHTML = '', questionCounter = 0;
+                const questionsByType = { multiple_choice: [], true_false: [], true_false_group: [], short_answer: [] };
+                questions.forEach(q => { if (questionsByType[q.type]) questionsByType[q.type].push(q); });
+                
+                let fullTestHTML = '';
+                let questionCounter = 0;
                 renderedQuestionsOrder = [];
-                const renderSection = (title, type, questionsOfType) => {
+                
+                const renderSection = (title, types, questionsOfType) => {
                     if (questionsOfType.length === 0) return '';
                     let sectionHTML = `<div class="question-section"><h2 class="text-2xl font-bold text-slate-800 pb-2 mb-6 border-b-2 border-slate-200">${title}</h2><div class="space-y-8">`;
                     questionsOfType.forEach(q => {
@@ -350,9 +348,12 @@
                     sectionHTML += `</div></div>`;
                     return sectionHTML;
                 };
-                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', 'multiple_choice', questionsByType.multiple_choice);
-                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', 'true_false_group', questionsByType.true_false_group);
-                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', 'short_answer', questionsByType.short_answer);
+
+                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', ['multiple_choice'], questionsByType.multiple_choice);
+                const allTrueFalse = [...questionsByType.true_false, ...questionsByType.true_false_group];
+                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', ['true_false', 'true_false_group'], allTrueFalse);
+                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', ['short_answer'], questionsByType.short_answer);
+                
                 mainContentArea.innerHTML = fullTestHTML;
                 renderMathWithKaTeX(mainContentArea);
             }
@@ -457,7 +458,6 @@
                 questions.forEach(q => {
                     const userAnswer = userAnswers[q.id];
                     let isCorrect = false;
-
                     if (q.type === 'multiple_choice') {
                         if (userAnswer) {
                             const originalSelectedLetter = q.shuffledOptions?.find((opt, i) => String.fromCharCode(65 + i) === userAnswer)?.originalLetter;
@@ -465,23 +465,19 @@
                         }
                     } else if (q.type === 'short_answer') {
                         isCorrect = String(userAnswer || "").trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
-                    } else if (q.type === 'true_false_group' || q.type === 'true_false') {
-                         if (Array.isArray(q.statements)) { // Handle array format
-                            isCorrect = (q.statements || []).every((stmt, i) => {
-                                if (!stmt.statement) return true;
-                                return (userAnswer ? userAnswer[i] : undefined) === stmt.answer;
-                            });
-                        } else { // Handle object format
-                            const statements = q.statements || {};
-                            const statementKeys = Object.keys(statements).filter(k => statements[k]);
-                            isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => userAnswer[key] === q.answers[key]);
-                        }
+                    } else if (q.type === 'true_false') {
+                         isCorrect = (q.statements || []).every((stmt, i) => {
+                            if (!stmt.statement) return true;
+                            return (userAnswer ? userAnswer[i] : undefined) === stmt.answer;
+                        });
+                    } else if (q.type === 'true_false_group') {
+                        const statements = q.statements || {};
+                        const statementKeys = Object.keys(statements).filter(k => statements[k]);
+                        isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => userAnswer[key] === q.answers[key]);
                     }
-
                     if (isCorrect) score++;
                     else incorrectQuestions.push({ questionContent: q.content, lessonId: q.lessonId || null });
                 });
-                
                 const submissionId = `guest_${practiceContext.testId || 'practice'}_${Date.now()}`;
                 try {
                     const submissionRef = doc(db, 'guest_submissions', submissionId);
@@ -496,7 +492,7 @@
                         completedAt: serverTimestamp(),
                         incorrectQuestions: incorrectQuestions,
                         questionIds: questions.map(q => q.id.startsWith('embedded_') ? null : q.id).filter(Boolean),
-                        embeddedQuestions: questions.filter(q => q.id.startsWith('embedded_')), // Store embedded questions separately
+                        embeddedQuestions: questions.filter(q => q.id.startsWith('embedded_')),
                         userAnswers: userAnswers
                     };
                     await setDoc(submissionRef, submissionData);
