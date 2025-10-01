@@ -1,25 +1,71 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF--8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trung tâm Luyện tập - AIGEO</title>
+    <title>Luyện tập - AIGEO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <style>
         :root {
             --primary-teal: #0D9488;
             --primary-emerald: #10B981;
         }
-        body { 
-            font-family: 'Be Vietnam Pro', sans-serif; 
-            background-color: #f1f5f9; 
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #f0f4f8;
         }
-        .gradient-text {
+        .prose { max-width: none; }
+
+        .answer-option {
+            transition: all 0.2s ease-in-out;
+            border: 2px solid #e2e8f0;
+        }
+        .answer-option:hover {
+            border-color: #a7f3d0;
+            background-color: #f0fdfa;
+        }
+        .answer-option.selected {
+            background-color: #d1fae5;
+            border-color: #10b981;
+            box-shadow: 0 0 0 2px #a7f3d0;
+        }
+        .answer-option .option-letter {
+            background-color: #e2e8f0;
+            color: #475569;
+            transition: all 0.2s ease-in-out;
+        }
+        .answer-option.selected .option-letter {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: white;
+        }
+
+        .tf-btn {
+            transition: all 0.2s ease-in-out;
+            border: 2px solid #e2e8f0;
+        }
+        .tf-btn:hover {
+            border-color: #a7f3d0;
+            background-color: #f0fdfa;
+        }
+        .tf-btn.selected {
+            color: white;
+            border-color: transparent;
+        }
+        .tf-btn[data-value="true"].selected { background-color: #10b981; }
+        .tf-btn[data-value="false"].selected { background-color: #ef4444; }
+
+        .question-grid-btn.answered { background-color: #f0fdfa; border-color: #a7f3d0; font-weight: 600; }
+        #question-map-toggle:checked + #question-map { transform: translateX(0); }
+        .question-section:not(:last-child) {
+            border-bottom: 2px dashed #cbd5e1;
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
         }
         .cta-button {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
@@ -30,424 +76,451 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
         }
-        .skeleton { background-color: #e2e8f0; border-radius: 0.5rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 50% { opacity: .5; } }
-        .tab-button { transition: all 0.2s; border-bottom: 3px solid transparent; padding: 0.75rem 0.25rem; font-weight: 600; color: #475569; cursor:pointer; }
-        .tab-button.active { border-color: var(--primary-teal); color: var(--primary-teal); }
-        .tab-button:hover:not(.active) { color: var(--primary-teal); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .lesson-card { transition: all 0.2s ease-in-out; }
-        .lesson-card:has(input:checked) {
-             border-color: var(--primary-teal);
-             background-color: #f0fdfa;
-             transform: translateY(-2px);
-             box-shadow: 0 4px 10px rgba(13, 148, 136, 0.1);
-        }
-        .lesson-card:has(input:checked) .lesson-check-icon { opacity: 1; transform: scale(1); }
-        .lesson-check-icon { opacity: 0; transform: scale(0.5); transition: all 0.2s ease-in-out; }
-        .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
-        .toast.show { transform: translateY(0); opacity: 1; }
     </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="flex flex-col h-screen">
 
-    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="index.html" class="text-2xl font-bold gradient-text">AIGEO (Khách)</a>
-            <a href="../auth.html" class="cta-button text-white px-5 py-2.5 rounded-lg text-sm font-semibold">Đăng nhập / Đăng ký</a>
-        </nav>
-    </header>
-        
-    <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
-        <div class="max-w-7xl mx-auto">
-            <a href="index.html" class="flex items-center text-slate-500 hover:text-teal-600 font-semibold mb-4">
-                <i data-feather="arrow-left" class="mr-2 w-4 h-4"></i>Quay lại
-            </a>
-            <h1 class="text-3xl font-bold text-slate-800">Trung tâm Luyện tập</h1>
-            <p class="mt-2 text-slate-600">Chọn một phương thức luyện tập phù hợp với mục tiêu của bạn.</p>
-
-            <div class="mt-8">
-                <div class="border-b border-gray-200">
-                    <nav id="tabs-container" class="-mb-px flex space-x-8" aria-label="Tabs">
-                        <button class="tab-button active" data-tab="lesson-practice"><i data-feather="target" class="inline-block mr-2 w-5 h-5"></i>Theo Bài</button>
-                        <button class="tab-button" data-tab="comprehensive-practice"><i data-feather="list" class="inline-block mr-2 w-5 h-5"></i>Tổng hợp</button>
-                        <button class="tab-button" data-tab="admin-practice"><i data-feather="shield" class="inline-block mr-2 w-5 h-5"></i>Luyện Đề</button>
-                    </nav>
+    <header class="bg-white shadow-md w-full flex-shrink-0 flex flex-col z-20">
+        <div class="h-16 flex items-center justify-between px-6">
+            <div class="flex items-center space-x-4">
+                 <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/7c3aed/ffffff?text=G" alt="Guest Avatar">
+                 <div>
+                    <h1 id="test-name-header" class="font-bold text-lg text-slate-800">Luyện tập</h1>
+                    <p id="user-name" class="text-sm text-slate-500">Khách</p>
+                 </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 bg-slate-100 text-slate-700 font-bold px-4 py-2 rounded-lg">
+                    <i data-feather="clock" class="w-5 h-5"></i>
+                    <span id="timer">00:00</span>
                 </div>
+                <label for="question-map-toggle" class="p-2 rounded-md hover:bg-slate-100 cursor-pointer md:hidden">
+                     <i data-feather="grid" class="w-6 h-6"></i>
+                </label>
+            </div>
+        </div>
+        <div class="w-full bg-slate-200 h-1">
+            <div id="progress-bar" class="h-1 bg-teal-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </header>
 
-                <div class="mt-5">
-                    <div id="lesson-practice" class="tab-content active">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-sky-500">
-                            <h2 class="text-xl font-bold text-slate-800">Luyện tập theo bài</h2>
-                            <p class="mt-2 text-slate-500">Chọn Môn học và một bài học cụ thể để tạo đề ngẫu nhiên, giúp nắm vững kiến thức từng phần.</p>
-                            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <select id="filter-subject-lesson" class="p-3 border rounded-lg bg-white w-full"></select>
-                                <select id="filter-grade-lesson" class="p-3 border rounded-lg bg-white w-full" disabled></select>
-                            </div>
-                            <div id="lesson-list-container-lesson" class="mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg">
-                                Vui lòng chọn Môn học và Lớp.
-                            </div>
-                            <div id="question-count-wrapper-lesson" class="mt-6 space-y-2 hidden">
-                                <label for="question-count-lesson" class="text-sm font-medium text-slate-700">Số lượng câu hỏi:</label>
-                                <div class="flex items-center space-x-4">
-                                    <input id="question-count-slider-lesson" type="range" min="5" max="50" value="10" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                                    <span id="question-count-label-lesson" class="font-bold text-slate-800 w-12 text-center">10</span>
-                                </div>
-                            </div>
-                            <div class="mt-6 flex justify-end">
-                                 <button id="start-lesson-practice-btn" class="cta-button text-white font-bold px-8 py-3 rounded-lg disabled:bg-slate-400 disabled:cursor-not-allowed" disabled>
-                                    Bắt đầu
-                                </button>
-                            </div>
-                        </div>
+    <div class="flex-1 flex overflow-hidden">
+        <main class="flex-1 p-4 md:p-8 overflow-y-auto">
+            <div class="max-w-4xl mx-auto">
+                <div id="main-content-area">
+                     <div class="text-center p-10">
+                         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto"></div>
+                         <p class="mt-4 text-slate-500">Đang chuẩn bị bài luyện tập...</p>
                     </div>
-
-                    <div id="comprehensive-practice" class="tab-content">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-amber-500">
-                            <h2 class="text-xl font-bold text-slate-800">Luyện tập tổng hợp</h2>
-                            <p class="mt-2 text-slate-500">Chọn Môn học, sau đó chọn nhiều bài học để hệ thống tạo đề tổng hợp, cân đối các dạng câu hỏi.</p>
-                            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <select id="filter-subject-comprehensive" class="p-3 border rounded-lg bg-white w-full"></select>
-                                <select id="filter-grade-comprehensive" class="p-3 border rounded-lg bg-white w-full" disabled></select>
-                            </div>
-                            <div id="lesson-list-container-comprehensive" class="mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg">
-                                Vui lòng chọn Môn học và Lớp.
-                            </div>
-                            <div id="question-count-wrapper-comprehensive" class="mt-6 space-y-2 hidden">
-                                 <label for="question-count-comprehensive" class="text-sm font-medium text-slate-700">Tổng số câu hỏi:</label>
-                                <div class="flex items-center space-x-4">
-                                    <input id="question-count-slider-comprehensive" type="range" min="10" max="50" value="20" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                                    <span id="question-count-label-comprehensive" class="font-bold text-slate-800 w-12 text-center">20</span>
-                                </div>
-                            </div>
-                            <div class="mt-6 flex justify-end">
-                                 <button id="start-comprehensive-practice-btn" class="cta-button text-white font-bold px-8 py-3 rounded-lg disabled:bg-slate-400 disabled:cursor-not-allowed" disabled>
-                                    Bắt đầu (0 câu)
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="admin-practice" class="tab-content">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border-t-4 border-indigo-500">
-                            <h2 class="text-xl font-bold text-slate-800">Luyện Đề từ Ngân hàng chung</h2>
-                            <p class="mt-2 text-slate-500">Đây là danh sách các đề thi đã được xuất bản, phù hợp cho việc ôn tập và củng cố kiến thức tổng quát.</p>
-                            <div id="admin-tests-container" class="mt-6 space-y-4">
-                                <div class="skeleton h-24 w-full"></div>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
         </main>
-    </main>
 
-     <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+        <input type="checkbox" id="question-map-toggle" class="hidden">
+        <aside id="question-map" class="w-72 bg-white border-l p-4 flex-shrink-0 flex flex-col overflow-y-auto transform transition-transform translate-x-full md:translate-x-0 md:relative">
+            <h2 class="font-bold mb-4">Danh sách câu hỏi</h2>
+            <div id="question-grid" class="grid grid-cols-5 gap-2"></div>
+            <div class="mt-auto pt-4">
+                <button id="submit-btn" class="w-full cta-button text-white font-bold py-3 rounded-lg flex items-center justify-center">
+                     <i data-feather="check-circle" class="w-5 h-5 mr-2"></i>
+                    <span>Nộp bài</span>
+                </button>
+            </div>
+        </aside>
+    </div>
 
     <script src="../firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, getDocs, collection, query, where, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
 
-            const tabsContainer = document.getElementById('tabs-container');
-            const tabContents = document.querySelectorAll('.tab-content');
-            
-            const adminTestsContainer = document.getElementById('admin-tests-container');
-            
-            const filtersLesson = { subject: document.getElementById('filter-subject-lesson'), grade: document.getElementById('filter-grade-lesson') };
-            const lessonListContainerLesson = document.getElementById('lesson-list-container-lesson');
-            const questionCountWrapperLesson = document.getElementById('question-count-wrapper-lesson');
-            const questionCountSliderLesson = document.getElementById('question-count-slider-lesson');
-            const questionCountLabelLesson = document.getElementById('question-count-label-lesson');
-            const startLessonPracticeBtn = document.getElementById('start-lesson-practice-btn');
+            const mainContentArea = document.getElementById('main-content-area');
+            const progressBar = document.getElementById('progress-bar');
+            const questionGridEl = document.getElementById('question-grid');
+            const submitBtn = document.getElementById('submit-btn');
+            const timerEl = document.getElementById('timer');
+            const testNameHeader = document.getElementById('test-name-header');
 
-            const filtersComp = { subject: document.getElementById('filter-subject-comprehensive'), grade: document.getElementById('filter-grade-comprehensive') };
-            const lessonListContainerComp = document.getElementById('lesson-list-container-comprehensive');
-            const questionCountWrapperComp = document.getElementById('question-count-wrapper-comprehensive');
-            const questionCountSliderComp = document.getElementById('question-count-slider-comprehensive');
-            const questionCountLabelComp = document.getElementById('question-count-label-comprehensive');
-            const startCompPracticeBtn = document.getElementById('start-comprehensive-practice-btn');
-
-            let allDataCache = { subjects: [], lessons: [], tests: [], questions: [] };
+            let questions = [];
+            let renderedQuestionsOrder = [];
+            let userAnswers = {};
+            let timerInterval = null;
+            let timeElapsed = 0;
+            let eventListenersSetup = false;
+            let testData = {};
+            let practiceContext = {}; // To store subjectId, etc.
+            let clientSession = {};
 
             function cleanPrefix(text) {
                 if (!text) return '';
                 return text.replace(/^(Câu|Bài|Phần|Mục)\s*\d+\s*[:.]?\s*/i, '').trim();
             }
             
-            async function loadInitialData() {
+            function getClientSession() {
+                let session = localStorage.getItem('aigeo_client_session');
+                if (session) {
+                    return JSON.parse(session);
+                }
+                // Nếu không có, tạo mới
+                const newSession = {
+                    clientId: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    chatCount: 0,
+                    createdAt: new Date().toISOString()
+                };
+                localStorage.setItem('aigeo_client_session', JSON.stringify(newSession));
+                return newSession;
+            }
+
+            async function initTest() {
                 try {
-                    const [subjectsSnap, lessonsSnap, testsSnap, questionsSnap] = await Promise.all([
-                        getDocs(collection(db, "subjects")),
-                        getDocs(collection(db, "lessons")),
-                        getDocs(query(collection(db, "tests"), where("status", "==", "published"))),
-                        getDocs(query(collection(db, "questions"), where("status", "==", "approved")))
-                    ]);
-                    allDataCache.subjects = subjectsSnap.docs.map(d => ({id: d.id, ...d.data()}));
-                    allDataCache.lessons = lessonsSnap.docs.map(d => ({id: d.id, ...d.data()}));
-                    allDataCache.tests = testsSnap.docs.map(d => ({id: d.id, ...d.data()}));
-                    allDataCache.questions = questionsSnap.docs.map(d => ({id: d.id, ...d.data()}));
-                } catch (error) {
-                    console.error("Error loading initial data:", error);
-                    showToast("Lỗi tải dữ liệu. Vui lòng thử lại.", "error");
-                }
-            }
-            
-            function initializeTabs() {
-                setupEventListeners();
-                loadLessonPracticeTab(); // Load tab đầu tiên
-            }
+                    clientSession = getClientSession();
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const testIdFromUrl = urlParams.get('testId');
+                    const questionIdsStr = sessionStorage.getItem('practiceTestQuestions');
+                    const contextStr = sessionStorage.getItem('practiceContext');
+                    let questionIds = [];
 
-            function loadAdminPracticeTab() {
-                const adminTests = allDataCache.tests; // Tất cả đề published đều có thể coi là của admin/hệ thống
-                if (adminTests.length === 0) {
-                    adminTestsContainer.innerHTML = `<div class="text-center p-4"><p class="text-slate-500">Hiện chưa có đề luyện tập nào.</p></div>`;
-                    return;
-                }
-                renderTestsList(adminTests, adminTestsContainer);
-            }
-            
-            function loadLessonPracticeTab() { populateSelect(filtersLesson.subject, allDataCache.subjects, 'Chọn Môn học'); }
-            function loadComprehensivePracticeTab() { populateSelect(filtersComp.subject, allDataCache.subjects, 'Chọn Môn học'); }
+                    if (questionIdsStr && contextStr) {
+                        questionIds = JSON.parse(questionIdsStr);
+                        practiceContext = JSON.parse(contextStr);
+                        testData = { name: practiceContext.testName || "Luyện tập" };
+                        testNameHeader.textContent = testData.name;
+                    } else if (testIdFromUrl) {
+                        const testDocRef = doc(db, "tests", testIdFromUrl);
+                        const testDocSnap = await getDoc(testDocRef);
+                        if (!testDocSnap.exists()) throw new Error("Đề thi không tồn tại.");
 
-            function renderLessonList(container, subjectId, grade, inputType) {
-                const lessons = allDataCache.lessons.filter(l => l.subjectId === subjectId && l.grade == grade).sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
-                if (lessons.length === 0) {
-                    container.innerHTML = '<p class="text-slate-500">Không tìm thấy bài học nào cho lựa chọn này.</p>';
-                    return;
-                }
-                container.innerHTML = '';
-                container.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left max-h-80 overflow-y-auto p-2';
-                
-                lessons.forEach(lesson => {
-                    const questionCount = allDataCache.questions.filter(q => q.lessonId === lesson.id).length;
-                    const card = document.createElement('div');
-                    card.className = `relative lesson-card rounded-lg border transition-all duration-200 ${questionCount === 0 ? 'bg-slate-100 cursor-not-allowed opacity-70' : 'bg-white hover:border-teal-400 hover:shadow-md'}`;
+                        testData = { id: testDocSnap.id, ...testDocSnap.data() };
+                        testNameHeader.textContent = testData.name;
+                        
+                        if (testData.questions && testData.questions.length > 0) { // Handle embedded questions
+                             questions = testData.questions.map((q, index) => ({...q, id: `embedded_${index}`}));
+                        } else if (testData.questionIds && testData.questionIds.length > 0) {
+                            questionIds = testData.questionIds;
+                        } else {
+                            throw new Error("Đề thi này chưa có câu hỏi nào.");
+                        }
+
+                        practiceContext = {
+                            testId: testData.id,
+                            subjectId: testData.subjectId
+                        };
+                    } else {
+                        throw new Error("Không tìm thấy dữ liệu cần thiết. Vui lòng bắt đầu lại từ trang Luyện tập.");
+                    }
                     
-                    card.innerHTML = `
-                        <input id="${lesson.id}-${inputType}" type="${inputType}" data-lesson-id="${lesson.id}" name="lesson-selection-${inputType}" class="sr-only peer" ${questionCount === 0 ? 'disabled' : ''}>
-                        <label for="${lesson.id}-${inputType}" class="block p-4 cursor-pointer">
-                            <div class="flex items-start justify-between">
-                                <span class="text-xs font-bold ${questionCount === 0 ? 'bg-slate-200 text-slate-500' : 'bg-teal-100 text-teal-800'} px-2 py-1 rounded-full">${questionCount} câu</span>
-                                <div class="w-6 h-6 flex items-center justify-center rounded-full bg-teal-500 text-white lesson-check-icon">
-                                    <i data-feather="check" class="w-4 h-4"></i>
-                                </div>
-                            </div>
-                            <span class="block mt-3 font-semibold ${questionCount === 0 ? 'text-slate-400' : 'text-slate-800'}">${cleanPrefix(lesson.name)}</span>
-                        </label>
+                    if (questions.length === 0 && questionIds.length > 0) {
+                         const fetchedQuestions = [];
+                        const CHUNK_SIZE = 30;
+                        for (let i = 0; i < questionIds.length; i += CHUNK_SIZE) {
+                            const chunk = questionIds.slice(i, i + CHUNK_SIZE);
+                            const q = query(collection(db, "questions"), where("__name__", "in", chunk));
+                            const snapshot = await getDocs(q);
+                            snapshot.forEach(doc => fetchedQuestions.push({ id: doc.id, ...doc.data() }));
+                        }
+                        questions = fetchedQuestions.sort((a, b) => questionIds.indexOf(a.id) - questionIds.indexOf(b.id));
+                    }
+
+                    if (questions.length === 0) {
+                        throw new Error("Không có câu hỏi nào được tìm thấy cho bài luyện tập này.");
+                    }
+
+                    questions.forEach(q => {
+                        if (q.type === 'multiple_choice' && q.options) {
+                            const optionsWithOriginalLetter = ['A', 'B', 'C', 'D']
+                                .map((letter, index) => ({ originalLetter: letter, content: q.options[index] }))
+                                .filter(opt => opt && opt.content);
+                            for (let i = optionsWithOriginalLetter.length - 1; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                [optionsWithOriginalLetter[i], optionsWithOriginalLetter[j]] = [optionsWithOriginalLetter[j], optionsWithOriginalLetter[i]];
+                            }
+                            q.shuffledOptions = optionsWithOriginalLetter;
+                        }
+                    });
+
+                    renderFullTest();
+                    renderQuestionMap();
+                    setupEventListeners();
+                    startTimer();
+                } catch (error) {
+                    console.error("Error during test initialization:", error);
+                    mainContentArea.innerHTML = `
+                        <div class="bg-white p-8 rounded-xl shadow-lg text-center">
+                            <i data-feather="alert-circle" class="w-16 h-16 mx-auto text-red-500"></i>
+                            <h2 class="mt-4 text-2xl font-bold text-slate-800">Đã xảy ra lỗi</h2>
+                            <p class="mt-2 text-slate-600">${error.message}</p>
+                            <a href="client-practice.html" class="mt-6 inline-block w-full max-w-xs cta-button text-white font-semibold px-6 py-3 rounded-lg">
+                                Quay lại
+                            </a>
+                        </div>
                     `;
-                    container.appendChild(card);
+                    feather.replace();
+                    document.getElementById('question-map').classList.add('hidden');
+                    document.querySelector('header').classList.add('hidden');
+                }
+            }
+            
+            function getQuestionHTML(question, questionNumber) {
+                let answerHTML = '';
+                const savedAnswer = userAnswers[question.id];
+
+                if (question.type === 'multiple_choice') {
+                    answerHTML = (question.shuffledOptions || []).map((optionData, i) => {
+                        const optionLetter = String.fromCharCode(65 + i);
+                        const isSelected = savedAnswer === optionLetter ? 'selected' : '';
+                        return `<div class="answer-option p-4 rounded-lg cursor-pointer flex items-center space-x-4 ${isSelected}" data-answer="${optionLetter}">
+                                    <span class="option-letter h-8 w-8 rounded-md flex items-center justify-center font-bold">${optionLetter}</span>
+                                    <span class="flex-1">${optionData.content}</span>
+                                </div>`;
+                    }).join('');
+                } else if (question.type === 'true_false_group' || question.type === 'true_false') {
+                    let statementsHTML = '<div class="space-y-4">';
+                    const statements = question.statements || [];
+                    
+                    if (Array.isArray(statements)) { // Handle array of objects from create-test-step2
+                         statements.forEach((stmt, i) => {
+                            if(stmt.statement) {
+                                const savedSubAnswer = savedAnswer ? savedAnswer[i] : undefined;
+                                const isTrueSelected = savedSubAnswer === true;
+                                const isFalseSelected = savedSubAnswer === false;
+                                statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
+                                            <p class="mb-3 text-slate-800">${i + 1}) ${stmt.statement}</p>
+                                            <div class="flex space-x-3" data-statement-key="${i}">
+                                                <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
+                                                <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
+                                            </div>
+                                        </div>`;
+                            }
+                        });
+                    } else { // Handle object of strings from other sources
+                        Object.keys(statements).forEach(key => {
+                             if(statements[key]) {
+                                const savedSubAnswer = savedAnswer ? savedAnswer[key] : undefined;
+                                const isTrueSelected = savedSubAnswer === true;
+                                const isFalseSelected = savedSubAnswer === false;
+                                 statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
+                                            <p class="mb-3 text-slate-800">${statements[key]}</p>
+                                            <div class="flex space-x-3" data-statement-key="${key}">
+                                                <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
+                                                <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
+                                            </div>
+                                        </div>`;
+                             }
+                        });
+                    }
+                    answerHTML = statementsHTML + '</div>';
+                } else if (question.type === 'short_answer') {
+                    answerHTML = `<input type="text" class="mt-2 w-full p-3 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-300 focus:border-teal-500 transition" value="${savedAnswer || ''}" placeholder="Nhập câu trả lời của bạn...">`;
+                }
+
+                const imageHTML = question.imageUrl
+                    ? `<div class="my-4"><img src="${question.imageUrl}" alt="Hình ảnh câu hỏi" class="max-w-full h-auto rounded-lg mx-auto border"></div>`
+                    : '';
+
+                return `
+                    <div id="question-${question.id}" class="bg-white p-6 rounded-xl shadow-sm">
+                        <p class="font-semibold text-slate-600">Câu ${questionNumber}</p>
+                        ${imageHTML}
+                        <div class="prose mt-4 text-lg">${cleanPrefix(question.content)}</div>
+                        <div class="mt-6 space-y-4">${answerHTML}</div>
+                    </div>
+                `;
+            }
+
+             function renderFullTest() {
+                const questionsByType = { multiple_choice: [], true_false_group: [], short_answer: [] };
+                questions.forEach(q => { 
+                    if (q.type === 'true_false') q.type = 'true_false_group'; // Standardize type
+                    if (questionsByType[q.type]) questionsByType[q.type].push(q); 
                 });
-                feather.replace();
+                let fullTestHTML = '', questionCounter = 0;
+                renderedQuestionsOrder = [];
+                const renderSection = (title, type, questionsOfType) => {
+                    if (questionsOfType.length === 0) return '';
+                    let sectionHTML = `<div class="question-section"><h2 class="text-2xl font-bold text-slate-800 pb-2 mb-6 border-b-2 border-slate-200">${title}</h2><div class="space-y-8">`;
+                    questionsOfType.forEach(q => {
+                        questionCounter++;
+                        renderedQuestionsOrder.push(q.id);
+                        sectionHTML += getQuestionHTML(q, questionCounter);
+                    });
+                    sectionHTML += `</div></div>`;
+                    return sectionHTML;
+                };
+                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', 'multiple_choice', questionsByType.multiple_choice);
+                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', 'true_false_group', questionsByType.true_false_group);
+                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', 'short_answer', questionsByType.short_answer);
+                mainContentArea.innerHTML = fullTestHTML;
+                renderMathWithKaTeX(mainContentArea);
             }
 
-            function updateLessonPracticeState() {
-                const selectedRadio = lessonListContainerLesson.querySelector('input[type="radio"]:checked');
-                if (!selectedRadio) {
-                    questionCountWrapperLesson.classList.add('hidden');
-                    startLessonPracticeBtn.disabled = true; return;
-                }
-                const selectedLessonId = selectedRadio.dataset.lessonId;
-                const availableQuestions = allDataCache.questions.filter(q => q.lessonId === selectedLessonId).length;
-                
-                questionCountWrapperLesson.classList.remove('hidden');
-                questionCountSliderLesson.max = Math.min(50, availableQuestions);
-                if (parseInt(questionCountSliderLesson.value) > availableQuestions) {
-                    questionCountSliderLesson.value = availableQuestions;
-                }
-                questionCountLabelLesson.textContent = questionCountSliderLesson.value;
-                startLessonPracticeBtn.disabled = availableQuestions === 0 || parseInt(questionCountSliderLesson.value) === 0;
+            function renderQuestionMap() {
+                questionGridEl.innerHTML = '';
+                renderedQuestionsOrder.forEach((questionId, index) => {
+                    const btn = document.createElement('a');
+                    btn.href = `#question-${questionId}`;
+                    btn.className = 'question-grid-btn border-2 rounded-md p-2 font-semibold transition-colors flex items-center justify-center';
+                    btn.textContent = index + 1;
+                    btn.dataset.questionId = questionId;
+                    questionGridEl.appendChild(btn);
+                });
             }
 
-            function updateComprehensivePracticeState() {
-                const selectedCheckboxes = lessonListContainerComp.querySelectorAll('input[type="checkbox"]:checked');
-                if (selectedCheckboxes.length === 0) {
-                    questionCountWrapperComp.classList.add('hidden');
-                    startCompPracticeBtn.disabled = true;
-                    startCompPracticeBtn.textContent = `Bắt đầu (0 câu)`; return;
-                }
-                const selectedLessonIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.lessonId);
-                const availableQuestions = allDataCache.questions.filter(q => selectedLessonIds.includes(q.lessonId)).length;
-                
-                questionCountWrapperComp.classList.remove('hidden');
-                
-                questionCountSliderComp.max = Math.min(50, availableQuestions);
-                if (parseInt(questionCountSliderComp.value) > availableQuestions) {
-                     questionCountSliderComp.value = availableQuestions;
-                }
-                 if (availableQuestions > 0 && parseInt(questionCountSliderComp.value) === 0) {
-                    questionCountSliderComp.value = Math.min(20, availableQuestions);
-                }
-                questionCountLabelComp.textContent = questionCountSliderComp.value;
-                startCompPracticeBtn.disabled = availableQuestions === 0 || parseInt(questionCountSliderComp.value) === 0;
-                startCompPracticeBtn.textContent = `Bắt đầu (${availableQuestions} câu)`;
+            function countAnsweredQuestions() {
+                return Object.keys(userAnswers).reduce((count, qId) => {
+                    const answer = userAnswers[qId];
+                    if (answer !== undefined) {
+                        if (typeof answer === 'object' && answer !== null) { if (Object.values(answer).some(v => v !== undefined)) return count + 1; } 
+                        else if (String(answer).trim() !== '') return count + 1;
+                    }
+                    return count;
+                }, 0);
             }
 
-            function handleStartLessonPractice() {
-                const selectedRadio = lessonListContainerLesson.querySelector('input[type="radio"]:checked');
-                if (!selectedRadio) return;
-                const lessonId = selectedRadio.dataset.lessonId;
-                const questionCount = parseInt(questionCountSliderLesson.value, 10);
-                if (questionCount === 0) {
-                    showToast("Vui lòng chọn số lượng câu hỏi lớn hơn 0.", "error");
-                    return;
-                }
-                const questionPool = allDataCache.questions.filter(q => q.lessonId === lessonId).map(q => q.id);
-                const finalQuestionIds = questionPool.sort(() => 0.5 - Math.random()).slice(0, questionCount);
-                sessionStorage.setItem('practiceTestQuestions', JSON.stringify(finalQuestionIds));
-                sessionStorage.setItem('practiceContext', JSON.stringify({ type: 'lesson_practice', subjectId: filtersLesson.subject.value, lessonId: lessonId, testName: `Luyện tập: ${cleanPrefix(allDataCache.lessons.find(l=>l.id===lessonId).name)}` }));
-                window.location.href = 'practice-test.html';
+            function updateQuestionMap() {
+                 questionGridEl.querySelectorAll('.question-grid-btn').forEach(btn => {
+                    const questionId = btn.dataset.questionId;
+                    const answer = userAnswers[questionId];
+                    let hasAnswer = false;
+                    if (answer !== undefined) {
+                        if (typeof answer === 'object' && answer !== null) hasAnswer = Object.values(answer).some(v => v !== undefined);
+                        else hasAnswer = String(answer).trim() !== '';
+                    }
+                    if (hasAnswer) btn.classList.add('answered');
+                    else btn.classList.remove('answered');
+                });
             }
 
-            function handleStartComprehensivePractice() {
-                const selectedCheckboxes = lessonListContainerComp.querySelectorAll('input[type="checkbox"]:checked');
-                if (selectedCheckboxes.length === 0) return;
-                const selectedLessonIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.lessonId);
-                const totalQuestionCount = parseInt(questionCountSliderComp.value, 10);
-                 if (totalQuestionCount === 0) {
-                    showToast("Vui lòng chọn số lượng câu hỏi lớn hơn 0.", "error");
-                    return;
-                }
-                
-                const questionPool = allDataCache.questions.filter(q => selectedLessonIds.includes(q.lessonId));
-                
-                const finalQuestions = questionPool.sort(() => 0.5 - Math.random()).slice(0, totalQuestionCount).map(q => q.id);
-
-                if (finalQuestions.length === 0) {
-                    showToast("Không tìm thấy câu hỏi phù hợp.", "error"); return;
-                }
-
-                sessionStorage.setItem('practiceTestQuestions', JSON.stringify(finalQuestions));
-                sessionStorage.setItem('practiceContext', JSON.stringify({ type: 'comprehensive_practice', subjectId: filtersComp.subject.value, testName: "Luyện tập tổng hợp" }));
-                window.location.href = 'practice-test.html';
+            function updateProgressBar() {
+                const answeredCount = countAnsweredQuestions();
+                const progress = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
+                progressBar.style.width = `${progress}%`;
             }
 
             function setupEventListeners() {
-                tabsContainer.addEventListener('click', (e) => {
-                    const button = e.target.closest('.tab-button');
-                    if (!button) return;
-                    tabsContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                    tabContents.forEach(content => content.classList.remove('active'));
-                    button.classList.add('active');
-                    const tabId = button.dataset.tab;
-                    document.getElementById(tabId).classList.add('active');
-                    if (tabId === 'admin-practice') loadAdminPracticeTab();
-                    else if (tabId === 'lesson-practice') loadLessonPracticeTab();
-                    else if (tabId === 'comprehensive-practice') loadComprehensivePracticeTab();
+                if (eventListenersSetup) return;
+                mainContentArea.addEventListener('click', (e) => {
+                    const questionCard = e.target.closest('[id^="question-"]');
+                    if (!questionCard) return;
+                    const questionId = questionCard.id.replace('question-', '');
+                    const selectedOption = e.target.closest('.answer-option');
+                    if (selectedOption) {
+                        userAnswers[questionId] = selectedOption.dataset.answer;
+                        questionCard.querySelectorAll('.answer-option').forEach(opt => opt.classList.remove('selected'));
+                        selectedOption.classList.add('selected');
+                    }
+                    const tfButton = e.target.closest('.tf-btn');
+                    if (tfButton) {
+                        const statementKey = tfButton.parentElement.dataset.statementKey;
+                        const value = tfButton.dataset.value === 'true';
+                        if (!userAnswers[questionId]) userAnswers[questionId] = {};
+                        userAnswers[questionId][statementKey] = value;
+                        tfButton.parentElement.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('selected'));
+                        tfButton.classList.add('selected');
+                    }
+                    updateQuestionMap();
+                    updateProgressBar();
                 });
-
-                // --- NEW REFACTORED EVENT LISTENERS ---
-                filtersLesson.subject.onchange = () => {
-                    const subjectId = filtersLesson.subject.value;
-                    populateGrades(filtersLesson, subjectId);
-                    // Reset lesson list when subject changes
-                    lessonListContainerLesson.innerHTML = '<p class="text-slate-500">Vui lòng chọn một Lớp.</p>';
-                    lessonListContainerLesson.className = 'mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg';
-                    updateLessonPracticeState();
-                };
-                filtersLesson.grade.onchange = () => {
-                    const subjectId = filtersLesson.subject.value;
-                    const grade = parseInt(filtersLesson.grade.value, 10);
-                    if (subjectId && grade) {
-                        renderLessonList(lessonListContainerLesson, subjectId, grade, 'radio');
-                    } else {
-                        lessonListContainerLesson.innerHTML = '<p class="text-slate-500">Vui lòng chọn một Lớp.</p>';
-                        lessonListContainerLesson.className = 'mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg';
+                mainContentArea.addEventListener('input', (e) => {
+                    const questionCard = e.target.closest('[id^="question-"]');
+                    if (questionCard && e.target.matches('input[type="text"]')) {
+                        const questionId = questionCard.id.replace('question-', '');
+                        userAnswers[questionId] = e.target.value.trim();
+                        updateQuestionMap();
+                        updateProgressBar();
                     }
-                    updateLessonPracticeState();
-                };
-
-                filtersComp.subject.onchange = () => {
-                     const subjectId = filtersComp.subject.value;
-                    populateGrades(filtersComp, subjectId);
-                     lessonListContainerComp.innerHTML = '<p class="text-slate-500">Vui lòng chọn một Lớp.</p>';
-                     lessonListContainerComp.className = 'mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg';
-                    updateComprehensivePracticeState();
-                };
-                filtersComp.grade.onchange = () => {
-                    const subjectId = filtersComp.subject.value;
-                    const grade = parseInt(filtersComp.grade.value, 10);
-                     if (subjectId && grade) {
-                        renderLessonList(lessonListContainerComp, subjectId, grade, 'checkbox');
-                    } else {
-                        lessonListContainerComp.innerHTML = '<p class="text-slate-500">Vui lòng chọn một Lớp.</p>';
-                        lessonListContainerComp.className = 'mt-4 text-center text-slate-500 p-6 bg-slate-50 rounded-lg';
-                    }
-                    updateComprehensivePracticeState();
-                };
-                // --- END OF REFACTORED LISTENERS ---
-
-                lessonListContainerLesson.onchange = updateLessonPracticeState;
-                questionCountSliderLesson.oninput = (e) => {
-                    questionCountLabelLesson.textContent = e.target.value;
-                    updateLessonPracticeState();
-                };
-                startLessonPracticeBtn.onclick = handleStartLessonPractice;
-
-                lessonListContainerComp.onchange = updateComprehensivePracticeState;
-                questionCountSliderComp.oninput = (e) => {
-                    questionCountLabelComp.textContent = e.target.value;
-                    updateComprehensivePracticeState();
-                };
-                startCompPracticeBtn.onclick = handleStartComprehensivePractice;
+                });
+                submitBtn.addEventListener('click', handleSubmit);
+                eventListenersSetup = true;
             }
 
-            function populateGrades(filterGroup, subjectId) {
-                const gradeSelect = filterGroup.grade;
-                const gradeOptions = [...new Set(allDataCache.lessons.filter(l => l.subjectId === subjectId).map(l => l.grade))].sort((a, b) => a - b);
-                populateSelect(gradeSelect, gradeOptions.map(g => ({ id: g, name: `Lớp ${g}` })), 'Chọn Lớp');
-                gradeSelect.disabled = !subjectId;
+            function startTimer() {
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    timeElapsed++;
+                    const minutes = Math.floor(timeElapsed / 60).toString().padStart(2, '0');
+                    const seconds = (timeElapsed % 60).toString().padStart(2, '0');
+                    timerEl.textContent = `${minutes}:${seconds}`;
+                }, 1000);
+            }
+
+            async function handleSubmit() {
+                if (!confirm("Bạn có chắc chắn muốn nộp bài?")) return;
+                clearInterval(timerInterval);
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="animate-spin h-5 w-5 border-t-2 border-r-2 border-white rounded-full mx-auto"></span>';
+                let score = 0;
+                let incorrectQuestions = [];
+                questions.forEach(q => {
+                    const userAnswer = userAnswers[q.id];
+                    let isCorrect = false;
+
+                    if (q.type === 'multiple_choice') {
+                        if (userAnswer) {
+                            const originalSelectedLetter = q.shuffledOptions?.find((opt, i) => String.fromCharCode(65 + i) === userAnswer)?.originalLetter;
+                            if (originalSelectedLetter === q.correctAnswer) isCorrect = true;
+                        }
+                    } else if (q.type === 'short_answer') {
+                        isCorrect = String(userAnswer || "").trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
+                    } else if (q.type === 'true_false_group' || q.type === 'true_false') {
+                         if (Array.isArray(q.statements)) { // Handle array format
+                            isCorrect = (q.statements || []).every((stmt, i) => {
+                                if (!stmt.statement) return true;
+                                return (userAnswer ? userAnswer[i] : undefined) === stmt.answer;
+                            });
+                        } else { // Handle object format
+                            const statements = q.statements || {};
+                            const statementKeys = Object.keys(statements).filter(k => statements[k]);
+                            isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => userAnswer[key] === q.answers[key]);
+                        }
+                    }
+
+                    if (isCorrect) score++;
+                    else incorrectQuestions.push({ questionContent: q.content, lessonId: q.lessonId || null });
+                });
+                
+                const submissionId = `guest_${practiceContext.testId || 'practice'}_${Date.now()}`;
+                try {
+                    const submissionRef = doc(db, 'guest_submissions', submissionId);
+                    const submissionData = {
+                        guestId: clientSession.clientId,
+                        testId: practiceContext.testId || `practice_${Date.now()}`,
+                        testName: testData.name,
+                        subjectId: practiceContext.subjectId || null,
+                        score: score,
+                        totalQuestions: questions.length,
+                        timeTaken: timeElapsed,
+                        completedAt: serverTimestamp(),
+                        incorrectQuestions: incorrectQuestions,
+                        questionIds: questions.map(q => q.id.startsWith('embedded_') ? null : q.id).filter(Boolean),
+                        embeddedQuestions: questions.filter(q => q.id.startsWith('embedded_')), // Store embedded questions separately
+                        userAnswers: userAnswers
+                    };
+                    await setDoc(submissionRef, submissionData);
+                    sessionStorage.setItem('latestGuestResultId', submissionId);
+                    window.location.href = 'client-result.html';
+                } catch(error) {
+                    console.error("Error saving guest result:", error);
+                    alert("Đã có lỗi xảy ra khi lưu kết quả.");
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Nộp bài';
+                }
+            }
+
+            function renderMathWithKaTeX(elem) {
+                if (window.renderMathInElement) {
+                    renderMathInElement(elem, {
+                        delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}]
+                    });
+                }
             }
             
-            function renderTestsList(tests, container) {
-                container.innerHTML = '';
-                tests.forEach(test => {
-                    const card = document.createElement('div');
-                    card.className = "bg-slate-50 p-4 rounded-lg flex items-center justify-between";
-                    card.innerHTML = `
-                        <div>
-                            <h3 class="font-bold text-slate-800">${test.name}</h3>
-                            <p class="text-sm text-slate-500 mt-1">${test.questionIds?.length || 0} câu - ${test.timeLimit || 45} phút</p>
-                        </div>
-                        <a href="practice-test.html?testId=${test.id}" class="cta-button text-white font-semibold px-5 py-2 rounded-lg">Làm bài</a>
-                    `;
-                    container.appendChild(card);
-                });
-            }
-
-            function populateSelect(selectElement, data, placeholder) {
-                selectElement.innerHTML = `<option value="">${placeholder}</option>`;
-                (data || []).forEach(item => {
-                    selectElement.innerHTML += `<option value="${item.id || item.value}">${item.name}</option>`;
-                });
-            }
-
-            function showToast(message, type = 'error') {
-                const toast = document.createElement('div');
-                const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-                toast.className = `toast show ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg`;
-                toast.textContent = message;
-                document.getElementById('toast-container').appendChild(toast);
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                    toast.addEventListener('transitionend', () => toast.remove());
-                }, 3000);
-            }
-             
-            (async () => {
-                await loadInitialData();
-                initializeTabs();
-                feather.replace();
-            })();
+            initTest();
+            feather.replace();
         });
     </script>
 </body>
 </html>
-
