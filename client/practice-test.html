@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF--8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Luyện tập - AIGEO</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -152,12 +152,12 @@
             let timeElapsed = 0;
             let eventListenersSetup = false;
             let testData = {};
-            let practiceContext = {}; // To store subjectId, etc.
+            let practiceContext = {}; 
             let clientSession = {};
 
             function cleanPrefix(text) {
                 if (!text) return '';
-                return text.replace(/^(Câu|Bài|Phần|Mục)\s*[\dIVXLC]+\s*[:.]?\s*/i, '').trim();
+                return text.replace(/^(Câu|Bài|Phần|Mục)\s*\d+\s*[:.]?\s*/i, '').trim();
             }
             
             function getClientSession() {
@@ -165,7 +165,6 @@
                 if (session) {
                     return JSON.parse(session);
                 }
-                // Nếu không có, tạo mới
                 const newSession = {
                     clientId: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                     chatCount: 0,
@@ -185,21 +184,23 @@
                     let questionIds = [];
 
                     if (questionIdsStr && contextStr) {
-                        // Case for "Theo Bài" or "Tổng hợp"
                         questionIds = JSON.parse(questionIdsStr);
                         practiceContext = JSON.parse(contextStr);
                         testData = { name: practiceContext.testName || "Luyện tập" };
                         testNameHeader.textContent = testData.name;
                     } else if (testIdFromUrl) {
-                        // Case for "Luyện Đề"
                         const testDocRef = doc(db, "tests", testIdFromUrl);
                         const testDocSnap = await getDoc(testDocRef);
                         if (!testDocSnap.exists()) throw new Error("Đề thi không tồn tại.");
 
                         testData = { id: testDocSnap.id, ...testDocSnap.data() };
                         testNameHeader.textContent = testData.name;
-                        questionIds = testData.questionIds || [];
-                        if (questionIds.length === 0) {
+                        
+                        if (testData.questions && testData.questions.length > 0) {
+                             questions = testData.questions.map((q, index) => ({...q, id: `embedded_${index}`}));
+                        } else if (testData.questionIds && testData.questionIds.length > 0) {
+                            questionIds = testData.questionIds;
+                        } else {
                             throw new Error("Đề thi này chưa có câu hỏi nào.");
                         }
 
@@ -208,11 +209,10 @@
                             subjectId: testData.subjectId
                         };
                     } else {
-                        throw new Error("Không tìm thấy ID đề thi. Vui lòng bắt đầu lại từ trang Luyện tập.");
+                        throw new Error("Không tìm thấy dữ liệu cần thiết. Vui lòng bắt đầu lại từ trang Luyện tập.");
                     }
                     
-                    // Fetch questions using the collected IDs
-                    if (questionIds.length > 0) {
+                    if (questions.length === 0 && questionIds.length > 0) {
                          const fetchedQuestions = [];
                         const CHUNK_SIZE = 30;
                         for (let i = 0; i < questionIds.length; i += CHUNK_SIZE) {
@@ -228,7 +228,6 @@
                         throw new Error("Không có câu hỏi nào được tìm thấy cho bài luyện tập này.");
                     }
 
-                    // Shuffle options
                     questions.forEach(q => {
                         if (q.type === 'multiple_choice' && q.options) {
                             const optionsWithOriginalLetter = ['A', 'B', 'C', 'D']
@@ -277,7 +276,24 @@
                                     <span class="flex-1">${optionData.content}</span>
                                 </div>`;
                     }).join('');
-                } else if (question.type === 'true_false') {
+                } else if (question.type === 'true_false') { // From Admin/Embedded
+                    let statementsHTML = '<div class="space-y-4">';
+                    (question.statements || []).forEach((stmt, i) => {
+                         if(stmt.statement) {
+                            const savedSubAnswer = savedAnswer ? savedAnswer[i] : undefined;
+                            const isTrueSelected = savedSubAnswer === true;
+                            const isFalseSelected = savedSubAnswer === false;
+                             statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
+                                        <p class="mb-3 text-slate-800">${i + 1}) ${stmt.statement}</p>
+                                        <div class="flex space-x-3" data-statement-key="${i}">
+                                            <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
+                                            <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
+                                        </div>
+                                    </div>`;
+                         }
+                    });
+                    answerHTML = statementsHTML + '</div>';
+                } else if (question.type === 'true_false_group') { // From Teacher
                     let statementsHTML = '<div class="space-y-4">';
                      const statements = question.statements || {};
                      Object.keys(statements).forEach(key => {
@@ -286,7 +302,7 @@
                             const isTrueSelected = savedSubAnswer === true;
                             const isFalseSelected = savedSubAnswer === false;
                              statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
-                                        <p class="mb-3 text-slate-800">${statements[key]}</p>
+                                        <p class="mb-3 text-slate-800">${key}) ${statements[key]}</p>
                                         <div class="flex space-x-3" data-statement-key="${key}">
                                             <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
                                             <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
@@ -314,11 +330,23 @@
             }
 
              function renderFullTest() {
-                const questionsByType = { multiple_choice: [], true_false: [], short_answer: [] };
-                questions.forEach(q => { if (questionsByType[q.type]) questionsByType[q.type].push(q); });
-                let fullTestHTML = '', questionCounter = 0;
+                const questionsByType = { 
+                    multiple_choice: [], 
+                    true_false: [], 
+                    true_false_group: [], 
+                    short_answer: [] 
+                };
+                questions.forEach(q => { 
+                    if (questionsByType[q.type]) {
+                        questionsByType[q.type].push(q); 
+                    }
+                });
+                
+                let fullTestHTML = '';
+                let questionCounter = 0;
                 renderedQuestionsOrder = [];
-                const renderSection = (title, type, questionsOfType) => {
+                
+                const renderSection = (title, questionsOfType) => {
                     if (questionsOfType.length === 0) return '';
                     let sectionHTML = `<div class="question-section"><h2 class="text-2xl font-bold text-slate-800 pb-2 mb-6 border-b-2 border-slate-200">${title}</h2><div class="space-y-8">`;
                     questionsOfType.forEach(q => {
@@ -329,9 +357,12 @@
                     sectionHTML += `</div></div>`;
                     return sectionHTML;
                 };
-                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', 'multiple_choice', questionsByType.multiple_choice);
-                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', 'true_false', questionsByType.true_false);
-                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', 'short_answer', questionsByType.short_answer);
+
+                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', questionsByType.multiple_choice);
+                const allTrueFalse = [...questionsByType.true_false, ...questionsByType.true_false_group];
+                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', allTrueFalse);
+                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', questionsByType.short_answer);
+                
                 mainContentArea.innerHTML = fullTestHTML;
                 renderMathWithKaTeX(mainContentArea);
             }
@@ -436,6 +467,7 @@
                 questions.forEach(q => {
                     const userAnswer = userAnswers[q.id];
                     let isCorrect = false;
+
                     if (q.type === 'multiple_choice') {
                         if (userAnswer) {
                             const originalSelectedLetter = q.shuffledOptions?.find((opt, i) => String.fromCharCode(65 + i) === userAnswer)?.originalLetter;
@@ -444,13 +476,20 @@
                     } else if (q.type === 'short_answer') {
                         isCorrect = String(userAnswer || "").trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
                     } else if (q.type === 'true_false') {
+                         isCorrect = (q.statements || []).every((stmt, i) => {
+                            if (!stmt.statement) return true;
+                            return (userAnswer ? userAnswer[i] : undefined) === stmt.answer;
+                        });
+                    } else if (q.type === 'true_false_group') {
                         const statements = q.statements || {};
                         const statementKeys = Object.keys(statements).filter(k => statements[k]);
                         isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => userAnswer[key] === q.answers[key]);
                     }
+                    
                     if (isCorrect) score++;
                     else incorrectQuestions.push({ questionContent: q.content, lessonId: q.lessonId || null });
                 });
+                
                 const submissionId = `guest_${practiceContext.testId || 'practice'}_${Date.now()}`;
                 try {
                     const submissionRef = doc(db, 'guest_submissions', submissionId);
@@ -464,7 +503,8 @@
                         timeTaken: timeElapsed,
                         completedAt: serverTimestamp(),
                         incorrectQuestions: incorrectQuestions,
-                        questionIds: questions.map(q => q.id),
+                        questionIds: questions.map(q => q.id.startsWith('embedded_') ? null : q.id).filter(Boolean),
+                        embeddedQuestions: questions.filter(q => q.id.startsWith('embedded_')),
                         userAnswers: userAnswers
                     };
                     await setDoc(submissionRef, submissionData);
