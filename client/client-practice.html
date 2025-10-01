@@ -157,7 +157,7 @@
 
             function cleanPrefix(text) {
                 if (!text) return '';
-                return text.replace(/^(Câu|Bài|Phần|Mục)\s*[\dIVXLC]+\s*[:.]?\s*/i, '').trim();
+                return text.replace(/^(Câu|Bài|Phần|Mục)\s*\d+\s*[:.]?\s*/i, '').trim();
             }
             
             function getClientSession() {
@@ -276,7 +276,7 @@
                                     <span class="flex-1">${optionData.content}</span>
                                 </div>`;
                     }).join('');
-                } else if (question.type === 'true_false') { // Array format from Admin
+                } else if (question.type === 'true_false') { // From Admin/Embedded
                     let statementsHTML = '<div class="space-y-4">';
                     (question.statements || []).forEach((stmt, i) => {
                          if(stmt.statement) {
@@ -293,7 +293,7 @@
                          }
                     });
                     answerHTML = statementsHTML + '</div>';
-                } else if (question.type === 'true_false_group') { // Object format from Teacher
+                } else if (question.type === 'true_false_group') { // From Teacher
                     let statementsHTML = '<div class="space-y-4">';
                      const statements = question.statements || {};
                      Object.keys(statements).forEach(key => {
@@ -330,14 +330,23 @@
             }
 
              function renderFullTest() {
-                const questionsByType = { multiple_choice: [], true_false: [], true_false_group: [], short_answer: [] };
-                questions.forEach(q => { if (questionsByType[q.type]) questionsByType[q.type].push(q); });
+                const questionsByType = { 
+                    multiple_choice: [], 
+                    true_false: [], 
+                    true_false_group: [], 
+                    short_answer: [] 
+                };
+                questions.forEach(q => { 
+                    if (questionsByType[q.type]) {
+                        questionsByType[q.type].push(q); 
+                    }
+                });
                 
                 let fullTestHTML = '';
                 let questionCounter = 0;
                 renderedQuestionsOrder = [];
                 
-                const renderSection = (title, types, questionsOfType) => {
+                const renderSection = (title, questionsOfType) => {
                     if (questionsOfType.length === 0) return '';
                     let sectionHTML = `<div class="question-section"><h2 class="text-2xl font-bold text-slate-800 pb-2 mb-6 border-b-2 border-slate-200">${title}</h2><div class="space-y-8">`;
                     questionsOfType.forEach(q => {
@@ -349,10 +358,10 @@
                     return sectionHTML;
                 };
 
-                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', ['multiple_choice'], questionsByType.multiple_choice);
+                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', questionsByType.multiple_choice);
                 const allTrueFalse = [...questionsByType.true_false, ...questionsByType.true_false_group];
-                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', ['true_false', 'true_false_group'], allTrueFalse);
-                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', ['short_answer'], questionsByType.short_answer);
+                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', allTrueFalse);
+                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', questionsByType.short_answer);
                 
                 mainContentArea.innerHTML = fullTestHTML;
                 renderMathWithKaTeX(mainContentArea);
@@ -458,6 +467,7 @@
                 questions.forEach(q => {
                     const userAnswer = userAnswers[q.id];
                     let isCorrect = false;
+
                     if (q.type === 'multiple_choice') {
                         if (userAnswer) {
                             const originalSelectedLetter = q.shuffledOptions?.find((opt, i) => String.fromCharCode(65 + i) === userAnswer)?.originalLetter;
@@ -475,9 +485,11 @@
                         const statementKeys = Object.keys(statements).filter(k => statements[k]);
                         isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => userAnswer[key] === q.answers[key]);
                     }
+                    
                     if (isCorrect) score++;
                     else incorrectQuestions.push({ questionContent: q.content, lessonId: q.lessonId || null });
                 });
+                
                 const submissionId = `guest_${practiceContext.testId || 'practice'}_${Date.now()}`;
                 try {
                     const submissionRef = doc(db, 'guest_submissions', submissionId);
