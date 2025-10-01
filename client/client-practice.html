@@ -154,11 +154,6 @@
             let testData = {};
             let practiceContext = {}; 
             let clientSession = {};
-
-            function cleanPrefix(text) {
-                if (!text) return '';
-                return text.replace(/^(Câu|Bài|Phần|Mục)\s*\d+\s*[:.]?\s*/i, '').trim();
-            }
             
             function getClientSession() {
                 let session = localStorage.getItem('aigeo_client_session');
@@ -182,13 +177,9 @@
                     const questionIdsStr = sessionStorage.getItem('practiceTestQuestions');
                     const contextStr = sessionStorage.getItem('practiceContext');
                     let questionIds = [];
+                    let embeddedQuestions = [];
 
-                    if (questionIdsStr && contextStr) {
-                        questionIds = JSON.parse(questionIdsStr);
-                        practiceContext = JSON.parse(contextStr);
-                        testData = { name: practiceContext.testName || "Luyện tập" };
-                        testNameHeader.textContent = testData.name;
-                    } else if (testIdFromUrl) {
+                    if (testIdFromUrl) {
                         const testDocRef = doc(db, "tests", testIdFromUrl);
                         const testDocSnap = await getDoc(testDocRef);
                         if (!testDocSnap.exists()) throw new Error("Đề thi không tồn tại.");
@@ -197,23 +188,31 @@
                         testNameHeader.textContent = testData.name;
                         
                         if (testData.questions && testData.questions.length > 0) {
-                             questions = testData.questions.map((q, index) => ({...q, id: `embedded_${index}`}));
-                        } else if (testData.questionIds && testData.questionIds.length > 0) {
+                            embeddedQuestions = testData.questions.map((q, index) => ({...q, id: `embedded_${index}`}));
+                        }
+                        if (testData.questionIds && testData.questionIds.length > 0) {
                             questionIds = testData.questionIds;
-                        } else {
-                            throw new Error("Đề thi này chưa có câu hỏi nào.");
+                        }
+                        
+                        if (embeddedQuestions.length === 0 && questionIds.length === 0) {
+                             throw new Error("Đề thi này chưa có câu hỏi nào.");
                         }
 
                         practiceContext = {
                             testId: testData.id,
                             subjectId: testData.subjectId
                         };
+                    } else if (questionIdsStr && contextStr) {
+                        questionIds = JSON.parse(questionIdsStr);
+                        practiceContext = JSON.parse(contextStr);
+                        testData = { name: practiceContext.testName || "Luyện tập" };
+                        testNameHeader.textContent = testData.name;
                     } else {
                         throw new Error("Không tìm thấy dữ liệu cần thiết. Vui lòng bắt đầu lại từ trang Luyện tập.");
                     }
                     
-                    if (questions.length === 0 && questionIds.length > 0) {
-                         const fetchedQuestions = [];
+                    let fetchedQuestions = [];
+                    if (questionIds.length > 0) {
                         const CHUNK_SIZE = 30;
                         for (let i = 0; i < questionIds.length; i += CHUNK_SIZE) {
                             const chunk = questionIds.slice(i, i + CHUNK_SIZE);
@@ -221,8 +220,16 @@
                             const snapshot = await getDocs(q);
                             snapshot.forEach(doc => fetchedQuestions.push({ id: doc.id, ...doc.data() }));
                         }
-                        questions = fetchedQuestions.sort((a, b) => questionIds.indexOf(a.id) - questionIds.indexOf(b.id));
                     }
+                    
+                    const combinedQuestions = [...embeddedQuestions, ...fetchedQuestions];
+                    const finalQuestionIdsOrder = [
+                        ...embeddedQuestions.map(q => q.id), 
+                        ...questionIds.filter(id => fetchedQuestions.some(fq => fq.id === id))
+                    ];
+                    
+                    questions = combinedQuestions.sort((a, b) => finalQuestionIdsOrder.indexOf(a.id) - finalQuestionIdsOrder.indexOf(b.id));
+
 
                     if (questions.length === 0) {
                         throw new Error("Không có câu hỏi nào được tìm thấy cho bài luyện tập này.");
@@ -276,40 +283,40 @@
                                     <span class="flex-1">${optionData.content}</span>
                                 </div>`;
                     }).join('');
-                } else if (question.type === 'true_false') { // From Admin/Embedded
+                } else if (question.type === 'true_false' || question.type === 'true_false_group') {
                     let statementsHTML = '<div class="space-y-4">';
-                    (question.statements || []).forEach((stmt, i) => {
-                         if(stmt.statement) {
-                            const savedSubAnswer = savedAnswer ? savedAnswer[i] : undefined;
-                            const isTrueSelected = savedSubAnswer === true;
-                            const isFalseSelected = savedSubAnswer === false;
-                             statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
-                                        <p class="mb-3 text-slate-800">${i + 1}) ${stmt.statement}</p>
-                                        <div class="flex space-x-3" data-statement-key="${i}">
-                                            <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
-                                            <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
-                                        </div>
-                                    </div>`;
-                         }
-                    });
-                    answerHTML = statementsHTML + '</div>';
-                } else if (question.type === 'true_false_group') { // From Teacher
-                    let statementsHTML = '<div class="space-y-4">';
-                     const statements = question.statements || {};
-                     Object.keys(statements).forEach(key => {
-                         if(statements[key]) {
-                            const savedSubAnswer = savedAnswer ? savedAnswer[key] : undefined;
-                            const isTrueSelected = savedSubAnswer === true;
-                            const isFalseSelected = savedSubAnswer === false;
-                             statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
-                                        <p class="mb-3 text-slate-800">${key}) ${statements[key]}</p>
-                                        <div class="flex space-x-3" data-statement-key="${key}">
-                                            <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
-                                            <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
-                                        </div>
-                                    </div>`;
-                         }
-                    });
+                    const statements = question.statements;
+                    const savedSubAnswers = savedAnswer || {};
+
+                    if (Array.isArray(statements)) {
+                         statements.forEach((stmt, i) => {
+                            if(stmt.statement) {
+                                const isTrueSelected = savedSubAnswers[i] === true;
+                                const isFalseSelected = savedSubAnswers[i] === false;
+                                statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
+                                            <p class="mb-3 text-slate-800">${i + 1}) ${stmt.statement}</p>
+                                            <div class="flex space-x-3" data-statement-key="${i}">
+                                                <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
+                                                <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
+                                            </div>
+                                        </div>`;
+                            }
+                        });
+                    } else if (typeof statements === 'object' && statements !== null) {
+                        Object.keys(statements).forEach(key => {
+                             if(statements[key]) {
+                                const isTrueSelected = savedSubAnswers[key] === true;
+                                const isFalseSelected = savedSubAnswers[key] === false;
+                                 statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
+                                            <p class="mb-3 text-slate-800">${key}) ${statements[key]}</p>
+                                            <div class="flex space-x-3" data-statement-key="${key}">
+                                                <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
+                                                <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
+                                            </div>
+                                        </div>`;
+                             }
+                        });
+                    }
                     answerHTML = statementsHTML + '</div>';
                 } else if (question.type === 'short_answer') {
                     answerHTML = `<input type="text" class="mt-2 w-full p-3 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-300 focus:border-teal-500 transition" value="${savedAnswer || ''}" placeholder="Nhập câu trả lời của bạn...">`;
@@ -323,7 +330,7 @@
                     <div id="question-${question.id}" class="bg-white p-6 rounded-xl shadow-sm">
                         <p class="font-semibold text-slate-600">Câu ${questionNumber}</p>
                         ${imageHTML}
-                        <div class="prose mt-4 text-lg">${cleanPrefix(question.content)}</div>
+                        <div class="prose mt-4 text-lg">${question.content}</div>
                         <div class="mt-6 space-y-4">${answerHTML}</div>
                     </div>
                 `;
@@ -345,7 +352,8 @@
                 let fullTestHTML = '';
                 let questionCounter = 0;
                 renderedQuestionsOrder = [];
-                
+                const allTrueFalse = [...questionsByType.true_false, ...questionsByType.true_false_group];
+
                 const renderSection = (title, questionsOfType) => {
                     if (questionsOfType.length === 0) return '';
                     let sectionHTML = `<div class="question-section"><h2 class="text-2xl font-bold text-slate-800 pb-2 mb-6 border-b-2 border-slate-200">${title}</h2><div class="space-y-8">`;
@@ -359,7 +367,6 @@
                 };
 
                 fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', questionsByType.multiple_choice);
-                const allTrueFalse = [...questionsByType.true_false, ...questionsByType.true_false_group];
                 fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', allTrueFalse);
                 fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', questionsByType.short_answer);
                 

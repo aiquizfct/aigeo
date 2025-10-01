@@ -116,6 +116,7 @@
         </div>
     </main>
     
+    <!-- Quick Add Modal -->
     <div id="quick-add-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl modal-content overflow-y-auto max-h-[90vh]">
             <div class="flex justify-between items-center mb-4 border-b pb-4">
@@ -123,7 +124,8 @@
                 <button id="close-quick-add-btn" class="p-2 hover:bg-slate-100 rounded-full"><i data-feather="x"></i></button>
             </div>
             <form id="quick-add-form" class="space-y-4">
-                </form>
+                <!-- Form content will be injected here -->
+            </form>
             <div class="mt-6 flex justify-between items-center border-t pt-4">
                 <div id="pending-questions-info">
                      <span class="font-semibold text-slate-600">Số câu hỏi chờ lưu: </span>
@@ -144,11 +146,13 @@
     </div>
 
 
+    <!-- Edit Question Modal -->
     <div id="edit-question-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl modal-content overflow-y-auto max-h-[90vh]">
             <h2 class="text-xl font-bold mb-4">Chỉnh sửa câu hỏi</h2>
             <form id="edit-question-form" class="space-y-4">
-                </form>
+                <!-- Form content for editing will be injected here -->
+            </form>
              <div class="flex justify-end space-x-3 mt-6 border-t pt-4">
                 <button type="button" id="edit-cancel-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">Hủy</button>
                 <button type="submit" form="edit-question-form" id="edit-submit-btn" class="cta-button text-white px-4 py-2 rounded-md">Lưu thay đổi</button>
@@ -156,6 +160,7 @@
         </div>
     </div>
 
+    <!-- Delete Confirm Modal -->
     <div id="delete-confirm-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm modal-content">
             <h2 class="text-xl font-bold">Xác nhận xóa</h2>
@@ -226,7 +231,7 @@
                         <label for="${prefix}-q-type" class="block text-sm font-medium text-gray-700">Loại câu hỏi</label>
                         <select id="${prefix}-q-type" class="form-input mt-1">
                             <option value="multiple_choice">Trắc nghiệm nhiều lựa chọn</option>
-                            <option value="true_false">Trắc nghiệm Đúng/Sai</option>
+                            <option value="true_false_group">Trắc nghiệm Đúng/Sai</option>
                             <option value="short_answer">Trả lời ngắn</option>
                         </select>
                     </div>
@@ -273,7 +278,7 @@
                     </div>
                     <div class="mt-4"><label for="${prefix}-q-mc-answer" class="text-sm font-medium text-gray-700">Đáp án đúng:</label><select id="${prefix}-q-mc-answer" class="ml-2 form-input w-auto !mt-0"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
                 </div>
-                <div id="${prefix}-true-false-wrapper" class="hidden space-y-4">
+                <div id="${prefix}-true-false-group-wrapper" class="hidden space-y-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Các mệnh đề và đáp án Đúng/Sai</label>
                     ${[...Array(4)].map((_, i) => `
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 items-center">
@@ -569,7 +574,7 @@
                     payload.correctAnswer = formElement.querySelector(`#${prefix}-q-mc-answer`).value;
                 } else if (type === 'short_answer') {
                     payload.correctAnswer = formElement.querySelector(`#${prefix}-q-sa-answer`).value.trim();
-                } else if (type === 'true_false') {
+                } else if (type === 'true_false_group') {
                     payload.statements = {}; payload.answers = {};
                     [...Array(4)].forEach((_, i) => {
                         const statement = formElement.querySelector(`#${prefix}-q-tf-statement-${i+1}`).value.trim();
@@ -691,7 +696,7 @@
                     formElement.querySelector(`#${prefix}-q-mc-answer`).value = data.correctAnswer || 'A';
                 } else if (data.type === 'short_answer') {
                     formElement.querySelector(`#${prefix}-q-sa-answer`).value = data.correctAnswer || '';
-                } else if (data.type === 'true_false') {
+                } else if (data.type === 'true_false_group') {
                     [...Array(4)].forEach((_, i) => {
                         const key = i + 1;
                         const statementInput = formElement.querySelector(`#${prefix}-q-tf-statement-${key}`);
@@ -748,7 +753,7 @@
             function toggleAnswerFields(formElement, prefix) {
                 const type = formElement.querySelector(`#${prefix}-q-type`).value;
                 formElement.querySelector(`#${prefix}-mc-options-wrapper`).classList.toggle('hidden', type !== 'multiple_choice');
-                formElement.querySelector(`#${prefix}-true-false-wrapper`).classList.toggle('hidden', type !== 'true_false');
+                formElement.querySelector(`#${prefix}-true-false-group-wrapper`).classList.toggle('hidden', type !== 'true_false_group');
                 formElement.querySelector(`#${prefix}-short-answer-wrapper`).classList.toggle('hidden', type !== 'short_answer');
             }
             
@@ -906,3 +911,5 @@
     </script>
 </body>
 </html>
+
+
