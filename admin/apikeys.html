@@ -40,6 +40,14 @@
         }
         .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
         .toast.show { transform: translateY(0); opacity: 1; }
+
+        /* Skeleton Styles */
+        .skeleton {
+            background-color: #e2e8f0;
+            border-radius: 0.25rem;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse { 50% { opacity: .5; } }
     </style>
 </head>
 <body class="flex h-screen">
@@ -70,7 +78,6 @@
                 <h1 class="text-3xl font-bold text-slate-800">Quản lý API Keys</h1>
                 <p class="mt-2 text-slate-600">Thêm, xóa và quản lý các khóa API cho các dịch vụ bên ngoài.</p>
                 
-                <!-- OpenRouter API Keys (GPT-OSS/DeepSeek) -->
                 <div class="mt-8 bg-white rounded-xl shadow-lg p-8">
                     <h2 class="text-xl font-bold text-slate-800 mb-2">OpenRouter API Keys (DeepSeek V3.1)</h2>
                     <p class="text-sm text-slate-500 mb-6">
@@ -78,7 +85,12 @@
                         **Chatbot AI**, **Nhận xét kết quả bài làm**, và **Trích xuất câu hỏi từ File**. 
                         Hệ thống sẽ luân phiên sử dụng các key để đảm bảo tính sẵn sàng.
                     </p>
-                    <div id="openrouter-keys-container" class="space-y-4"></div>
+                    <div id="openrouter-keys-container" class="space-y-4">
+                        <div id="openrouter-loader" class="space-y-4">
+                            <div class="skeleton h-10 w-full"></div>
+                            <div class="skeleton h-10 w-full"></div>
+                        </div>
+                    </div>
                      <div class="mt-4">
                         <button id="add-openrouter-key-btn" class="bg-slate-100 text-slate-700 font-semibold px-4 py-2 rounded-lg hover:bg-slate-200 flex items-center transition-colors text-sm">
                             <i data-feather="plus" class="w-4 h-4 mr-2"></i>Thêm Key OpenRouter
@@ -86,11 +98,14 @@
                     </div>
                 </div>
 
-                <!-- ImgBB API Keys -->
                 <div class="mt-8 bg-white rounded-xl shadow-lg p-8">
                     <h2 class="text-xl font-bold text-slate-800 mb-2">ImgBB API Keys</h2>
                     <p class="text-sm text-slate-500 mb-6">Các key này dùng để tải ảnh lên.</p>
-                    <div id="imgbb-keys-container" class="space-y-4"></div>
+                    <div id="imgbb-keys-container" class="space-y-4">
+                         <div id="imgbb-loader" class="space-y-4">
+                            <div class="skeleton h-10 w-full"></div>
+                        </div>
+                    </div>
                     <div class="mt-4">
                         <button id="add-imgbb-key-btn" class="bg-slate-100 text-slate-700 font-semibold px-4 py-2 rounded-lg hover:bg-slate-200 flex items-center transition-colors text-sm">
                             <i data-feather="plus" class="w-4 h-4 mr-2"></i>Thêm Key ImgBB
@@ -135,6 +150,9 @@
             };
             const saveKeysBtn = document.getElementById('save-keys-btn');
             const apiKeyDocRef = doc(db, "system_settings", "api_keys");
+            const openrouterLoader = document.getElementById('openrouter-loader');
+            const imgbbLoader = document.getElementById('imgbb-loader');
+
 
             // Show toast message utility
             function showToast(message, type = 'success') {
@@ -166,17 +184,35 @@
             async function initApiKeysLogic() {
                 try {
                     const docSnap = await getDoc(apiKeyDocRef);
+                    
+                    // Xóa skeleton loaders
+                    if (openrouterLoader) openrouterLoader.remove();
+                    if (imgbbLoader) imgbbLoader.remove();
+
                     Object.values(containers).forEach(c => c.innerHTML = '');
                     
                     const data = docSnap.exists() ? docSnap.data() : {};
-                    // Fetch and render keys for OpenRouter and ImgBB
-                    (data.openrouter_keys || ['']).forEach(key => renderKeyInput(key, 'openrouter'));
-                    (data.imgbb_keys || ['']).forEach(key => renderKeyInput(key, 'imgbb'));
+                    
+                    // Render keys, thêm một key trống nếu chưa có key nào
+                    if ((data.openrouter_keys || []).length > 0) {
+                        (data.openrouter_keys || []).forEach(key => renderKeyInput(key, 'openrouter'));
+                    } else {
+                         renderKeyInput('', 'openrouter');
+                    }
+
+                    if ((data.imgbb_keys || []).length > 0) {
+                        (data.imgbb_keys || []).forEach(key => renderKeyInput(key, 'imgbb'));
+                    } else {
+                        renderKeyInput('', 'imgbb');
+                    }
                     
                     feather.replace();
                 } catch (error) { 
                     console.error("Error fetching API keys:", error);
                     showToast("Lỗi tải API keys.", "error");
+                    // Fallback nếu có lỗi và loaders vẫn còn
+                    if(openrouterLoader) openrouterLoader.innerHTML = '<p class="text-red-500 text-sm">Lỗi tải dữ liệu.</p>';
+                    if(imgbbLoader) imgbbLoader.innerHTML = '<p class="text-red-500 text-sm">Lỗi tải dữ liệu.</p>';
                 }
             }
             
@@ -201,10 +237,18 @@
                 container.appendChild(inputWrapper);
             }
 
+            // Cập nhật logic để thêm key: chỉ thêm nếu key cuối cùng đã được điền
             Object.keys(addBtns).forEach(type => {
                 addBtns[type].addEventListener('click', () => {
-                    renderKeyInput('', type);
-                    feather.replace();
+                    const inputs = containers[type].querySelectorAll('input');
+                    const lastInput = inputs[inputs.length - 1];
+
+                    if (inputs.length === 0 || lastInput.value.trim() !== '') {
+                        renderKeyInput('', type);
+                        feather.replace();
+                    } else {
+                        showToast("Vui lòng điền key hiện tại trước khi thêm key mới.", "error");
+                    }
                 });
             });
             
@@ -225,18 +269,39 @@
                         feather.replace();
                     }
                     if (deleteBtn) {
-                        deleteBtn.closest('.key-item').remove();
+                        const itemToRemove = deleteBtn.closest('.key-item');
+                        const isOnlyItem = itemToRemove.parentElement.querySelectorAll('.key-item').length === 1;
+                        
+                        if (isOnlyItem && itemToRemove.querySelector('input').value.trim() !== '') {
+                            // Nếu chỉ còn 1 item và nó đã có giá trị, xóa nó và thêm lại 1 item trống
+                            itemToRemove.remove();
+                            renderKeyInput('', itemToRemove.querySelector('input').dataset.keyType);
+                        } else if (isOnlyItem) {
+                            // Nếu là item trống duy nhất, không làm gì cả
+                             showToast("Không thể xóa item trống cuối cùng.", "error");
+                        } else {
+                            itemToRemove.remove();
+                        }
+                        feather.replace();
                     }
                 });
             });
 
             saveKeysBtn.addEventListener('click', async () => {
-                // Collect keys from all containers
+                // Thu thập keys từ tất cả các containers
                 const keysToSave = {
                     openrouter_keys: Array.from(containers.openrouter.querySelectorAll('input')).map(i => i.value.trim()).filter(Boolean),
                     imgbb_keys: Array.from(containers.imgbb.querySelectorAll('input')).map(i => i.value.trim()).filter(Boolean)
                 };
                 
+                // Lọc bỏ input trống cuối cùng trước khi lưu
+                Object.keys(containers).forEach(type => {
+                     const inputs = containers[type].querySelectorAll('input');
+                     if (inputs.length > 0 && inputs[inputs.length - 1].value.trim() === '') {
+                        inputs[inputs.length - 1].closest('.key-item').remove();
+                    }
+                });
+
                 saveKeysBtn.disabled = true;
                 saveKeysBtn.textContent = 'Đang lưu...';
                 try {
@@ -248,6 +313,10 @@
                 } finally {
                     saveKeysBtn.disabled = false;
                     saveKeysBtn.textContent = 'Lưu tất cả thay đổi';
+                    // Đảm bảo có ít nhất một input trống sau khi lưu
+                    if (keysToSave.openrouter_keys.length === 0) renderKeyInput('', 'openrouter');
+                    if (keysToSave.imgbb_keys.length === 0) renderKeyInput('', 'imgbb');
+                    feather.replace();
                 }
             });
             
