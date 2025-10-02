@@ -47,8 +47,9 @@
         }
         .prose { max-width: none; }
         .answer-option.correct { background-color: #dcfce7 !important; border-color: #22c55e !important; color: #15803d; font-weight: 600; }
-        .answer-option.incorrect { background-color: #fee2e2 !important; border-color: #ef4444 !important; }
-        
+        .answer-option-tf.correct { background-color: #dcfce7; border-color: #22c55e; }
+        .answer-option-tf.incorrect { background-color: #fee2e2; border-color: #ef4444; }
+
         .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
         .toast.show { transform: translateY(0); opacity: 1; }
         
@@ -96,8 +97,7 @@
             <main id="main-content-scroll" class="flex-1 p-4 md:p-8 overflow-y-auto">
                 <div class="max-w-4xl mx-auto">
                     <div id="main-content-area" class="space-y-8">
-                        <!-- Questions will be rendered here -->
-                    </div>
+                        </div>
                 </div>
             </main>
 
@@ -111,7 +111,6 @@
         </div>
     </div>
     
-    <!-- Assign Confirm Modal -->
     <div id="assign-confirm-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg modal-content">
             <h2 class="text-xl font-bold">Giao bài cho lớp</h2>
@@ -215,20 +214,22 @@
                         feather.replace();
                     }
 
-                    if (!testData.questionIds || testData.questionIds.length === 0) {
+                    if (testData.questionIds && testData.questionIds.length > 0) {
+                        const questionIds = testData.questionIds;
+                        const fetchedQuestions = [];
+                        for (let i = 0; i < questionIds.length; i += 30) {
+                            const chunk = questionIds.slice(i, i + 30);
+                            const questionsQuery = query(collection(db, "questions"), where("__name__", "in", chunk));
+                            const questionsSnap = await getDocs(questionsQuery);
+                            questionsSnap.forEach(d => fetchedQuestions.push({id: d.id, ...d.data()}));
+                        }
+                        questions = fetchedQuestions.sort((a, b) => questionIds.indexOf(a.id) - questionIds.indexOf(b.id));
+                    } else if (testData.questions && testData.questions.length > 0) {
+                        questions = testData.questions.map((q, i) => ({...q, id: `embedded_${i}`}));
+                    } else {
                         mainContentArea.innerHTML = `<p class="text-center text-slate-500">Đề thi này chưa có câu hỏi nào.</p>`;
                         return;
                     }
-
-                    const questionIds = testData.questionIds;
-                    const fetchedQuestions = [];
-                    for (let i = 0; i < questionIds.length; i += 30) {
-                        const chunk = questionIds.slice(i, i + 30);
-                        const questionsQuery = query(collection(db, "questions"), where("__name__", "in", chunk));
-                        const questionsSnap = await getDocs(questionsQuery);
-                        questionsSnap.forEach(d => fetchedQuestions.push({id: d.id, ...d.data()}));
-                    }
-                    questions = fetchedQuestions.sort((a, b) => questionIds.indexOf(a.id) - questionIds.indexOf(b.id));
 
                     renderFullTest();
                     renderQuestionMap();
@@ -247,14 +248,26 @@
                                     <span class="font-bold mr-2">${optionLetter}.</span> <div>${option}</div>
                                 </div>`;
                     }).join('');
-                } else if (question.type === 'true_false_group') {
-                    const statements = question.statements || {};
-                     answerHTML = Object.keys(statements).map(key => {
-                        if (!statements[key]) return '';
-                        return `<div class="answer-option-tf border-2 border-slate-200 p-4 rounded-lg">
-                                    <p class="mb-2"><span class="font-bold mr-2">${key})</span> ${statements[key]}</p>
-                                </div>`;
-                    }).join('');
+                } else if (question.type === 'true_false_group' || question.type === 'true_false') {
+                    const statements = question.statements || (Array.isArray(question.statements) ? [] : {});
+                    let counter = 0;
+                    if(Array.isArray(statements)) {
+                        answerHTML = statements.map((stmt, i) => {
+                            if (!stmt.statement) return '';
+                            counter++;
+                            return `<div class="answer-option-tf border-2 border-slate-200 p-4 rounded-lg mt-2" data-statement-key="${i}">
+                                        <p class="mb-2"><span class="font-bold mr-2">${counter})</span> ${stmt.statement}</p>
+                                    </div>`;
+                        }).join('');
+                    } else {
+                        answerHTML = Object.keys(statements).map(key => {
+                            if (!statements[key]) return '';
+                            counter++;
+                            return `<div class="answer-option-tf border-2 border-slate-200 p-4 rounded-lg mt-2" data-statement-key="${key}">
+                                        <p class="mb-2"><span class="font-bold mr-2">${counter})</span> ${statements[key]}</p>
+                                    </div>`;
+                        }).join('');
+                    }
                 } else if (question.type === 'short_answer') {
                      answerHTML = `<div class="mt-2 text-sm text-slate-500"><i>(Câu trả lời ngắn)</i></div>`;
                 }
@@ -267,7 +280,7 @@
                     <div id="question-${question.id}" class="bg-white p-6 rounded-xl shadow-sm">
                         <p class="font-semibold text-slate-600">Câu ${questionNumber}</p>
                         ${imageHTML}
-                        <div class="prose mt-4 text-lg">${cleanPrefix(question.content)}</div>
+                        <div class="prose mt-4 text-lg">${question.content}</div>
                         <div class="mt-6 space-y-3">${answerHTML}</div>
                     </div>
                 `;
@@ -276,6 +289,7 @@
             function renderFullTest() {
                 const questionsByType = {
                     multiple_choice: [],
+                    true_false: [],
                     true_false_group: [],
                     short_answer: []
                 };
@@ -288,7 +302,7 @@
                 let fullTestHTML = '';
                 let questionCounter = 0;
 
-                const renderSection = (title, type, questionsOfType) => {
+                const renderSection = (title, questionsOfType) => {
                     if (questionsOfType.length === 0) return '';
                     let sectionHTML = `<div class="question-section">
                         <h2 class="text-2xl font-bold text-slate-800 pb-2 mb-6 border-b-2 border-slate-200">${title}</h2>
@@ -303,9 +317,10 @@
                     return sectionHTML;
                 };
                 
-                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', 'multiple_choice', questionsByType.multiple_choice);
-                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', 'true_false_group', questionsByType.true_false_group);
-                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', 'short_answer', questionsByType.short_answer);
+                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', questionsByType.multiple_choice);
+                const allTrueFalse = [...questionsByType.true_false, ...questionsByType.true_false_group];
+                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', allTrueFalse);
+                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', questionsByType.short_answer);
                 
                 mainContentArea.innerHTML = fullTestHTML;
                 renderMathWithKaTeX(mainContentArea);
@@ -313,17 +328,12 @@
 
             function renderQuestionMap() {
                 questionGridEl.innerHTML = '';
-                let questionCounter = 0;
-                const typesInOrder = ['multiple_choice', 'true_false_group', 'short_answer'];
-                typesInOrder.forEach(type => {
-                    questions.filter(q => q.type === type).forEach(q => {
-                         questionCounter++;
-                         const btn = document.createElement('a');
-                         btn.href = `#question-${q.id}`;
-                         btn.className = 'question-grid-btn border-2 rounded-md p-2 font-semibold transition-colors flex items-center justify-center';
-                         btn.textContent = questionCounter;
-                         questionGridEl.appendChild(btn);
-                    });
+                questions.forEach((q, index) => {
+                     const btn = document.createElement('a');
+                     btn.href = `#question-${q.id}`;
+                     btn.className = 'question-grid-btn border-2 rounded-md p-2 font-semibold transition-colors flex items-center justify-center';
+                     btn.textContent = index + 1;
+                     questionGridEl.appendChild(btn);
                 });
             }
 
@@ -354,8 +364,7 @@
                     switch(question.type) {
                         case 'multiple_choice':
                             questionCard.querySelectorAll('.answer-option').forEach(opt => {
-                                const optAnswer = opt.dataset.answer;
-                                if (optAnswer === question.correctAnswer) {
+                                if (opt.dataset.answer === question.correctAnswer) {
                                     opt.classList.add('correct');
                                 }
                             });
@@ -364,15 +373,28 @@
                             const saAnswerDiv = document.createElement('div');
                             saAnswerDiv.className = "mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm";
                             saAnswerDiv.innerHTML = `<strong>Đáp án đúng:</strong> <span class="font-mono text-green-800">${question.correctAnswer}</span>`;
-                            questionCard.appendChild(saAnswerDiv);
+                            questionCard.querySelector('.mt-6').appendChild(saAnswerDiv);
                             break;
-                        case 'true_false_group':
-                            questionCard.querySelectorAll('.answer-option-tf').forEach(wrapper => {
-                                const key = wrapper.querySelector('[data-statement-key]').dataset.statementKey;
-                                const correctAnswer = question.answers[key];
-                                const correctLabel = wrapper.querySelector(`input[value="${correctAnswer}"]`).closest('label');
-                                if (correctLabel) correctLabel.classList.add('font-bold', 'text-green-700');
-                                wrapper.classList.add('correct');
+                        case 'true_false': // Array format from Admin
+                            (question.statements || []).forEach((stmt, i) => {
+                                const wrapper = questionCard.querySelector(`[data-statement-key="${i}"]`);
+                                if (wrapper) {
+                                    const correctAnswer = stmt.answer;
+                                    const answerText = `<strong class="${correctAnswer ? 'text-green-700' : 'text-red-700'}">${correctAnswer ? 'Đúng' : 'Sai'}</strong>`;
+                                    wrapper.classList.add(correctAnswer ? 'correct' : 'incorrect');
+                                    wrapper.innerHTML += `<div class="mt-2 text-sm">Đáp án: ${answerText}</div>`;
+                                }
+                            });
+                            break;
+                        case 'true_false_group': // Object format from Teacher
+                             Object.keys(question.statements || {}).forEach(key => {
+                                const wrapper = questionCard.querySelector(`[data-statement-key="${key}"]`);
+                                 if (wrapper) {
+                                    const correctAnswer = question.answers[key];
+                                    const answerText = `<strong class="${correctAnswer ? 'text-green-700' : 'text-red-700'}">${correctAnswer ? 'Đúng' : 'Sai'}</strong>`;
+                                    wrapper.classList.add(correctAnswer ? 'correct' : 'incorrect');
+                                    wrapper.innerHTML += `<div class="mt-2 text-sm">Đáp án: ${answerText}</div>`;
+                                }
                             });
                             break;
                     }

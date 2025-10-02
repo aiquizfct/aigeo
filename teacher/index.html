@@ -56,14 +56,14 @@
         }
         .skeleton {
             background-color: #e2e8f0;
-            border-radius: 0.25rem;
+            border-radius: 0.5rem;
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
         @keyframes pulse {
-            50% { opacity: .5; }
+            50% { opacity: .6; }
         }
-        .stat-card { transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
-        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+        .stat-card { transition: transform 0.25s ease-out, box-shadow 0.25s ease-out; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px -5px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); transition: opacity 0.3s ease; }
         .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; transform: translateY(-20px); }
         .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
@@ -133,54 +133,64 @@
                 <p class="mt-2 text-slate-600">Chào mừng bạn đến với không gian quản lý của mình.</p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-                    <div class="bg-white p-6 rounded-xl shadow-md stat-card border-t-4 border-blue-500">
-                        <div class="flex items-center space-x-4">
-                            <div class="bg-blue-100 p-3 rounded-full"><i data-feather="users" class="text-blue-600"></i></div>
-                            <div>
-                                <h3 class="text-sm font-medium text-slate-500">Tổng số lớp</h3>
-                                <p id="stats-classes" class="text-3xl font-bold text-slate-800 mt-1"><span class="skeleton h-8 w-16 inline-block"></span></p>
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+                        <h3 class="text-sm font-semibold text-slate-500 flex items-center"><i data-feather="users" class="w-4 h-4 mr-2"></i>Tổng số lớp</h3>
+                        <p id="stats-classes" class="text-4xl font-bold text-slate-800 mt-2"><span class="skeleton h-10 w-20 inline-block"></span></p>
+                    </div>
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+                         <h3 class="text-sm font-semibold text-slate-500 flex items-center"><i data-feather="user" class="w-4 h-4 mr-2"></i>Tổng số học sinh</h3>
+                         <p id="stats-students" class="text-4xl font-bold text-slate-800 mt-2"><span class="skeleton h-10 w-16 inline-block"></span></p>
+                    </div>
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500">
+                        <h3 class="text-sm font-semibold text-slate-500 flex items-center"><i data-feather="file-text" class="w-4 h-4 mr-2"></i>Đề thi đã tạo</h3>
+                        <p id="stats-tests" class="text-4xl font-bold text-slate-800 mt-2"><span class="skeleton h-10 w-12 inline-block"></span></p>
+                    </div>
+                </div>
+                
+                <div class="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 space-y-8">
+                        <div class="bg-white rounded-xl shadow-sm">
+                            <div class="p-4 border-b flex justify-between items-center">
+                                <h2 class="font-bold text-slate-700">Lớp học gần đây</h2>
+                                <a href="classrooms.html" class="text-sm font-semibold text-teal-600 hover:underline nav-link">Xem tất cả</a>
+                            </div>
+                            <div id="recent-classrooms-container" class="p-4 space-y-3">
+                                <div class="skeleton h-12 w-full"></div>
+                                <div class="skeleton h-12 w-full"></div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm">
+                            <div class="p-4 border-b flex justify-between items-center">
+                                <h2 class="font-bold text-slate-700">Đề thi gần đây</h2>
+                                <a href="tests.html" class="text-sm font-semibold text-teal-600 hover:underline nav-link">Xem tất cả</a>
+                            </div>
+                            <div id="recent-tests-container" class="p-4 space-y-3">
+                               <div class="skeleton h-12 w-full"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow-md stat-card border-t-4 border-green-500">
-                         <div class="flex items-center space-x-4">
-                            <div class="bg-green-100 p-3 rounded-full"><i data-feather="user" class="text-green-600"></i></div>
-                            <div>
-                                <h3 class="text-sm font-medium text-slate-500">Tổng số học sinh</h3>
-                                <p id="stats-students" class="text-3xl font-bold text-slate-800 mt-1"><span class="skeleton h-8 w-12 inline-block"></span></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-md stat-card border-t-4 border-orange-500">
-                        <div class="flex items-center space-x-4">
-                            <div class="bg-orange-100 p-3 rounded-full"><i data-feather="file-text" class="text-orange-600"></i></div>
-                            <div>
-                                <h3 class="text-sm font-medium text-slate-500">Đề thi đã tạo</h3>
-                                <p id="stats-tests" class="text-3xl font-bold text-slate-800 mt-1"><span class="skeleton h-8 w-12 inline-block"></span></p>
-                            </div>
+
+                    <div class="lg:col-span-1">
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                             <h2 class="font-bold text-slate-700 mb-4">Tác vụ nhanh</h2>
+                             <div class="space-y-3">
+                                 <a href="create-test-teacher.html" class="nav-link bg-teal-50 hover:bg-teal-100 p-4 rounded-lg flex items-center space-x-3 transition-colors">
+                                     <i data-feather="file-plus" class="text-teal-600"></i>
+                                     <span class="font-semibold text-slate-700 text-sm">Tạo Đề thi mới</span>
+                                 </a>
+                                  <a href="classrooms.html" class="nav-link bg-blue-50 hover:bg-blue-100 p-4 rounded-lg flex items-center space-x-3 transition-colors">
+                                     <i data-feather="user-plus" class="text-blue-600"></i>
+                                     <span class="font-semibold text-slate-700 text-sm">Tạo Lớp học mới</span>
+                                 </a>
+                                 <a href="question-bank.html" class="nav-link bg-indigo-50 hover:bg-indigo-100 p-4 rounded-lg flex items-center space-x-3 transition-colors">
+                                     <i data-feather="database" class="text-indigo-600"></i>
+                                     <span class="font-semibold text-slate-700 text-sm">Đóng góp câu hỏi</span>
+                                 </a>
+                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-700 mb-4">Tác vụ nhanh</h2>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                            <a href="classrooms.html" class="nav-link bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center space-x-4">
-                                <i data-feather="user-plus" class="text-green-500"></i>
-                                <span class="font-semibold text-slate-700">Tạo Lớp học mới</span>
-                            </a>
-                            <a href="create-test-teacher.html" class="nav-link bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center space-x-4">
-                                <i data-feather="file-plus" class="text-blue-500"></i>
-                                <span class="font-semibold text-slate-700">Tạo Đề thi mới</span>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow-sm">
-                         <h2 class="text-xl font-bold text-slate-800 mb-4">Thông báo & Cập nhật</h2>
-                         <p class="text-slate-500">Hiện chưa có thông báo mới.</p>
-                    </div>
-                </div>
             </div>
         </div>
     </main>
@@ -224,7 +234,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, query, where, onSnapshot, addDoc, serverTimestamp, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, query, where, onSnapshot, addDoc, serverTimestamp, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -237,6 +247,8 @@
         const statsClassesEl = document.getElementById('stats-classes');
         const statsStudentsEl = document.getElementById('stats-students');
         const statsTestsEl = document.getElementById('stats-tests');
+        const recentClassroomsContainer = document.getElementById('recent-classrooms-container');
+        const recentTestsContainer = document.getElementById('recent-tests-container');
         
         // Modals
         const profileUpdateModal = document.getElementById('profile-update-modal');
@@ -294,7 +306,7 @@
                             feather.replace();
                         }
 
-                        listenForStats(user.uid);
+                        listenForData(user.uid);
                         setupFeedbackListeners(user, userData);
                         animateWelcomeMessage();
 
@@ -310,9 +322,22 @@
             }
         });
 
-        function listenForStats(teacherId) {
-            const classroomsQuery = query(collection(db, "classrooms"), where("teacherId", "==", teacherId));
+        function listenForData(teacherId) {
+            const classroomsQuery = query(collection(db, "classrooms"), where("teacherId", "==", teacherId), orderBy("createdAt", "desc"), limit(3));
             onSnapshot(classroomsQuery, (snapshot) => {
+                const classrooms = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                renderRecentClassrooms(classrooms);
+            });
+
+            const testsQuery = query(collection(db, "tests"), where("authorId", "==", teacherId), orderBy("createdAt", "desc"), limit(3));
+            onSnapshot(testsQuery, (snapshot) => {
+                const tests = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                renderRecentTests(tests);
+            });
+
+            // Listen for overall stats
+            const allClassroomsQuery = query(collection(db, "classrooms"), where("teacherId", "==", teacherId));
+            onSnapshot(allClassroomsQuery, (snapshot) => {
                 const classCount = snapshot.size;
                 let studentCount = 0;
                 snapshot.forEach(doc => {
@@ -322,11 +347,54 @@
                 statsStudentsEl.textContent = studentCount;
             });
 
-            const testsQuery = query(collection(db, "tests"), where("authorId", "==", teacherId));
-            onSnapshot(testsQuery, (snapshot) => {
+            const allTestsQuery = query(collection(db, "tests"), where("authorId", "==", teacherId));
+            onSnapshot(allTestsQuery, (snapshot) => {
                 statsTestsEl.textContent = snapshot.size;
             });
         }
+        
+        function renderRecentClassrooms(classrooms) {
+            recentClassroomsContainer.innerHTML = '';
+            if (classrooms.length === 0) {
+                recentClassroomsContainer.innerHTML = `<p class="text-sm text-slate-500 text-center py-4">Chưa có lớp học nào được tạo.</p>`;
+                return;
+            }
+            classrooms.forEach(c => {
+                const card = document.createElement('div');
+                card.className = "flex items-center justify-between p-3 bg-slate-50 rounded-lg";
+                card.innerHTML = `
+                    <div>
+                        <p class="font-semibold text-slate-800">${c.className}</p>
+                        <p class="text-xs text-slate-500">${c.students?.length || 0} học sinh</p>
+                    </div>
+                    <a href="student-progress.html?classId=${c.id}" class="text-sm font-semibold text-teal-600 hover:text-teal-700 nav-link">Xem tiến độ</a>
+                `;
+                recentClassroomsContainer.appendChild(card);
+            });
+        }
+        
+        function renderRecentTests(tests) {
+            recentTestsContainer.innerHTML = '';
+            if (tests.length === 0) {
+                recentTestsContainer.innerHTML = `<p class="text-sm text-slate-500 text-center py-4">Chưa có đề thi nào được tạo.</p>`;
+                return;
+            }
+            tests.forEach(t => {
+                const statusBg = t.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                const statusText = t.status === 'published' ? 'Đã xuất bản' : 'Bản nháp';
+                const card = document.createElement('div');
+                card.className = "flex items-center justify-between p-3 bg-slate-50 rounded-lg";
+                card.innerHTML = `
+                    <div>
+                        <p class="font-semibold text-slate-800">${t.name}</p>
+                        <p class="text-xs text-slate-500">${t.questionIds?.length || 0} câu hỏi</p>
+                    </div>
+                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusBg}">${statusText}</span>
+                `;
+                recentTestsContainer.appendChild(card);
+            });
+        }
+
 
         async function loadAndDisplayFeedback() {
             feedbackListContainer.innerHTML = `<div class="text-center p-4"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mx-auto"></div></div>`;

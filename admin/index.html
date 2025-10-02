@@ -36,17 +36,17 @@
 
         .skeleton {
             background-color: #e2e8f0;
-            border-radius: 0.25rem;
+            border-radius: 0.5rem;
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
-        @keyframes pulse { 50% { opacity: .5; } }
+        @keyframes pulse { 50% { opacity: .6; } }
         
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
+            animation: fadeIn 0.6s ease-out forwards;
         }
         
         .anime-title .letter {
@@ -55,8 +55,8 @@
             opacity: 0;
         }
 
-        .stat-card { transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
-        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+        .stat-card { transition: transform 0.25s ease-out, box-shadow 0.25s ease-out; }
+        .stat-card:hover { transform: translateY(-6px); box-shadow: 0 10px 20px -5px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
     </style>
 </head>
 <body class="flex h-screen">
@@ -91,74 +91,75 @@
                 </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mt-8">
-                    <div class="bg-white p-6 rounded-xl shadow-lg stat-card border-t-4 border-blue-500 fade-in" style="animation-delay: 100ms;">
-                        <div class="flex items-center space-x-4">
-                            <div class="bg-blue-100 p-3 rounded-full"><i data-feather="users" class="text-blue-600"></i></div>
-                            <div>
-                                <h3 class="text-xs font-medium text-slate-500">Tổng người dùng</h3>
-                                <p id="stats-users" class="text-3xl font-bold text-slate-800 mt-1"><span class="skeleton h-8 w-16 inline-block"></span></p>
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500 fade-in" style="animation-delay: 100ms;">
+                        <h3 class="text-sm font-semibold text-slate-500 flex items-center"><i data-feather="users" class="w-4 h-4 mr-2"></i>Người dùng</h3>
+                        <p id="stats-users" class="text-3xl font-bold text-slate-800 mt-2"><span class="skeleton h-8 w-16 inline-block"></span></p>
+                    </div>
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500 fade-in" style="animation-delay: 200ms;">
+                        <h3 class="text-sm font-semibold text-slate-500 flex items-center"><i data-feather="book-open" class="w-4 h-4 mr-2"></i>Môn học</h3>
+                        <p id="stats-subjects" class="text-3xl font-bold text-slate-800 mt-2"><span class="skeleton h-8 w-12 inline-block"></span></p>
+                    </div>
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500 fade-in" style="animation-delay: 300ms;">
+                        <h3 class="text-sm font-semibold text-slate-500 flex items-center"><i data-feather="file-text" class="w-4 h-4 mr-2"></i>Đề thi</h3>
+                        <p id="stats-tests" class="text-3xl font-bold text-slate-800 mt-2"><span class="skeleton h-8 w-12 inline-block"></span></p>
+                    </div>
+                    <div class="stat-card bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500 fade-in" style="animation-delay: 400ms;">
+                        <h3 class="text-sm font-semibold text-slate-500 flex items-center"><i data-feather="help-circle" class="w-4 h-4 mr-2"></i>Câu hỏi</h3>
+                        <p id="stats-questions" class="text-3xl font-bold text-slate-800 mt-2"><span class="skeleton h-8 w-20 inline-block"></span></p>
+                    </div>
+                     <div class="stat-card bg-white p-6 rounded-xl shadow-sm border-l-4 border-purple-500 fade-in" style="animation-delay: 500ms;">
+                        <h3 class="text-sm font-semibold text-slate-500 flex items-center"><i data-feather="inbox" class="w-4 h-4 mr-2"></i>Góp ý mới</h3>
+                        <p id="stats-feedback" class="text-3xl font-bold text-slate-800 mt-2"><span class="skeleton h-8 w-12 inline-block"></span></p>
+                    </div>
+                </div>
+
+                <div class="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 space-y-8">
+                        <div class="bg-white rounded-xl shadow-sm fade-in" style="animation-delay: 600ms;">
+                            <div class="p-4 border-b flex justify-between items-center">
+                                <h2 class="font-bold text-slate-700">Người dùng mới nhất</h2>
+                                <a href="users.html" class="text-sm font-semibold text-teal-600 hover:underline nav-link">Xem tất cả</a>
+                            </div>
+                            <div id="recent-users-container" class="p-4">
+                                <div class="skeleton h-32 w-full"></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm fade-in" style="animation-delay: 700ms;">
+                            <div class="p-4 border-b flex justify-between items-center">
+                                <h2 class="font-bold text-slate-700">Góp ý gần đây</h2>
+                                <a href="feedback.html" class="text-sm font-semibold text-teal-600 hover:underline nav-link">Xem tất cả</a>
+                            </div>
+                             <div id="recent-feedback-container" class="p-4">
+                                <div class="skeleton h-24 w-full"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow-lg stat-card border-t-4 border-green-500 fade-in" style="animation-delay: 200ms;">
-                        <div class="flex items-center space-x-4">
-                            <div class="bg-green-100 p-3 rounded-full"><i data-feather="book-open" class="text-green-600"></i></div>
-                            <div>
-                                <h3 class="text-xs font-medium text-slate-500">Môn học</h3>
-                                <p id="stats-subjects" class="text-3xl font-bold text-slate-800 mt-1"><span class="skeleton h-8 w-12 inline-block"></span></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-lg stat-card border-t-4 border-orange-500 fade-in" style="animation-delay: 300ms;">
-                        <div class="flex items-center space-x-4">
-                            <div class="bg-orange-100 p-3 rounded-full"><i data-feather="file-text" class="text-orange-600"></i></div>
-                            <div>
-                                <h3 class="text-xs font-medium text-slate-500">Tổng số đề thi</h3>
-                                <p id="stats-tests" class="text-3xl font-bold text-slate-800 mt-1"><span class="skeleton h-8 w-12 inline-block"></span></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-lg stat-card border-t-4 border-red-500 fade-in" style="animation-delay: 400ms;">
-                        <div class="flex items-center space-x-4">
-                            <div class="bg-red-100 p-3 rounded-full"><i data-feather="help-circle" class="text-red-600"></i></div>
-                            <div>
-                                <h3 class="text-xs font-medium text-slate-500">Tổng câu hỏi</h3>
-                                <p id="stats-questions" class="text-3xl font-bold text-slate-800 mt-1"><span class="skeleton h-8 w-20 inline-block"></span></p>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="bg-white p-6 rounded-xl shadow-lg stat-card border-t-4 border-purple-500 fade-in" style="animation-delay: 500ms;">
-                        <div class="flex items-center space-x-4">
-                            <div class="bg-purple-100 p-3 rounded-full"><i data-feather="message-square" class="text-purple-600"></i></div>
-                            <div>
-                                <h3 class="text-xs font-medium text-slate-500">Góp ý mới</h3>
-                                <p id="stats-feedback" class="text-3xl font-bold text-slate-800 mt-1"><span class="skeleton h-8 w-12 inline-block"></span></p>
+                    <div class="lg:col-span-1 space-y-8">
+                         <div class="bg-white rounded-xl shadow-sm p-6 fade-in" style="animation-delay: 800ms;">
+                            <h2 class="font-bold text-slate-700 mb-4">Tác vụ nhanh</h2>
+                            <div class="space-y-3">
+                                <a href="create-test.html" class="nav-link bg-slate-50 hover:bg-teal-50 p-4 rounded-lg flex items-center space-x-3 transition-colors">
+                                    <i data-feather="file-plus" class="text-teal-600"></i>
+                                    <span class="font-semibold text-slate-700 text-sm">Tạo Đề thi mới</span>
+                                </a>
+                                <a href="subjects.html" class="nav-link bg-slate-50 hover:bg-blue-50 p-4 rounded-lg flex items-center space-x-3 transition-colors">
+                                    <i data-feather="folder-plus" class="text-blue-600"></i>
+                                    <span class="font-semibold text-slate-700 text-sm">Quản lý Học liệu</span>
+                                </a>
+                                <a href="apikeys.html" class="nav-link bg-slate-50 hover:bg-purple-50 p-4 rounded-lg flex items-center space-x-3 transition-colors">
+                                    <i data-feather="key" class="text-purple-600"></i>
+                                    <span class="font-semibold text-slate-700 text-sm">Quản lý API Keys</span>
+                                </a>
+                                <a href="quan-tri-database.html" class="nav-link bg-slate-50 hover:bg-gray-100 p-4 rounded-lg flex items-center space-x-3 transition-colors">
+                                    <i data-feather="database" class="text-gray-600"></i>
+                                    <span class="font-semibold text-slate-700 text-sm">Quản trị Database</span>
+                                </a>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-12 fade-in" style="animation-delay: 600ms;">
-                    <h2 class="text-xl font-bold text-slate-700 mb-4">Tác vụ nhanh</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                        <a href="users.html" class="nav-link bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center space-x-4 stat-card">
-                            <i data-feather="user-plus" class="text-green-500"></i>
-                            <span class="font-semibold text-slate-700 text-sm">Quản lý người dùng</span>
-                        </a>
-                         <a href="subjects.html" class="nav-link bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center space-x-4 stat-card">
-                            <i data-feather="folder-plus" class="text-blue-500"></i>
-                            <span class="font-semibold text-slate-700 text-sm">Quản lý học liệu</span>
-                        </a>
-                         <a href="create-test.html" class="nav-link bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center space-x-4 stat-card">
-                            <i data-feather="file-plus" class="text-orange-500"></i>
-                            <span class="font-semibold text-slate-700 text-sm">Tạo Đề thi Mới</span>
-                        </a>
-                        <a href="feedback.html" class="nav-link bg-white p-5 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center space-x-4 stat-card">
-                            <i data-feather="inbox" class="text-purple-500"></i>
-                            <span class="font-semibold text-slate-700 text-sm">Duyệt góp ý</span>
-                        </a>
-                    </div>
-                </div>
             </div>
         </div>
     </main>
@@ -167,7 +168,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -175,6 +176,8 @@
 
         const userNameEl = document.getElementById('user-name');
         const userAvatarEl = document.getElementById('user-avatar');
+        const recentUsersContainer = document.getElementById('recent-users-container');
+        const recentFeedbackContainer = document.getElementById('recent-feedback-container');
 
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', function(e) {
@@ -199,6 +202,7 @@
                     userAvatarEl.src = `https://placehold.co/40x40/DC2626/FFFFFF?text=${nameInitial}`;
                     
                     listenForStats();
+                    listenForRecentData();
                     animateWelcomeMessage();
 
                 } else {
@@ -216,32 +220,84 @@
 
         function listenForStats() {
             const collections = ['users', 'subjects', 'tests', 'questions'];
-
             collections.forEach(key => {
                 onSnapshot(collection(db, key), (snapshot) => {
                     const el = document.getElementById(`stats-${key}`);
-                    if (el) {
-                        el.textContent = snapshot.size;
-                    }
-                }, (error) => {
-                    console.error(`Error fetching ${key}:`, error);
-                    const el = document.getElementById(`stats-${key}`);
-                    if (el) el.textContent = 'Lỗi';
+                    if (el) el.textContent = snapshot.size;
                 });
             });
 
-            // Listen for new feedback
             const feedbackQuery = query(collection(db, "feedback"), where("status", "==", "new"));
             onSnapshot(feedbackQuery, (snapshot) => {
                 const el = document.getElementById(`stats-feedback`);
-                if (el) {
-                   el.textContent = snapshot.size;
-                }
-            }, (error) => {
-                console.error(`Error fetching feedback:`, error);
-                const el = document.getElementById(`stats-feedback`);
-                if (el) el.textContent = 'Lỗi';
+                if (el) el.textContent = snapshot.size;
             });
+        }
+
+        function listenForRecentData() {
+            const usersQuery = query(collection(db, "users"), orderBy("createdAt", "desc"), limit(5));
+            onSnapshot(usersQuery, (snapshot) => {
+                const users = snapshot.docs.map(d => d.data());
+                renderRecentUsers(users);
+            });
+            
+            const feedbackQuery = query(collection(db, "feedback"), orderBy("createdAt", "desc"), limit(3));
+            onSnapshot(feedbackQuery, (snapshot) => {
+                const feedbacks = snapshot.docs.map(d => d.data());
+                renderRecentFeedback(feedbacks);
+            });
+        }
+        
+        function renderRecentUsers(users) {
+            recentUsersContainer.innerHTML = '';
+            if(users.length === 0) {
+                recentUsersContainer.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Chưa có người dùng nào.</p>';
+                return;
+            }
+            const list = document.createElement('div');
+            list.className = 'space-y-4';
+            users.forEach(user => {
+                const roleBg = {
+                    'student': 'bg-green-100 text-green-800',
+                    'teacher': 'bg-sky-100 text-sky-800',
+                    'admin': 'bg-red-100 text-red-800'
+                }[user.role] || 'bg-slate-100 text-slate-800';
+                
+                const userDiv = document.createElement('div');
+                userDiv.className = 'flex items-center justify-between';
+                userDiv.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <img class="h-9 w-9 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=${(user.name || 'U').charAt(0).toUpperCase()}" alt="Avatar">
+                        <div>
+                            <p class="font-semibold text-sm text-slate-700">${user.name || '(Chưa có tên)'}</p>
+                            <p class="text-xs text-slate-500">${user.email}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${roleBg}">${user.role}</span>
+                `;
+                list.appendChild(userDiv);
+            });
+            recentUsersContainer.appendChild(list);
+        }
+        
+        function renderRecentFeedback(feedbacks) {
+            recentFeedbackContainer.innerHTML = '';
+             if(feedbacks.length === 0) {
+                recentFeedbackContainer.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">Chưa có góp ý nào.</p>';
+                return;
+            }
+            const list = document.createElement('div');
+            list.className = 'space-y-3';
+            feedbacks.forEach(fb => {
+                const fbDiv = document.createElement('div');
+                fbDiv.className = 'p-3 bg-slate-50 rounded-lg';
+                fbDiv.innerHTML = `
+                    <p class="text-sm text-slate-700 truncate">${fb.content}</p>
+                    <p class="text-xs text-slate-500 mt-1">bởi ${fb.userName || 'N/A'}</p>
+                `;
+                list.appendChild(fbDiv);
+            });
+            recentFeedbackContainer.appendChild(list);
         }
         
         function animateWelcomeMessage() {
