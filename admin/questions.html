@@ -116,7 +116,6 @@
         </div>
     </main>
     
-    <!-- Quick Add Modal -->
     <div id="quick-add-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl modal-content overflow-y-auto max-h-[90vh]">
             <div class="flex justify-between items-center mb-4 border-b pb-4">
@@ -124,8 +123,7 @@
                 <button id="close-quick-add-btn" class="p-2 hover:bg-slate-100 rounded-full"><i data-feather="x"></i></button>
             </div>
             <form id="quick-add-form" class="space-y-4">
-                <!-- Form content will be injected here -->
-            </form>
+                </form>
             <div class="mt-6 flex justify-between items-center border-t pt-4">
                 <div id="pending-questions-info">
                      <span class="font-semibold text-slate-600">Số câu hỏi chờ lưu: </span>
@@ -146,13 +144,11 @@
     </div>
 
 
-    <!-- Edit Question Modal -->
     <div id="edit-question-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl modal-content overflow-y-auto max-h-[90vh]">
             <h2 class="text-xl font-bold mb-4">Chỉnh sửa câu hỏi</h2>
             <form id="edit-question-form" class="space-y-4">
-                <!-- Form content for editing will be injected here -->
-            </form>
+                </form>
              <div class="flex justify-end space-x-3 mt-6 border-t pt-4">
                 <button type="button" id="edit-cancel-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">Hủy</button>
                 <button type="submit" form="edit-question-form" id="edit-submit-btn" class="cta-button text-white px-4 py-2 rounded-md">Lưu thay đổi</button>
@@ -160,7 +156,6 @@
         </div>
     </div>
 
-    <!-- Delete Confirm Modal -->
     <div id="delete-confirm-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm modal-content">
             <h2 class="text-xl font-bold">Xác nhận xóa</h2>
@@ -341,7 +336,7 @@
             }
             
             onAuthStateChanged(auth, async (user) => {
-                if (user) {
+                 if (user) {
                     currentUser = user;
                     const docSnap = await getDoc(doc(db, "users", user.uid));
                     if (docSnap.exists() && docSnap.data().role === 'admin') {
@@ -354,9 +349,9 @@
                         const userRole = docSnap.data()?.role;
                         window.location.href = userRole ? `../${userRole}/index.html` : '../auth.html';
                     }
-                } else {
+                 } else {
                     window.location.href = '../auth.html';
-                }
+                 }
             });
 
             async function initQuestionsPage() {
@@ -377,15 +372,77 @@
 
                     setupFilters();
                     setupEventListeners();
+                    handleUrlParamsAndLoad(); // Thêm hàm xử lý URL parameter
                 } catch (error) {
                     console.error("Initialization Error: ", error);
                     showToast("Lỗi khi tải dữ liệu ban đầu.", "error");
                 }
             }
 
+            function handleUrlParamsAndLoad() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const lessonId = urlParams.get('lessonId');
+
+                if (lessonId) {
+                    const targetLesson = allData.lessons.find(l => l.id === lessonId);
+                    if (targetLesson) {
+                        // 1. Select Subject
+                        filters.subject.value = targetLesson.subjectId;
+                        
+                        // 2. Trigger subject change to populate grade dropdown
+                        filters.subject.dispatchEvent(new Event('change'));
+
+                        // 3. Select Grade
+                        filters.grade.value = targetLesson.grade;
+                        
+                        // 4. Trigger grade change to populate lesson dropdown
+                        filters.grade.dispatchEvent(new Event('change'));
+                        
+                        // 5. Select Lesson
+                        filters.lesson.value = lessonId;
+                        
+                        // 6. Trigger lesson change to load questions
+                        filters.lesson.dispatchEvent(new Event('change'));
+                    }
+                }
+            }
+
             function setupFilters() {
                 const sortedSubjects = [...allData.subjects].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
                 populateSelect(filters.subject, sortedSubjects, 'Chọn Môn học');
+                
+                filters.subject.addEventListener('change', () => {
+                    const subjectId = filters.subject.value;
+                    resetFilters(['grade', 'lesson']);
+                    if (subjectId) {
+                        const subjectLessons = allData.lessons.filter(l => l.subjectId === subjectId);
+                        const grades = [...new Set(subjectLessons.map(l => l.grade))].sort((a,b) => a-b);
+                        populateSelect(filters.grade, grades.map(g => ({id: g, name: `Lớp ${g}`})), 'Chọn Lớp');
+                        filters.grade.disabled = false;
+                    }
+                });
+
+                filters.grade.addEventListener('change', () => {
+                    const subjectId = filters.subject.value;
+                    const grade = filters.grade.value;
+                    resetFilters(['lesson']);
+                    if (grade) {
+                        const lessons = allData.lessons.filter(l => l.subjectId === subjectId && l.grade == grade).sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity));
+                        populateSelect(filters.lesson, lessons, 'Chọn Bài học', true);
+                        filters.lesson.disabled = false;
+                    }
+                });
+                
+                filters.lesson.addEventListener('change', () => {
+                    currentLessonId = filters.lesson.value;
+                    if (currentLessonId) {
+                        listenForQuestions(currentLessonId);
+                        hideQuickAddModal();
+                        pendingQuestions = [];
+                        updatePendingCount();
+                    }
+                    else renderInitialView();
+                });
             }
 
             function listenForQuestions(lessonId) {
@@ -533,8 +590,6 @@
                 setupImageUpload('qa');
                 setupImageUpload('edit');
 
-                setupPasteListener('qa');
-                setupPasteListener('edit');
             }
 
             function sanitizeHtmlContent(htmlString) {
@@ -649,6 +704,10 @@
             }
 
             function showQuickAddModal() {
+                if (!currentLessonId) {
+                    showToast('Vui lòng chọn Bài học trước khi thêm câu hỏi.', 'error');
+                    return;
+                }
                 resetQuickAddForm();
                 quickAddModal.classList.remove('hidden');
                 quickAddModal.classList.add('flex');
@@ -686,6 +745,9 @@
                     document.getElementById(`${prefix}-q-image-preview`).src = data.imageUrl;
                     document.getElementById(`${prefix}-image-preview-container`).classList.remove('hidden');
                     document.getElementById(`${prefix}-image-placeholder`).classList.add('hidden');
+                } else {
+                    if (prefix === 'qa') qaCurrentImageUrl = '';
+                    else if (prefix === 'edit') editCurrentImageUrl = '';
                 }
                 
                 if (data.type === 'multiple_choice') {
@@ -911,5 +973,3 @@
     </script>
 </body>
 </html>
-
-

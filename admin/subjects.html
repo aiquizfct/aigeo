@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
         :root {
             --primary-teal: #0D9488;
@@ -15,7 +16,7 @@
         }
         body { 
             font-family: 'Be Vietnam Pro', sans-serif; 
-            background-color: #f1f5f9; 
+            background-color: #f8fafc; 
         }
         .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
         .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
@@ -25,15 +26,13 @@
             font-weight: 600; 
             box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
         }
-        .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
         .sidebar-link svg { margin-right: 0.75rem; }
-        
+
         .brand-gradient-text {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
         .cta-button {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
             transition: all 0.3s ease;
@@ -43,7 +42,6 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
         }
-
         .form-input {
             width: 100%; padding: 0.75rem 1rem; margin-top: 0.5rem; border: 1px solid #cbd5e1;
             border-radius: 0.5rem; background-color: #f8fafc; transition: all 0.2s ease-in-out;
@@ -52,28 +50,34 @@
             outline: none; background-color: white; border-color: var(--primary-teal);
             box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
         }
-
-        .tree-item { display: flex; align-items: center; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: background-color 0.2s; }
-        .tree-item:hover { background-color: #f1f5f9; }
-        .tree-item.selected { background-color: #ccfbf1; color: #0f766e; font-weight: 600; }
-        .tree-item .chevron { transition: transform 0.2s; margin-right: 4px; }
-        .tree-item .chevron.expanded { transform: rotate(90deg); }
-        .tree-children { padding-left: 24px; display: none; }
-        .tree-children.expanded { display: block; }
-        
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); transition: opacity 0.3s ease; }
         .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; transform: translateY(-20px); }
-        
         .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
         .toast.show { transform: translateY(0); opacity: 1; }
         
-        .file-input-label { cursor: pointer; border: 2px dashed #cbd5e1; padding: 2rem; text-align: center; border-radius: 0.5rem; transition: background-color 0.2s, border-color 0.2s; }
-        .file-input-label:hover { background-color: #f8fafc; border-color: #94a3b8; }
+        /* Giao diện cây thư mục mới */
+        .tree-item-container {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            position: relative;
+        }
+        .tree-item { display: flex; align-items: center; gap: 0.75rem; }
+        .tree-item-container:hover { background-color: #f1f5f9; }
+        .tree-item-container.selected { background-color: #f0fdfa; }
+        .tree-item-container.selected .tree-item-name { color: #0f766e; font-weight: 600; }
+        .tree-item-container.selected .tree-item-icon { color: #0f766e; }
+
+        .tree-item .chevron { transition: transform 0.2s; }
+        .tree-item .chevron.expanded { transform: rotate(90deg); }
+        .tree-children { padding-left: 1.25rem; border-left: 1px solid #e2e8f0; margin-left: 0.625rem; display: none; }
+        .tree-children.expanded { display: block; }
+        .item-actions { display: none; }
+        .tree-item-container:hover .item-actions { display: flex; }
         
-        .skeleton { background-color: #e2e8f0; border-radius: 0.25rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 50% { opacity: .5; } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .ghost-class { opacity: 0.4; background: #ccfbf1; border: 1px dashed #14b8a6; }
+        .sortable-drag { opacity: 1 !important; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+        .prose { max-width: none; }
     </style>
 </head>
 <body class="flex h-screen">
@@ -93,680 +97,418 @@
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden">
-        <header class="bg-white shadow-sm h-16 flex items-center justify-end px-6">
+        <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6 flex-shrink-0">
+            <div>
+                 <h1 class="text-xl font-bold text-slate-800">Quản lý Học liệu</h1>
+                 <p class="text-sm text-slate-500">Tổ chức cấu trúc Môn học, Khối và Bài học.</p>
+            </div>
             <div class="flex items-center">
                 <span id="user-name" class="font-semibold text-gray-700 mr-4">Đang tải...</span>
                 <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=A" alt="Admin Avatar">
             </div>
         </header>
-        <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
-            <div class="max-w-7xl mx-auto h-full flex flex-col">
-                <div class="fade-in">
-                    <h1 class="text-3xl font-bold text-slate-800">Quản lý Học liệu</h1>
-                    <p class="mt-2 text-slate-600">Tổ chức cấu trúc: Môn học > Khối > Bài học.</p>
-                </div>
-                <div class="mt-6 bg-white rounded-xl shadow-lg flex-grow min-h-0 flex fade-in" style="animation-delay: 100ms;">
-                    <div class="w-1/3 border-r p-4 overflow-y-auto">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="font-bold text-lg text-slate-800">Cấu trúc học liệu</h2>
-                            <div class="flex items-center space-x-1">
-                                <button id="expand-all-btn" class="p-2 text-slate-500 hover:bg-slate-200 rounded-full transition-colors" title="Mở rộng tất cả"><i data-feather="plus-square" class="w-4 h-4"></i></button>
-                                <button id="collapse-all-btn" class="p-2 text-slate-500 hover:bg-slate-200 rounded-full transition-colors" title="Thu gọn tất cả"><i data-feather="minus-square" class="w-4 h-4"></i></button>
-                                <button id="import-btn" class="p-2 text-slate-500 hover:bg-slate-200 hover:text-green-600 rounded-full transition-colors" title="Nhập cấu trúc từ file Excel"><i data-feather="file-plus" class="w-4 h-4"></i></button>
-                                <button id="add-subject-btn" class="p-2 text-slate-500 hover:bg-slate-200 hover:text-blue-600 rounded-full transition-colors" title="Thêm môn học mới"><i data-feather="plus-circle" class="w-4 h-4"></i></button>
-                            </div>
-                        </div>
-                        <div class="relative mb-4">
-                            <input type="text" id="search-tree-input" placeholder="Tìm kiếm..." class="w-full p-2 pl-8 border rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500">
-                            <i data-feather="search" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
-                        </div>
-                        <div id="tree-container"></div>
+        <div class="flex-1 flex overflow-hidden">
+            <div class="w-1/3 bg-white flex flex-col border-r border-slate-200">
+                 <div class="p-4 border-b flex justify-between items-center flex-shrink-0">
+                    <h2 class="font-bold text-lg text-slate-800">Cấu trúc học liệu</h2>
+                    <div class="flex items-center space-x-1">
+                        <button id="import-btn" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full" title="Nhập từ Excel"><i data-feather="file-plus" class="w-4 h-4"></i></button>
+                        <button id="add-subject-btn" class="p-2 text-slate-500 hover:bg-slate-100 rounded-full" title="Thêm môn học"><i data-feather="plus-circle" class="w-4 h-4"></i></button>
                     </div>
-                    <div class="w-2/3 p-6 overflow-y-auto" id="content-panel">
-                        <div class="text-center text-slate-500 h-full flex flex-col justify-center items-center">
-                            <i data-feather="sidebar" class="w-16 h-16 mx-auto text-slate-400"></i>
-                            <p class="mt-4 max-w-xs mx-auto">Chọn một mục từ cây cấu trúc bên trái để xem chi tiết và quản lý.</p>
-                        </div>
+                </div>
+                <div id="tree-container" class="p-2 overflow-y-auto flex-grow">
+                    </div>
+            </div>
+            <div class="w-2/3 bg-slate-50 flex flex-col">
+                <div id="content-panel" class="overflow-y-auto flex-grow">
+                     <div class="text-center text-slate-500 h-full flex flex-col justify-center items-center">
+                        <i data-feather="sidebar" class="w-16 h-16 mx-auto text-slate-400"></i>
+                        <p class="mt-4 max-w-xs mx-auto">Chọn một mục từ cây cấu trúc bên trái để xem chi tiết và quản lý.</p>
                     </div>
                 </div>
             </div>
         </div>
     </main>
-
-    <div id="add-edit-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
+    
+    <div id="edit-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md modal-content">
             <h2 id="modal-title" class="text-xl font-bold mb-4"></h2>
             <form id="modal-form">
+                <input type="hidden" id="edit-id">
+                <input type="hidden" id="edit-type">
+                <input type="hidden" id="edit-context-id">
                 <div class="mb-4">
                     <label for="item-name" class="block text-sm font-medium text-gray-700">Tên</label>
-                    <input type="text" id="item-name" name="name" class="form-input" required>
-                </div>
-                 <div id="grade-select-wrapper" class="mb-4 hidden">
-                    <label for="item-grade" class="block text-sm font-medium text-gray-700">Khối lớp</label>
-                    <select id="item-grade" name="grade" class="form-input">
-                        <option value="10">Lớp 10</option>
-                        <option value="11">Lớp 11</option>
-                        <option value="12">Lớp 12</option>
-                    </select>
+                    <input type="text" id="item-name" class="form-input" required>
                 </div>
                 <div class="flex justify-end space-x-3 mt-6">
-                    <button type="button" id="modal-cancel-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 font-semibold">Hủy</button>
-                    <button type="submit" id="modal-submit-btn" class="cta-button text-white px-4 py-2 rounded-lg font-semibold">Lưu</button>
+                    <button type="button" id="modal-cancel-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">Hủy</button>
+                    <button type="submit" class="cta-button text-white px-4 py-2 rounded-lg">Lưu</button>
                 </div>
             </form>
         </div>
     </div>
-    <div id="delete-confirm-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm modal-content">
-            <h2 class="text-xl font-bold">Xác nhận xóa</h2>
-            <p id="delete-confirm-text" class="mt-2 text-gray-600">Bạn có chắc chắn muốn xóa mục này và TẤT CẢ các mục con của nó không? Hành động này không thể hoàn tác.</p>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button id="delete-cancel-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 font-semibold">Hủy</button>
-                <button id="delete-confirm-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 font-semibold">Xóa</button>
-            </div>
-        </div>
-    </div>
-    <div id="import-modal" class="fixed inset-0 z-40 items-center justify-center hidden modal-backdrop">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg modal-content">
-            <h2 class="text-xl font-bold mb-4">Nhập Cấu trúc Học liệu</h2>
-             <p class="text-sm text-gray-600 mb-4">
-                File của bạn phải có 3 cột: 
-                <code class="text-xs bg-gray-100 p-1 rounded">Môn học</code>, 
-                <code class="text-xs bg-gray-100 p-1 rounded">Lớp</code>, 
-                <code class="text-xs bg-gray-100 p-1 rounded">Bài học</code>.
-                <a href="#" id="download-template-link" class="text-teal-600 hover:underline">Tải file mẫu.</a>
-            </p>
-            <label for="file-input" class="file-input-label">
-                <i data-feather="upload-cloud" class="w-10 h-10 mx-auto text-gray-400"></i>
-                <span id="file-name" class="mt-2 block text-sm text-gray-600">Nhấn để chọn file hoặc kéo thả vào đây</span>
-            </label>
-            <input type="file" id="file-input" class="hidden" accept=".xlsx, .xls, .csv">
-            <div id="import-progress" class="mt-4 text-sm text-gray-600 hidden"></div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" id="import-cancel-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 font-semibold">Hủy</button>
-                <button type="button" id="start-import-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:bg-green-300 font-semibold" disabled>Bắt đầu nhập</button>
-            </div>
-        </div>
-    </div>
-    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 w-80"></div>
     
+     <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 w-80"></div>
+
     <script src="../firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, writeBatch, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, addDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
             const db = getFirestore(app);
 
-            const userNameEl = document.getElementById('user-name');
-            const userAvatarEl = document.getElementById('user-avatar');
             const treeContainer = document.getElementById('tree-container');
             const contentPanel = document.getElementById('content-panel');
-            const addEditModal = document.getElementById('add-edit-modal');
+            const editModal = document.getElementById('edit-modal');
             const modalForm = document.getElementById('modal-form');
-            const modalTitle = document.getElementById('modal-title');
-            const modalCancelBtn = document.getElementById('modal-cancel-btn');
-            const modalSubmitBtn = document.getElementById('modal-submit-btn');
-            const itemNameInput = document.getElementById('item-name');
-            const deleteConfirmModal = document.getElementById('delete-confirm-modal');
-            const deleteCancelBtn = document.getElementById('delete-cancel-btn');
-            const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
-            const deleteConfirmText = document.getElementById('delete-confirm-text');
-            const gradeSelectWrapper = document.getElementById('grade-select-wrapper');
-            const itemGradeSelect = document.getElementById('item-grade');
             const toastContainer = document.getElementById('toast-container');
-            const importModal = document.getElementById('import-modal');
-            const importBtn = document.getElementById('import-btn');
-            const importCancelBtn = document.getElementById('import-cancel-btn');
-            const startImportBtn = document.getElementById('start-import-btn');
-            const fileInput = document.getElementById('file-input');
-            const fileNameEl = document.getElementById('file-name');
-            const importProgressEl = document.getElementById('import-progress');
-            const downloadTemplateLink = document.getElementById('download-template-link');
-            const searchTreeInput = document.getElementById('search-tree-input');
-            const expandAllBtn = document.getElementById('expand-all-btn');
-            const collapseAllBtn = document.getElementById('collapse-all-btn');
             
-            let allData = { subjects: [], lessons: [] };
-            let expandedItems = new Set();
-            let selectedItem = { type: null, id: null };
-            let currentModalContext = {};
-            let itemToDelete = {};
-            let selectedFileForImport = null;
+            let allData = { subjects: [], lessons: [], questions: [] };
+            let selected = { subjectId: null, gradeId: null, lessonId: null };
+            let expanded = new Set();
+            let sortableInstances = {};
 
             function showToast(message, type = 'success') {
                 const toast = document.createElement('div');
-                const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-                const icon = type === 'success' ? 'check-circle' : 'alert-circle';
-                toast.className = `toast show ${bgColor} text-white p-4 rounded-lg shadow-lg flex items-center space-x-3`;
-                toast.innerHTML = `<i data-feather="${icon}" class="w-5 h-5"></i><span>${message}</span>`;
+                toast.className = `toast show ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-4 py-2 rounded-lg shadow-lg`;
+                toast.textContent = message;
                 toastContainer.appendChild(toast);
-                feather.replace();
                 setTimeout(() => {
                     toast.classList.remove('show');
                     toast.addEventListener('transitionend', () => toast.remove());
                 }, 3000);
             }
-
-            function getTypeIcon(type) {
-                const icons = { subject: 'book-open', grade: 'layers', lesson: 'file-text' };
-                return icons[type] || 'chevron-right';
+            
+            function cleanPrefix(text) {
+                if (!text) return '';
+                return text.replace(/^(Bài|Chương|Phần)\s*\d+\s*[:.]?\s*/i, '').trim();
             }
 
+            function getTypeIcon(type) {
+                const icons = { subject: 'book', grade: 'layers', lesson: 'file-text' };
+                return icons[type] || 'chevron-right';
+            }
+            
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     const docSnap = await getDoc(doc(db, "users", user.uid));
                     if (docSnap.exists() && docSnap.data().role === 'admin') {
                         const userData = docSnap.data();
-                        userNameEl.textContent = userData.name || 'Admin';
-                        const nameInitial = (userData.name || 'A').charAt(0).toUpperCase();
-                        userAvatarEl.src = `https://placehold.co/40x40/DC2626/FFFFFF?text=${nameInitial}`;
-                        initSubjectsLogic();
-                    } else {
-                        const userRole = docSnap.data()?.role;
-                        if (userRole === 'teacher' || userRole === 'student') {
-                            window.location.href = `../${userRole}/index.html`;
-                        } else {
-                            window.location.href = '../auth.html';
-                        }
-                    }
-                } else {
-                    window.location.href = '../auth.html';
-                }
+                        document.getElementById('user-name').textContent = userData.name || 'Admin';
+                        document.getElementById('user-avatar').src = `https://placehold.co/40x40/DC2626/FFFFFF?text=${(userData.name || 'A').charAt(0).toUpperCase()}`;
+                        initPage();
+                    } else { window.location.href = `../${docSnap.data()?.role || 'auth'}/index.html`; }
+                } else { window.location.href = '../auth.html'; }
             });
 
-            function initSubjectsLogic() {
-                renderTreeSkeleton();
-                const collections = Object.keys(allData);
+            function initPage() {
+                treeContainer.innerHTML = `<div class="p-4 text-center text-sm text-slate-500">Đang tải cấu trúc...</div>`;
+                const collections = ['subjects', 'lessons', 'questions'];
                 let loadedCount = 0;
                 collections.forEach(key => {
-                    const q = query(collection(db, key));
-                    onSnapshot(q, (snapshot) => {
+                    onSnapshot(collection(db, key), (snapshot) => {
                         allData[key] = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                        if (++loadedCount >= collections.length) {
-                            treeContainer.classList.add('fade-in');
+                        if (++loadedCount === collections.length) {
                             renderTree();
-                            if (selectedItem.id) renderContentPanel();
+                            if(selected.subjectId) renderContentPanel();
                         }
-                    }, error => {
-                        console.error(`Error fetching ${key}: `, error);
-                        treeContainer.innerHTML = `<p class="text-red-500 p-2">Lỗi tải dữ liệu.</p>`;
                     });
                 });
                 setupEventListeners();
             }
 
             function setupEventListeners() {
-                document.querySelectorAll('.nav-link').forEach(link => {
-                    link.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        document.body.style.opacity = '0';
-                        setTimeout(() => { window.location.href = this.href; }, 200);
-                    });
-                });
-                document.body.style.transition = 'opacity 0.2s ease-in-out';
                 document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-                
-                treeContainer.addEventListener('click', handleTreeClick);
                 document.getElementById('add-subject-btn').addEventListener('click', () => showModal('add', 'subject'));
+                document.getElementById('modal-cancel-btn').addEventListener('click', () => editModal.classList.add('hidden'));
+                modalForm.addEventListener('submit', handleFormSubmit);
+                treeContainer.addEventListener('click', handleTreeClick);
                 contentPanel.addEventListener('click', handleContentPanelClick);
-                
-                modalForm.onsubmit = handleFormSubmit;
-                modalCancelBtn.onclick = hideModal;
-                deleteConfirmBtn.onclick = confirmDelete;
-                deleteCancelBtn.onclick = hideDeleteConfirmModal;
-                importBtn.addEventListener('click', handleImportClick);
-                importCancelBtn.onclick = hideImportModal;
-                fileInput.addEventListener('change', handleFileSelect);
-                startImportBtn.addEventListener('click', handleStructureImport);
-                downloadTemplateLink.addEventListener('click', downloadTemplate);
-
-                searchTreeInput.addEventListener('keyup', renderTree);
-                expandAllBtn.addEventListener('click', expandAll);
-                collapseAllBtn.addEventListener('click', collapseAll);
             }
-
-            function renderTreeSkeleton() {
-                let skeletonHTML = '';
-                for (let i = 0; i < 4; i++) {
-                    skeletonHTML += `<div class="p-2 space-y-2"><div class="skeleton h-5 w-3/4"></div><div class="pl-6 space-y-2"><div class="skeleton h-4 w-1/2"></div><div class="skeleton h-4 w-2/3"></div></div></div>`;
-                }
-                treeContainer.innerHTML = skeletonHTML;
-            }
-
+            
             function renderTree() {
-                if (!treeContainer) return;
-                const searchTerm = searchTreeInput.value.toLowerCase();
                 treeContainer.innerHTML = '';
-                const sortedSubjects = [...allData.subjects].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
+                const sortedSubjects = [...allData.subjects].sort((a,b) => a.name.localeCompare(b.name));
                 sortedSubjects.forEach(subject => {
-                    const subjectLessons = allData.lessons.filter(l => l.subjectId === subject.id);
-                    const grades = [...new Set(subjectLessons.map(l => l.grade))].sort((a, b) => a - b);
-                    
-                    const gradeNodes = grades.map(grade => {
-                        const gradeId = `${subject.id}_${grade}`;
-                        const gradeLessons = subjectLessons
-                            .filter(l => l.grade === grade)
-                            .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
-                        
-                        const lessonNodes = gradeLessons.map(lesson => ({
-                            ...lesson,
-                            type: 'lesson',
-                            matches: searchTerm === '' || lesson.name.toLowerCase().includes(searchTerm)
-                        }));
-                        
-                        const gradeMatches = searchTerm === '' || 
-                                             `lớp ${grade}`.includes(searchTerm) || 
-                                             lessonNodes.some(l => l.matches);
-                        
-                        return {
-                            id: gradeId,
-                            name: `Lớp ${grade}`,
-                            type: 'grade',
-                            lessons: lessonNodes,
-                            matches: gradeMatches
-                        };
-                    });
-
-                    const subjectMatches = searchTerm === '' || 
-                                           subject.name.toLowerCase().includes(searchTerm) || 
-                                           gradeNodes.some(g => g.matches);
-
-                    if (subjectMatches) {
-                        if (searchTerm !== '') {
-                            expandedItems.add(subject.id);
-                        }
-                        const subjectEl = createTreeItem(subject, 'subject');
-                        treeContainer.appendChild(subjectEl);
-
-                        if (expandedItems.has(subject.id)) {
-                            const subjectChildrenContainer = document.createElement('div');
-                            subjectChildrenContainer.className = 'tree-children expanded';
-
-                            gradeNodes.forEach(gradeNode => {
-                                if (gradeNode.matches) {
-                                     if (searchTerm !== '') {
-                                        expandedItems.add(gradeNode.id);
-                                     }
-                                    const gradeEl = createTreeItem(gradeNode, 'grade');
-                                    subjectChildrenContainer.appendChild(gradeEl);
-
-                                    if (expandedItems.has(gradeNode.id)) {
-                                        const lessonContainer = document.createElement('div');
-                                        lessonContainer.className = 'tree-children expanded';
-                                        gradeNode.lessons.forEach(lessonNode => {
-                                            if(lessonNode.matches){
-                                                const lessonEl = createTreeItem(lessonNode, 'lesson');
-                                                lessonContainer.appendChild(lessonEl);
-                                            }
-                                        });
-                                        gradeEl.appendChild(lessonContainer);
-                                    }
+                    const subjectEl = createTreeItem(subject, 'subject', allData.lessons.filter(l => l.subjectId === subject.id).length);
+                    treeContainer.appendChild(subjectEl);
+                    if (expanded.has(subject.id)) {
+                        const childrenContainer = document.createElement('div');
+                        childrenContainer.className = 'tree-children expanded';
+                        [10, 11, 12].forEach(grade => {
+                            const gradeLessons = allData.lessons.filter(l => l.subjectId === subject.id && l.grade == grade);
+                            if (gradeLessons.length > 0) {
+                                const gradeId = `${subject.id}_${grade}`;
+                                const gradeEl = createTreeItem({ id: gradeId, name: `Lớp ${grade}` }, 'grade', gradeLessons.length);
+                                childrenContainer.appendChild(gradeEl);
+                                if (expanded.has(gradeId)) {
+                                    const lessonContainer = document.createElement('div');
+                                    lessonContainer.className = 'tree-children expanded';
+                                    gradeLessons.sort((a,b) => (a.order ?? Infinity) - (b.order ?? Infinity)).forEach(lesson => {
+                                        const qCount = allData.questions.filter(q => q.lessonId === lesson.id).length;
+                                        lessonContainer.appendChild(createTreeItem(lesson, 'lesson', qCount));
+                                    });
+                                    gradeEl.appendChild(lessonContainer);
                                 }
-                            });
-                            subjectEl.appendChild(subjectChildrenContainer);
-                        }
+                            }
+                        });
+                        subjectEl.appendChild(childrenContainer);
                     }
                 });
                 feather.replace();
             }
-                
-            function createTreeItem(item, type) {
-                const el = document.createElement('div');
-                const hasChildren = type !== 'lesson';
-                const isExpanded = expandedItems.has(item.id);
-                
-                let displayName = item.name;
-                if (type === 'lesson') {
-                    displayName = (item.name || '').replace(/^(Bài|Chương|Phần)\s*\d+\s*[:.]?\s*/i, '').trim();
-                }
 
-                el.innerHTML = `<div class="tree-item" data-id="${item.id}" data-type="${type}">
-                    ${hasChildren ? `<i data-feather="chevron-right" class="chevron ${isExpanded ? 'expanded' : ''} w-4 h-4 text-slate-500"></i>` : '<span class="w-4 h-4 mr-1"></span>'}
-                    <i data-feather="${getTypeIcon(type)}" class="w-4 h-4 mr-2 text-slate-600"></i>
-                    <span class="flex-grow">${displayName}</span></div>`;
+            function createTreeItem(item, type, childCount = 0) {
+                const container = document.createElement('div');
+                const isSelected = selected.subjectId === item.id || selected.lessonId === item.id || selected.gradeId === item.id;
+                const isExpandable = type !== 'lesson';
+                const isExpanded = expanded.has(item.id);
+
+                container.className = `tree-item-container ${isSelected ? 'selected' : ''}`;
+                container.dataset.id = item.id;
+                container.dataset.type = type;
+
+                container.innerHTML = `
+                    <div class="tree-item">
+                        <i data-feather="chevron-right" class="chevron ${isExpandable ? '' : 'invisible'} ${isExpanded ? 'expanded' : ''} w-4 h-4 text-slate-400"></i>
+                        <i data-feather="${getTypeIcon(type)}" class="tree-item-icon w-5 h-5 text-slate-500"></i>
+                        <span class="tree-item-name flex-grow truncate text-sm ml-2">${cleanPrefix(item.name)}</span>
+                        ${childCount > 0 ? `<span class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">${childCount}</span>` : ''}
+                        <div class="item-actions ml-2 space-x-1 bg-transparent">
+                             ${type !== 'grade' ? `<button data-action="edit" title="Sửa" class="p-1.5 hover:bg-slate-200 rounded-md"><i data-feather="edit-2" class="w-4 h-4 text-slate-500"></i></button><button data-action="delete" title="Xóa" class="p-1.5 hover:bg-slate-200 rounded-md"><i data-feather="trash-2" class="w-4 h-4 text-red-500"></i></button>` : ''}
+                        </div>
+                    </div>`;
+                return container;
+            }
+            
+            function renderContentPanel() {
+                const { subjectId, gradeId, lessonId } = selected;
                 
-                if (selectedItem.type === type && selectedItem.id === item.id) {
-                    el.firstElementChild.classList.add('selected');
+                if (lessonId) {
+                    renderQuestionDetails(lessonId);
+                } else if (gradeId) {
+                    renderLessonDetails(gradeId);
+                } else if (subjectId) {
+                    renderSubjectDetails(subjectId);
+                } else {
+                    contentPanel.innerHTML = `<div class="text-center text-slate-500 h-full flex flex-col justify-center items-center"><i data-feather="sidebar" class="w-16 h-16 text-slate-400"></i><p class="mt-4">Chọn một mục để xem chi tiết.</p></div>`;
+                    feather.replace();
                 }
-                return el;
             }
 
-            function renderContentPanel() {
-                if (!selectedItem.id || !selectedItem.type) {
-                    contentPanel.innerHTML = `<div class="text-center text-slate-500 h-full flex flex-col justify-center items-center">
-                        <i data-feather="sidebar" class="w-16 h-16 mx-auto text-slate-400"></i>
-                        <p class="mt-4 max-w-xs mx-auto">Chọn một mục từ cây cấu trúc bên trái để xem chi tiết và quản lý.</p>
-                    </div>`;
-                    feather.replace();
+             function renderSubjectDetails(subjectId) {
+                const subject = allData.subjects.find(s => s.id === subjectId);
+                contentPanel.innerHTML = `<div class="p-8">
+                    <h2 class="text-2xl font-bold text-slate-800">${subject.name}</h2>
+                    <p class="mt-2 text-slate-500">Tổng quan về môn học. Vui lòng chọn một khối lớp bên trái để xem và quản lý các bài học.</p>
+                </div>`;
+            }
+
+            function renderLessonDetails(gradeId) {
+                const [subjectId, grade] = gradeId.split('_');
+                const subject = allData.subjects.find(s => s.id === subjectId);
+                let contentHTML = `<div class="p-6 border-b">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800">Lớp ${grade} - ${subject.name}</h2>
+                            <p class="text-slate-500">Kéo thả để sắp xếp lại thứ tự bài học.</p>
+                        </div>
+                        <button data-action="add-lesson" data-grade="${grade}" data-subject-id="${subjectId}" class="cta-button text-white px-3 py-2 rounded-lg text-sm flex items-center"><i data-feather="plus" class="w-4 h-4 mr-2"></i>Thêm bài học</button>
+                    </div>
+                </div>
+                <div id="lesson-list-container" class="p-4 space-y-1"></div>`;
+                contentPanel.innerHTML = contentHTML;
+                
+                const listEl = document.getElementById('lesson-list-container');
+                const lessons = allData.lessons.filter(l => l.subjectId === subjectId && l.grade == grade).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+                
+                if(lessons.length > 0) {
+                    lessons.forEach(lesson => {
+                        const qCount = allData.questions.filter(q => q.lessonId === lesson.id).length;
+                        const lessonItem = createTreeItem(lesson, 'lesson', qCount);
+                        const treeItemDiv = lessonItem.querySelector('.tree-item');
+                        treeItemDiv.insertAdjacentHTML('afterbegin', `<i data-feather="move" class="w-4 h-4 text-slate-400 cursor-grab"></i>`);
+                        listEl.appendChild(lessonItem);
+                    });
+                } else {
+                    listEl.innerHTML = `<p class="text-sm text-slate-400 text-center py-4">Chưa có bài học nào.</p>`;
+                }
+
+                feather.replace();
+
+                sortableInstances[grade] = new Sortable(listEl, {
+                    animation: 150,
+                    ghostClass: 'ghost-class',
+                    handle: '[data-feather="move"]',
+                    onEnd: async (evt) => {
+                        const batch = writeBatch(db);
+                        Array.from(evt.to.children).forEach((item, index) => {
+                            batch.update(doc(db, "lessons", item.dataset.id), { order: index });
+                        });
+                        await batch.commit();
+                        showToast('Đã cập nhật thứ tự!', 'success');
+                    }
+                });
+            }
+            
+            function renderQuestionDetails(lessonId) {
+                const lesson = allData.lessons.find(l => l.id === lessonId);
+                const questions = allData.questions.filter(q => q.lessonId === lessonId);
+                let contentHTML = `<div class="p-6 border-b">
+                    <h2 class="text-2xl font-bold text-slate-800">${cleanPrefix(lesson.name)}</h2>
+                    <p class="text-slate-500">Lớp ${lesson.grade}</p>
+                </div>
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-lg text-slate-700">Xem trước câu hỏi (${questions.length})</h3>
+                        <a href="questions.html?lessonId=${lessonId}" class="cta-button text-white px-3 py-2 rounded-lg text-sm flex items-center"><i data-feather="edit" class="w-4 h-4 mr-2"></i>Quản lý chi tiết</a>
+                    </div>
+                    <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 border-t pt-4">`;
+
+                if (questions.length > 0) {
+                    questions.forEach((q, i) => {
+                        contentHTML += `<div class="p-3 bg-slate-50 rounded-md prose prose-sm"><b>Câu ${i+1}:</b> ${q.content}</div>`;
+                    });
+                } else {
+                    contentHTML += `<p class="text-sm text-slate-400 text-center py-4">Chưa có câu hỏi nào.</p>`;
+                }
+                contentHTML += `</div></div>`;
+                contentPanel.innerHTML = contentHTML;
+                feather.replace();
+            }
+
+            function handleTreeClick(e) {
+                const treeItemContainer = e.target.closest('.tree-item-container');
+                if (!treeItemContainer) return;
+
+                const id = treeItemContainer.dataset.id;
+                const type = treeItemContainer.dataset.type;
+                const actionBtn = e.target.closest('[data-action]');
+                
+                if (actionBtn) {
+                    e.stopPropagation();
+                    handleItemAction(actionBtn.dataset.action, type, id);
                     return;
                 }
-
-                const { type, id } = selectedItem;
-                let itemData, title, description, actionButtonHTML;
-
-                if (type === 'grade') {
-                    const [subjectId, grade] = id.split('_');
-                    const subjectData = allData.subjects.find(s => s.id === subjectId);
-                    if (!subjectData) return;
-                    
-                    title = `Lớp ${grade} - ${subjectData.name}`;
-                    description = `Quản lý các bài học thuộc Lớp ${grade} cho môn ${subjectData.name}.`;
-                    actionButtonHTML = `<button data-action="add-lesson" class="cta-button text-white px-4 py-2 rounded-lg flex items-center font-semibold"><i data-feather="plus" class="mr-2 w-4 h-4"></i>Thêm Bài học</button>`;
-                } else {
-                    itemData = allData[type + 's'].find(i => i.id === id);
-                    if (!itemData) return;
-
-                    let displayName = itemData.name;
-                    if (type === 'lesson') {
-                        displayName = (itemData.name || '').replace(/^(Bài|Chương|Phần)\s*\d+\s*[:.]?\s*/i, '').trim();
-                    }
-                    title = displayName;
-
-                    switch (type) {
-                        case 'subject':
-                            description = `Quản lý các khối lớp và thông tin cho môn ${itemData.name}.`;
-                            actionButtonHTML = `<p class="text-slate-500">Chọn một khối lớp bên trái để thêm bài học.</p>`;
-                            break;
-                        case 'lesson':
-                            description = `Quản lý câu hỏi cho bài ${displayName}.`;
-                            actionButtonHTML = `<a href="questions.html?lessonId=${id}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center font-semibold nav-link"><i data-feather="help-circle" class="mr-2 w-4 h-4"></i>Quản lý Câu hỏi</a>`;
-                            break;
-                    }
-                }
-
-                contentPanel.innerHTML = `
-                    <div class="space-y-6 fade-in">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h2 class="text-2xl font-bold text-slate-800">${title}</h2>
-                                <p class="mt-1 text-slate-500">${description}</p>
-                            </div>
-                            ${ type !== 'grade' ? `
-                            <div class="flex space-x-2">
-                                <button data-action="edit" class="p-2 text-slate-500 hover:text-blue-600 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><i data-feather="edit-2" class="w-5 h-5"></i></button>
-                                <button data-action="delete" class="p-2 text-slate-500 hover:text-red-600 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><i data-feather="trash-2" class="w-5 h-5"></i></button>
-                            </div>` : ''}
-                        </div>
-                         <div class="bg-slate-50 p-6 rounded-lg text-center">
-                            ${actionButtonHTML}
-                        </div>
-                    </div>`;
-                feather.replace();
-            }
                 
-            function handleTreeClick(e) {
-                const treeItem = e.target.closest('.tree-item');
-                if (!treeItem) return;
-                const id = treeItem.dataset.id;
-                const type = treeItem.dataset.type;
-                if (e.target.closest('.chevron')) {
-                    expandedItems.has(id) ? expandedItems.delete(id) : expandedItems.add(id);
+                if (type !== 'lesson') {
+                    expanded.has(id) ? expanded.delete(id) : expanded.add(id);
                 }
-                selectedItem = { type, id };
+                
+                if (type === 'subject') selected = { subjectId: id, gradeId: null, lessonId: null };
+                else if (type === 'grade') selected = { ...selected, gradeId: id, lessonId: null };
+                else if (type === 'lesson') selected = { ...selected, lessonId: id };
+                
                 renderTree();
                 renderContentPanel();
             }
-
+             
             function handleContentPanelClick(e) {
-                const button = e.target.closest('[data-action]');
-                if (!button) return;
-                const action = button.dataset.action;
-                const { type, id } = selectedItem;
-                if (!id) return;
-                
-                let subjectId, grade, itemData;
-                switch(action) {
-                    case 'add-lesson': 
-                        [subjectId, grade] = id.split('_');
-                        showModal('add', 'lesson', { subjectId, grade: parseInt(grade, 10) }); 
-                        break;
-                    case 'edit': 
-                        itemData = allData[type + 's'].find(i => i.id === id);
-                        showModal('edit', type, itemData); 
-                        break;
-                    case 'delete': 
-                        showDeleteConfirmModal(type, id); 
-                        break;
+                const addLessonBtn = e.target.closest('[data-action="add-lesson"]');
+                if (addLessonBtn) {
+                     showModal('add', 'lesson', {
+                        grade: parseInt(addLessonBtn.dataset.grade),
+                        subjectId: addLessonBtn.dataset.subjectId
+                    });
+                }
+                const itemAction = e.target.closest('[data-action]');
+                const listItem = e.target.closest('.tree-item-container');
+                if(itemAction && listItem) {
+                    handleItemAction(itemAction.dataset.action, listItem.dataset.type, listItem.dataset.id);
+                    e.stopPropagation();
+                } else if(listItem) {
+                     selected.lessonId = listItem.dataset.id;
+                     renderContentPanel();
+                     renderLessons(selected.subjectId);
                 }
             }
-        
-            function showModal(mode, type, data = {}) {
-                currentModalContext = { mode, type, data };
-                modalForm.reset();
-                const typeMap = { subject: 'Môn học', lesson: 'Bài học' };
-                modalTitle.textContent = `${mode === 'add' ? 'Thêm' : 'Sửa'} ${typeMap[type]}`;
-                itemNameInput.value = data.name || '';
-                
-                if(type === 'lesson' && mode === 'add') {
-                    gradeSelectWrapper.classList.remove('hidden');
-                    itemGradeSelect.value = data.grade;
-                    itemGradeSelect.disabled = true;
-                } else {
-                    gradeSelectWrapper.classList.add('hidden');
+
+            function handleItemAction(action, type, id) {
+                const item = allData[type + 's'].find(i => i.id === id) || { id: id };
+                if (action === 'edit') {
+                    showModal('edit', type, item);
+                } else if (action === 'delete') {
+                    if (confirm(`Bạn có chắc chắn muốn xóa "${item.name}"? Hành động này không thể hoàn tác.`)) {
+                        deleteItem(type, id);
+                    }
                 }
-
-                addEditModal.classList.remove('hidden');
-                addEditModal.classList.add('flex');
             }
-
-            function hideModal() {
-                addEditModal.classList.add('hidden');
-                addEditModal.classList.remove('flex');
+            
+            function showModal(mode, type, data={}) {
+                 document.getElementById('edit-id').value = data.id || '';
+                 document.getElementById('edit-type').value = type;
+                 document.getElementById('modal-title').textContent = mode === 'add' ? `Thêm ${type === 'subject' ? 'Môn học' : 'Bài học'}` : `Sửa ${type === 'subject' ? 'Môn học' : 'Bài học'}`;
+                 document.getElementById('item-name').value = data.name || '';
+                 document.getElementById('edit-context-id').value = data.subjectId || '';
+                 
+                 editModal.classList.remove('hidden');
+                 editModal.classList.add('flex');
             }
 
             async function handleFormSubmit(e) {
                 e.preventDefault();
-                const { mode, type, data } = currentModalContext;
-                const name = itemNameInput.value.trim();
+                const id = document.getElementById('edit-id').value;
+                const type = document.getElementById('edit-type').value;
+                const name = document.getElementById('item-name').value.trim();
+                
                 if (!name) return;
-                modalSubmitBtn.disabled = true;
-                try {
-                    if (mode === 'add') {
-                        let newData = { name, createdAt: serverTimestamp() };
-                        if (type === 'lesson') {
-                            newData.subjectId = data.subjectId;
-                            newData.grade = data.grade;
-                            const existingLessons = allData.lessons.filter(l => l.subjectId === data.subjectId && l.grade === data.grade);
-                            newData.order = existingLessons.length;
-                        }
-                        await addDoc(collection(db, `${type}s`), newData);
-                        showToast(`Đã thêm ${name} thành công!`, 'success');
+
+                const payload = { name };
+                
+                if (type === 'lesson') {
+                    if(id) {
+                        const existingLesson = allData.lessons.find(l => l.id === id);
+                        payload.subjectId = existingLesson.subjectId;
+                        payload.grade = existingLesson.grade;
                     } else {
-                        await updateDoc(doc(db, `${type}s`, data.id), { name });
-                        showToast(`Đã cập nhật ${name} thành công!`, 'success');
+                         const [subjId, grade] = selected.gradeId.split('_');
+                         payload.subjectId = subjId;
+                         payload.grade = parseInt(grade);
                     }
-                    hideModal();
-                } catch (error) {
-                    console.error("Error saving data: ", error);
-                    showToast(`Có lỗi xảy ra: ${error.message}`, 'error');
-                } finally {
-                    modalSubmitBtn.disabled = false;
                 }
+                
+                try {
+                    if (id) {
+                        await updateDoc(doc(db, `${type}s`, id), payload);
+                    } else {
+                         if (type === 'lesson') {
+                            const q = query(collection(db, 'lessons'), where('subjectId', '==', payload.subjectId), where('grade', '==', payload.grade));
+                            const snapshot = await getDocs(q);
+                            payload.order = snapshot.size;
+                        }
+                        await addDoc(collection(db, `${type}s`), payload);
+                    }
+                    editModal.classList.add('hidden');
+                    showToast('Lưu thành công!', 'success');
+                } catch(error) { showToast('Lỗi: ' + error.message, 'error'); }
             }
 
-            function showDeleteConfirmModal(type, id) {
-                const item = allData[type + 's'].find(i => i.id === id);
-                if (!item) return;
-                itemToDelete = { type, id, name: item.name };
-                deleteConfirmText.textContent = `Bạn có chắc chắn muốn xóa "${item.name}" và TẤT CẢ các mục con của nó không? Hành động này không thể hoàn tác.`;
-                deleteConfirmModal.classList.remove('hidden');
-                deleteConfirmModal.classList.add('flex');
-            }
-
-            function hideDeleteConfirmModal() {
-                deleteConfirmModal.classList.add('hidden');
-                deleteConfirmModal.classList.remove('flex');
+             async function deleteItem(type, id) {
+                const batch = writeBatch(db);
+                batch.delete(doc(db, `${type}s`, id));
+                if (type === 'subject') {
+                    const lessonsToDelete = allData.lessons.filter(l => l.subjectId === id);
+                    for (const lesson of lessonsToDelete) {
+                        batch.delete(doc(db, 'lessons', lesson.id));
+                        const questionsToDelete = allData.questions.filter(q => q.lessonId === lesson.id);
+                        questionsToDelete.forEach(q => batch.delete(doc(db, 'questions', q.id)));
+                    }
+                } else if (type === 'lesson') {
+                     const questionsToDelete = allData.questions.filter(q => q.lessonId === id);
+                     questionsToDelete.forEach(q => batch.delete(doc(db, 'questions', q.id)));
+                }
+                await batch.commit();
+                if(selected.subjectId === id) selected.subjectId = null;
+                if(selected.lessonId === id) selected.lessonId = null;
+                renderContentPanel();
             }
             
-            async function confirmDelete() {
-                const { type, id, name } = itemToDelete;
-                if (!type || !id) return;
-                
-                deleteConfirmBtn.disabled = true;
-                try {
-                    const batch = writeBatch(db);
-                    batch.delete(doc(db, `${type}s`, id));
-
-                    if (type === 'subject') {
-                        const lessons = allData.lessons.filter(l => l.subjectId === id);
-                        for (const l of lessons) {
-                            const questionsQuery = query(collection(db, 'questions'), where('lessonId', '==', l.id));
-                            const questionsSnapshot = await getDocs(questionsQuery);
-                            questionsSnapshot.forEach(qDoc => batch.delete(qDoc.ref));
-                            batch.delete(doc(db, 'lessons', l.id));
-                        }
-                    } else if (type === 'lesson') {
-                         const questionsQuery = query(collection(db, 'questions'), where('lessonId', '==', id));
-                         const questionsSnapshot = await getDocs(questionsQuery);
-                         questionsSnapshot.forEach(qDoc => batch.delete(qDoc.ref));
-                    }
-                    
-                    await batch.commit();
-                    showToast(`Đã xóa "${name}" và các mục con.`, 'success');
-                    selectedItem = { type: null, id: null };
-                    renderContentPanel();
-                } catch (error) {
-                    console.error("Error deleting item:", error);
-                    showToast(`Lỗi khi xóa: ${error.message}`, 'error');
-                } finally {
-                    hideDeleteConfirmModal();
-                    itemToDelete = {};
-                    deleteConfirmBtn.disabled = false;
-                }
-            }
-
-            function handleImportClick() { showImportModal(); }
-
-            function showImportModal() {
-                fileInput.value = '';
-                selectedFileForImport = null;
-                fileNameEl.textContent = 'Nhấn để chọn file hoặc kéo thả vào đây';
-                startImportBtn.disabled = true;
-                importProgressEl.classList.add('hidden');
-                importModal.classList.remove('hidden');
-                importModal.classList.add('flex');
-            }
-
-            function hideImportModal() {
-                importModal.classList.add('hidden');
-                importModal.classList.remove('flex');
-            }
-
-            function handleFileSelect(e) {
-                selectedFileForImport = e.target.files[0];
-                if (selectedFileForImport) {
-                    fileNameEl.textContent = selectedFileForImport.name;
-                    startImportBtn.disabled = false;
-                }
-            }
-
-            function downloadTemplate(e) {
-                e.preventDefault();
-                const headers = ["Môn học", "Lớp", "Bài học"];
-                const sampleData = [
-                    { "Môn học": "Toán", "Lớp": 10, "Bài học": "Bài 1: Mệnh đề" },
-                    { "Môn học": "Toán", "Lớp": 10, "Bài học": "Bài 2: Tập hợp" },
-                    { "Môn học": "Vật lí", "Lớp": 11, "Bài học": "Bài 1: Dao động điều hoà" },
-                ];
-                const worksheet = XLSX.utils.json_to_sheet(sampleData);
-                XLSX.utils.sheet_add_aoa(worksheet, [headers], { origin: "A1" });
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-                worksheet["!cols"] = [ {wch:20}, {wch:10}, {wch:40} ];
-                XLSX.writeFile(workbook, "Mau_Nhap_Hoc_Lieu.xlsx");
-            }
-
-            async function handleStructureImport() {
-                if (!selectedFileForImport) return;
-                startImportBtn.disabled = true;
-                importProgressEl.textContent = "Đang đọc file...";
-                importProgressEl.classList.remove('hidden');
-
-                try {
-                    const data = await selectedFileForImport.arrayBuffer();
-                    const workbook = XLSX.read(data);
-                    const sheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-                    importProgressEl.textContent = `Phát hiện ${jsonData.length} dòng. Bắt đầu xử lý...`;
-                    
-                    const batch = writeBatch(db);
-                    const localCache = { subjects: {} };
-                    const lessonOrderMap = {};
-
-                    for (const [index, row] of jsonData.entries()) {
-                        const subjectName = row['Môn học']?.trim();
-                        const grade = parseInt(row['Lớp'], 10);
-                        const lessonName = row['Bài học']?.trim();
-
-                        if (!subjectName || !grade || !lessonName) continue;
-
-                        let subjectId = localCache.subjects[subjectName];
-                        if (!subjectId) {
-                            const existingSubject = allData.subjects.find(s => s.name === subjectName);
-                            if (existingSubject) {
-                                subjectId = existingSubject.id;
-                            } else {
-                                const newSubjectRef = doc(collection(db, "subjects"));
-                                batch.set(newSubjectRef, { name: subjectName, createdAt: serverTimestamp() });
-                                subjectId = newSubjectRef.id;
-                            }
-                            localCache.subjects[subjectName] = subjectId;
-                        }
-                        
-                        const orderKey = `${subjectId}_${grade}`;
-                        if(!lessonOrderMap[orderKey]) {
-                             const existingLessonsCount = allData.lessons.filter(l => l.subjectId === subjectId && l.grade === grade).length;
-                             lessonOrderMap[orderKey] = existingLessonsCount;
-                        }
-                        
-                        const newLessonRef = doc(collection(db, "lessons"));
-                        batch.set(newLessonRef, { 
-                            name: lessonName, 
-                            subjectId: subjectId,
-                            grade: grade,
-                            order: lessonOrderMap[orderKey]++,
-                            createdAt: serverTimestamp() 
-                        });
-                        
-                        importProgressEl.textContent = `Đang xử lý dòng ${index + 1}/${jsonData.length}...`;
-                    }
-
-                    await batch.commit();
-                    showToast(`Nhập thành công ${jsonData.length} bài học!`, 'success');
-                    hideImportModal();
-
-                } catch (error) {
-                    console.error("Import Error: ", error);
-                    showToast(`Lỗi khi nhập file: ${error.message}`, 'error');
-                } finally {
-                    startImportBtn.disabled = false;
-                }
-            }
-
-            function expandAll() {
-                allData.subjects.forEach(subject => {
-                    expandedItems.add(subject.id);
-                    const subjectLessons = allData.lessons.filter(l => l.subjectId === subject.id);
-                    const grades = [...new Set(subjectLessons.map(l => l.grade))];
-                    grades.forEach(grade => {
-                        const gradeId = `${subject.id}_${grade}`;
-                        expandedItems.add(gradeId);
-                    });
-                });
-                renderTree();
-            }
-
-            function collapseAll() {
-                expandedItems.clear();
-                renderTree();
-            }
+            feather.replace();
         });
     </script>
 </body>
