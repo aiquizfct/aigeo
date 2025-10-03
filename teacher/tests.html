@@ -92,15 +92,14 @@
                             <thead class="bg-slate-50 border-b">
                                 <tr>
                                     <th class="p-4 text-sm font-semibold text-slate-600 text-left">Tên đề thi</th>
-                                    <th class="p-4 text-sm font-semibold text-slate-600 text-left">Nguồn</th>
                                     <th class="p-4 text-sm font-semibold text-slate-600 text-center">Số câu</th>
                                     <th class="p-4 text-sm font-semibold text-slate-600 text-center">Trạng thái</th>
                                     <th class="p-4 text-sm font-semibold text-slate-600 text-right">Hành động</th>
                                 </tr>
                             </thead>
                             <tbody id="tests-table-body">
-                                <tr><td colspan="5" class="p-4"><div class="skeleton h-8 w-full"></div></td></tr>
-                                <tr><td colspan="5" class="p-4"><div class="skeleton h-8 w-full"></div></td></tr>
+                                <tr><td colspan="4" class="p-4"><div class="skeleton h-8 w-full"></div></td></tr>
+                                <tr><td colspan="4" class="p-4"><div class="skeleton h-8 w-full"></div></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -152,7 +151,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, or, deleteDoc, getDocs, orderBy, updateDoc, arrayUnion, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, onSnapshot, query, where, deleteDoc, getDocs, orderBy, updateDoc, arrayUnion, arrayRemove, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
@@ -228,11 +227,9 @@
             }
 
             function listenForTests() {
+                // UPDATE: Only fetch tests created by the current teacher
                 const q = query(collection(db, "tests"), 
-                    or(
-                        where("status", "==", "published"), 
-                        where("authorId", "==", currentUser.uid)
-                    ),
+                    where("authorId", "==", currentUser.uid),
                     orderBy("createdAt", "desc")
                 );
                 
@@ -244,30 +241,24 @@
 
             function renderTable(tests) {
                 if (testsTableBody.innerHTML !== '' && tests.length === 0) {
-                    testsTableBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">Chưa có đề thi nào.</td></tr>`;
+                    testsTableBody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500">Bạn chưa tạo đề thi nào.</td></tr>`;
                     return;
                 }
                 
                 testsTableBody.innerHTML = '';
                 tests.forEach(test => {
-                    const isOwnTest = test.authorId === currentUser.uid;
-                    const sourceText = isOwnTest ? 'Cá nhân' : 'Hệ thống';
-                    const sourceBg = isOwnTest ? 'bg-sky-100 text-sky-800' : 'bg-indigo-100 text-indigo-800';
                     const statusBg = test.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
                     const statusText = test.status === 'published' ? 'Đã xuất bản' : 'Bản nháp';
-                    const canDelete = isOwnTest && test.status === 'draft';
                     
                     const assignedClasses = teacherClassrooms.filter(c => c.assignments?.some(a => a.testId === test.id));
                     const isAssigned = assignedClasses.length > 0;
                     
-                    // Nút giám sát chỉ hiện khi đã giao, đã xuất bản và isMonitored là true
                     const showMonitorButton = isAssigned && test.status === 'published' && test.isMonitored === true;
 
                     const tr = document.createElement('tr');
                     tr.className = 'border-b hover:bg-slate-50';
                     tr.innerHTML = `
                         <td class="p-4 font-medium text-slate-800">${test.name}</td>
-                        <td class="p-4"><span class="px-2 py-1 text-xs font-semibold rounded-full ${sourceBg}">${sourceText}</span></td>
                         <td class="p-4 text-slate-600 text-center">${test.questionIds?.length || test.questions?.length || 0}</td>
                         <td class="p-4 text-center"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusBg}">${statusText}</span></td>
                         <td class="p-4 text-right">
@@ -276,7 +267,7 @@
                                 <button data-action="assign" data-id="${test.id}" class="cta-button text-white text-sm font-semibold px-4 py-2 rounded-lg">Giao bài</button>
                                 ${isAssigned ? `<button data-action="unassign" data-id="${test.id}" class="bg-red-500 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-red-600">Hủy giao</button>`: ''}
                                 <a href="test-view-teacher.html?testId=${test.id}" class="p-2 text-slate-500 hover:bg-slate-100 rounded-md" title="Xem đề"><i data-feather="eye" class="w-4 h-4"></i></a>
-                                ${canDelete ? `<button data-action="delete" data-id="${test.id}" data-name="${test.name}" class="p-2 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-md" title="Xóa đề nháp"><i data-feather="trash-2" class="w-4 h-4"></i></button>` : ''}
+                                <button data-action="delete" data-id="${test.id}" data-name="${test.name}" class="p-2 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-md" title="Xóa đề thi"><i data-feather="trash-2" class="w-4 h-4"></i></button>
                            </div>
                         </td>
                     `;
@@ -287,7 +278,7 @@
 
             function showDeleteConfirmModal(id, name) {
                 itemToDelete = { id, name };
-                deleteConfirmText.textContent = `Bạn có chắc chắn muốn xóa đề thi "${name}" không?`;
+                deleteConfirmText.textContent = `Bạn có chắc chắn muốn xóa đề thi "${name}" không? Mọi giao bài liên quan cũng sẽ bị hủy.`;
                 deleteConfirmModal.classList.remove('hidden');
                 deleteConfirmModal.classList.add('flex');
             }
@@ -303,8 +294,31 @@
                 deleteConfirmBtn.textContent = "Đang xóa...";
 
                 try {
-                    await deleteDoc(doc(db, "tests", itemToDelete.id));
-                    showToast(`Đã xóa thành công đề thi "${itemToDelete.name}".`);
+                    const batch = writeBatch(db);
+
+                    // 1. Delete the test document itself
+                    const testRef = doc(db, "tests", itemToDelete.id);
+                    batch.delete(testRef);
+
+                    // 2. Find all classrooms where this test was assigned and remove the assignment
+                    const assignedClasses = teacherClassrooms.filter(c => 
+                        c.assignments?.some(a => a.testId === itemToDelete.id)
+                    );
+
+                    for (const classroom of assignedClasses) {
+                        const classRef = doc(db, "classrooms", classroom.id);
+                        const assignmentToRemove = classroom.assignments.find(a => a.testId === itemToDelete.id);
+                        if (assignmentToRemove) {
+                            batch.update(classRef, {
+                                assignments: arrayRemove(assignmentToRemove)
+                            });
+                        }
+                    }
+
+                    // 3. Commit all batched writes
+                    await batch.commit();
+                    
+                    showToast(`Đã xóa thành công đề thi "${itemToDelete.name}" và hủy các bài giao liên quan.`);
                 } catch (error) {
                     console.error("Error deleting test:", error);
                     showToast("Lỗi khi xóa đề thi.", "error");

@@ -1,65 +1,69 @@
-# -*- coding: utf-8 -*-
-
-"""
-Tệp kịch bản Python này minh họa cách tích hợp và sử dụng mô hình Gemini
-thông qua API của Google AI.
-
-Hướng dẫn:
-1. Cài đặt hoặc cập nhật thư viện cần thiết:
-   Mở terminal hoặc command prompt của bạn và chạy lệnh sau:
-   pip install --upgrade google-generativeai
-
-2. Lấy khóa API của bạn:
-   - Truy cập Google AI Studio tại https://aistudio.google.com/
-   - Nhấp vào "Get API key" và tạo một khóa API mới.
-
-3. Chạy kịch bản:
-   - Thay thế 'YOUR_API_KEY' trong kịch bản này bằng khóa API bạn vừa tạo.
-   - Chạy tệp từ terminal: python gemini_flash_api.py
-"""
-
-import google.generativeai as genai
 import os
 
-def call_gemini():
+def add_favicon_to_html_files(root_dir, favicon_url):
     """
-    Hàm này định cấu hình khóa API, khởi tạo mô hình Gemini,
-    gửi một lời nhắc và in ra phản hồi.
+    Duyệt qua một thư mục, tìm tất cả các tệp HTML và thêm một link favicon
+    vào ngay sau thẻ <head>.
+
+    Args:
+        root_dir (str): Thư mục gốc để bắt đầu tìm kiếm.
+        favicon_url (str): URL đầy đủ của tệp favicon.
     """
-    try:
-        # Định cấu hình khóa API của bạn.
-        # Để bảo mật, tốt hơn là sử dụng biến môi trường.
-        # Ví dụ: os.environ.get('GEMINI_API_KEY')
-        api_key = 'AIzaSyC6tvEUmB3v8iMY4FHbWUibxq-eBSu5WZk' # <-- THAY THẾ BẰNG KHÓA API CỦA BẠN
-        
-        if api_key == 'YOUR_API_KEY' or not api_key:
-            print("Lỗi: Vui lòng thay thế 'YOUR_API_KEY' bằng khóa API thực tế của bạn.")
-            return
+    # Dòng mã HTML sẽ được thêm vào
+    favicon_tag = f'    <link rel="icon" type="image/png" href="{favicon_url}">\n'
+    
+    # Biến đếm số tệp đã được chỉnh sửa
+    files_modified_count = 0
+    
+    print(f"Bắt đầu quá trình thêm favicon vào các tệp trong thư mục '{root_dir}'...")
 
-        genai.configure(api_key=api_key)
+    # os.walk sẽ duyệt qua tất cả các thư mục và tệp con
+    for subdir, _, files in os.walk(root_dir):
+        for file in files:
+            # Chỉ xử lý các tệp có đuôi .html
+            if file.endswith('.html'):
+                filepath = os.path.join(subdir, file)
+                try:
+                    # Mở tệp để đọc và ghi ('r+')
+                    with open(filepath, 'r+', encoding='utf-8') as f:
+                        content = f.read()
+                        
+                        # Tìm vị trí của thẻ <head>
+                        head_pos = content.find('<head>')
+                        
+                        if head_pos != -1:
+                            # Tìm vị trí để chèn (ngay sau thẻ <head>)
+                            insertion_point = content.find('>', head_pos) + 1
+                            
+                            # Kiểm tra xem link favicon đã tồn tại chưa để tránh thêm trùng lặp
+                            if favicon_url not in content:
+                                # Tạo nội dung mới bằng cách chèn thẻ favicon
+                                new_content = content[:insertion_point] + '\n' + favicon_tag + content[insertion_point:]
+                                
+                                # Quay lại đầu tệp, ghi nội dung mới và cắt bỏ phần thừa
+                                f.seek(0)
+                                f.write(new_content)
+                                f.truncate()
+                                
+                                print(f"-> Đã thêm favicon vào: {filepath}")
+                                files_modified_count += 1
+                            else:
+                                print(f"-> Bỏ qua (favicon đã có): {filepath}")
+                        else:
+                            print(f"** Cảnh báo: Không tìm thấy thẻ <head> trong tệp {filepath}")
 
-        # Khởi tạo mô hình. Chuyển sang 'gemini-pro' để kiểm tra.
-        # Lỗi 404 thường xảy ra nếu thư viện của bạn quá cũ để hỗ trợ các mô hình mới hơn.
-        # Hãy chắc chắn rằng bạn đã chạy 'pip install --upgrade google-generativeai'.
-        model = genai.GenerativeModel('gemini-pro')
+                except Exception as e:
+                    print(f"!! Lỗi khi xử lý tệp {filepath}: {e}")
 
-        # Lời nhắc (prompt) bạn muốn gửi đến mô hình.
-        prompt = "Viết một bài thơ ngắn về Việt Nam."
+    print(f"\nHoàn tất! Đã thêm favicon vào tổng cộng {files_modified_count} tệp HTML.")
 
-        print(f"Đang gửi lời nhắc tới Gemini: '{prompt}'")
-        
-        # Gửi lời nhắc và nhận phản hồi
-        response = model.generate_content(prompt)
-
-        # In phản hồi văn bản từ mô hình
-        print("\n--- Phản hồi từ Gemini ---")
-        print(response.text)
-        print("------------------------\n")
-
-    except Exception as e:
-        print(f"Đã xảy ra lỗi: {e}")
-        print("Vui lòng kiểm tra lại khóa API và đảm bảo bạn đã cài đặt phiên bản mới nhất của thư viện 'google-generativeai'.")
-
+# --- CẤU HÌNH VÀ THỰC THI ---
 if __name__ == "__main__":
-    call_gemini()
-
+    # 1. Thay đổi 'aigeo' thành tên thư mục dự án của bạn nếu cần
+    project_directory = 'aigeo'
+    
+    # 2. Dán link favicon của bạn vào đây
+    favicon_link = "https://i.ibb.co/JW99dcWX/IMG-7810.png"
+    
+    # 3. Gọi hàm để thực thi
+    add_favicon_to_html_files(project_directory, favicon_link)

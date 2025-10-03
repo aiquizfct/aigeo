@@ -70,7 +70,6 @@
         .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
         .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; transform: translateY(-20px); }
 
-        /* === CSS ĐÃ THÊM === */
         .cta-button {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
             transition: all 0.3s ease;
@@ -80,7 +79,6 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
         }
-        /* === KẾT THÚC CSS ĐÃ THÊM === */
     </style>
 </head>
 <body class="flex flex-col h-screen">
@@ -179,11 +177,13 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, getDocs, collection, query, where, setDoc, serverTimestamp, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
             const db = getFirestore(app);
+            const storage = getStorage(app);
 
             const mainContentArea = document.getElementById('main-content-area');
             const progressBar = document.getElementById('progress-bar');
@@ -222,10 +222,10 @@
             let isLocked = false;
             let currentTestId = null;
             let currentClassId = null;
+            let currentTeacherId = null; // *** BIẾN ĐỂ LƯU ID GIÁO VIÊN ***
             let warningCount = 0;
             let currentSessionId = null;
 
-            // ✅ HÀM MỚI: Cập nhật icon một cách an toàn
             function updateIcons() {
                 try {
                     feather.replace();
@@ -272,6 +272,16 @@
                         window.location.href = 'result.html';
                         return;
                     }
+                    
+                    // *** FIX: LẤY THÔNG TIN LỚP HỌC VÀ TEACHER ID ***
+                    const classDocRef = doc(db, "classrooms", currentClassId);
+                    const classDocSnap = await getDoc(classDocRef);
+                    if (classDocSnap.exists()) {
+                        currentTeacherId = classDocSnap.data().teacherId; // Lưu lại ID giáo viên
+                    } else {
+                        throw new Error("Không tìm thấy thông tin lớp học.");
+                    }
+                    // *** KẾT THÚC PHẦN SỬA ***
 
                     const testDocRef = doc(db, "tests", currentTestId);
                     const testDocSnap = await getDoc(testDocRef);
@@ -329,7 +339,6 @@
             }
 
             function getQuestionHTML(question, questionNumber) {
-                // ... (Nội dung hàm này không đổi)
                 let answerHTML = '';
                 const savedAnswer = userAnswers[question.id];
 
@@ -361,8 +370,8 @@
                     answerHTML = `<input type="text" class="mt-2 w-full p-3 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-300 focus:border-teal-500 transition" value="${savedAnswer || ''}" placeholder="Nhập câu trả lời của bạn...">`;
                 }
 
-                const imageHTML = question.imageUrl
-                    ? `<div class="my-4"><img src="${question.imageUrl}" alt="Hình ảnh câu hỏi" class="max-w-full h-auto rounded-lg mx-auto border"></div>`
+                const imageHTML = question.imageUrl 
+                    ? `<div class="my-4"><img src="${question.imageUrl}" alt="Hình ảnh câu hỏi" class="max-w-full h-auto rounded-lg mx-auto border"></div>` 
                     : '';
 
                 return `
@@ -376,7 +385,6 @@
             }
 
              function renderFullTest() {
-                // ... (Nội dung hàm này không đổi)
                 const questionsByType = {
                     multiple_choice: [],
                     true_false_group: [],
@@ -406,7 +414,6 @@
             }
 
             function renderQuestionMap() {
-                // ... (Nội dung hàm này không đổi)
                 questionGridEl.innerHTML = '';
                 renderedQuestionsOrder.forEach((questionId, index) => {
                     const btn = document.createElement('a');
@@ -419,7 +426,6 @@
             }
 
             function countAnsweredQuestions() {
-                // ... (Nội dung hàm này không đổi)
                 return Object.keys(userAnswers).reduce((count, qId) => {
                     const answer = userAnswers[qId];
                     if (answer !== undefined) {
@@ -432,7 +438,6 @@
             }
 
             function updateQuestionMap() {
-                // ... (Nội dung hàm này không đổi)
                  questionGridEl.querySelectorAll('.question-grid-btn').forEach(btn => {
                     const questionId = btn.dataset.questionId;
                     const answer = userAnswers[questionId];
@@ -447,7 +452,6 @@
             }
 
             function updateProgressBar() {
-                // ... (Nội dung hàm này không đổi)
                 const answeredCount = countAnsweredQuestions();
                 const progress = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0;
                 progressBar.style.width = `${progress}%`;
@@ -461,7 +465,7 @@
                     lobbyModal.classList.remove('flex');
                     startModal.classList.remove('hidden');
                     startModal.classList.add('flex');
-                    updateIcons(); // ✅ Gọi lại hàm icon
+                    updateIcons();
                 });
 
                 mainContentArea.addEventListener('click', (e) => {
@@ -525,11 +529,10 @@
                 });
                 startTimer();
                 startSessionUpdates();
-                updateIcons(); // ✅ Gọi lại hàm icon
+                updateIcons();
             }
 
             function startTimer() {
-                // ... (Nội dung hàm này không đổi)
                 if (timerInterval) clearInterval(timerInterval);
                 timerInterval = setInterval(() => {
                     timeLeft--;
@@ -544,24 +547,24 @@
             }
 
             function startSessionUpdates() {
-                // ... (Nội dung hàm này không đổi)
                 if (sessionInterval) clearInterval(sessionInterval);
                 updateSessionStatus('online');
                 sessionInterval = setInterval(() => {
                     updateSessionStatus('online');
-                }, 1500);
+                }, 10000); // Gửi heartbeat mỗi 10 giây
             }
 
             async function updateSessionStatus(status, extraData = {}) {
-                // ... (Nội dung hàm này không đổi)
                 if (!currentSessionId) return;
                 try {
                     const sessionRef = doc(db, 'test_sessions', currentSessionId);
+                    // *** FIX: THÊM teacherId VÀO DỮ LIỆU GỬI ĐI ***
                     await setDoc(sessionRef, {
                         studentId: currentUser.uid,
                         studentName: userData.name || 'Học sinh',
                         testId: currentTestId,
                         classId: currentClassId,
+                        teacherId: currentTeacherId, // Dữ liệu quan trọng được thêm vào
                         status: status,
                         warnings: warningCount,
                         progress: countAnsweredQuestions(),
@@ -573,6 +576,36 @@
                     console.error("Lỗi khi cập nhật session:", error);
                 }
             }
+            
+            async function handleCheating() {
+                if (timeLeft <= 0 || !isTestStarted || isLocked) return;
+
+                isLocked = true;
+                clearInterval(timerInterval);
+                clearInterval(sessionInterval);
+                warningCount++;
+
+                try {
+                    // Không có hàm captureScreenAsDataURL, nên chúng ta sẽ bỏ qua phần upload ảnh
+                    // Chỉ cập nhật trạng thái là 'locked'
+                    await updateSessionStatus('locked', { 
+                        violationTime: serverTimestamp(),
+                        lastViolationImageUrl: null // Gửi null vì không có ảnh
+                    });
+
+                } catch (error) {
+                    console.error("Lỗi khi xử lý vi phạm (không có ảnh):", error);
+                    await updateSessionStatus('locked', { violationTime: serverTimestamp() });
+                }
+
+                warningCountEl.textContent = `Số lần vi phạm: ${warningCount}`;
+                warningModal.classList.remove('hidden');
+                warningModal.classList.add('flex');
+                updateIcons();
+
+                listenForTeacherDecision();
+            }
+
 
             function handleFullscreenChange() {
                 if (!document.fullscreenElement && isTestStarted) {
@@ -584,24 +617,6 @@
                 if (document.visibilityState === 'hidden' && isTestStarted) {
                     handleCheating();
                 }
-            }
-
-            function handleCheating() {
-                if (timeLeft <= 0 || !isTestStarted || isLocked) return;
-
-                isLocked = true;
-                clearInterval(timerInterval);
-                clearInterval(sessionInterval);
-                warningCount++;
-
-                updateSessionStatus('locked', { violationTime: serverTimestamp() });
-
-                warningCountEl.textContent = `Số lần vi phạm: ${warningCount}`;
-                warningModal.classList.remove('hidden');
-                warningModal.classList.add('flex');
-                updateIcons(); // ✅ Gọi lại hàm icon
-
-                listenForTeacherDecision();
             }
 
             function listenForTeacherDecision() {
@@ -631,7 +646,6 @@
             }
 
             async function getTeacherIdsForSubject(subjectId) {
-                // ... (Nội dung hàm này không đổi)
                 if (!subjectId) return [];
                 const q = query(collection(db, "classrooms"), where("students", "array-contains", currentUser.uid), where("subjectId", "==", subjectId));
                 const snapshot = await getDocs(q);
@@ -639,7 +653,6 @@
             }
 
             async function handleSubmit(isAutoSubmit) {
-                // ... (Nội dung hàm này không đổi)
                 if (!isAutoSubmit && !confirm("Bạn có chắc chắn muốn nộp bài?")) return;
 
                 isTestStarted = false;
