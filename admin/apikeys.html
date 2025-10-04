@@ -2,9 +2,9 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý API Key - AIGEO</title>
-    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
@@ -25,17 +25,13 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        /* ADDED/REFINED FORM-INPUT STYLE for consistency */
-        .form-input {
-            width: 100%; padding: 0.75rem 1rem; margin-top: 0.5rem; border: 1px solid #cbd5e1;
-            border-radius: 0.5rem; background-color: #f8fafc; transition: all 0.2s ease-in-out;
+        .api-key-input {
+            background-color: #f8fafc; border: 1px solid #e2e8f0; transition: all 0.2s ease-in-out;
+            padding: 0.75rem; border-radius: 0.5rem; width: 100%;
         }
-        .form-input:focus {
-            outline: none; background-color: white; border-color: var(--primary-teal);
-            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+        .api-key-input:focus {
+            background-color: white; border-color: var(--primary-teal); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
         }
-        /* END ADDED/REFINED FORM-INPUT STYLE */
-        
         .cta-button {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
             transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
@@ -228,7 +224,7 @@
                 inputWrapper.innerHTML = `
                     <i data-feather="key" class="text-slate-400 flex-shrink-0"></i>
                     <div class="relative w-full">
-                        <input type="password" class="form-input" data-key-type="${type}" placeholder="Dán khóa API của bạn vào đây" value="${keyValue}">
+                        <input type="password" class="api-key-input" data-key-type="${type}" placeholder="Dán khóa API của bạn vào đây" value="${keyValue}">
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
                             <button type="button" class="toggle-visibility-btn p-1 rounded-full text-gray-400 hover:text-gray-600">
                                 <i data-feather="eye" class="w-5 h-5"></i>

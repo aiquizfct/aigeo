@@ -2,18 +2,44 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Luyện tập Nhanh - AI Quiz Learning</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        :root {
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+        }
+        body { font-family: 'Be Vietnam Pro', sans-serif; background-color: #f1f5f9; }
         .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
         .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
-        .sidebar-link.active { background-color: #1d4ed8; color: white; font-weight: 600; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-        .sidebar-link.active:hover { background-color: #1e40af; }
+        .sidebar-link.active { 
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            color: white; 
+            font-weight: 600; 
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+        }
+        .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
+        .sidebar-link.active svg { color: white; }
         .sidebar-link svg { margin-right: 0.75rem; }
+        
+        .brand-gradient-text {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+        }
+        .cta-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+        }
         select:disabled { background-color: #f1f5f9; cursor: not-allowed; }
         .lesson-item:hover { background-color: #f8fafc; }
         .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
@@ -23,14 +49,21 @@
 <body class="flex h-screen">
 
     <aside class="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
-        <div class="h-16 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold text-blue-600">AI Quiz</a></div>
-        <nav class="flex-grow p-4 space-y-2">
+        <div class="h-16 flex-shrink-0 flex items-center justify-center border-b px-4">
+            <a href="/index.html" class="flex items-center gap-2">
+                <img src="https://i.ibb.co/JWTx6WrX/FAVICON.png" alt="AIGEO Logo" class="h-8 w-auto">
+                <span class="text-2xl font-bold brand-gradient-text">AIGEO</span>
+            </a>
+        </div>
+        <nav class="flex-grow p-4 space-y-2 overflow-y-auto">
             <a href="index.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="home"></i>Bảng điều khiển</a>
-            <a href="practice.html" class="sidebar-link active"><i data-feather="edit-3"></i>Luyện tập</a>
+            <a href="classrooms.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="book"></i>Lớp học của tôi</a>
+            <a href="practice-hub.html" class="sidebar-link active"><i data-feather="zap"></i>Luyện tập</a>
             <a href="stats.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="bar-chart-2"></i>Thống kê</a>
+            <a href="chat-bot.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="message-circle"></i>Chatbot AI</a>
             <a href="account.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="user"></i>Tài khoản</a>
         </nav>
-        <div class="p-4 border-t"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
+        <div class="p-4 border-t flex-shrink-0"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden">
@@ -42,7 +75,7 @@
         </header>
         <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
             <div class="max-w-4xl mx-auto">
-                <a href="practice.html" class="flex items-center text-slate-500 hover:text-blue-600 font-semibold mb-4">
+                <a href="practice-hub.html" class="flex items-center text-slate-500 hover:text-teal-600 font-semibold mb-4 nav-link">
                     <i data-feather="arrow-left" class="mr-2 w-4 h-4"></i>Quay lại
                 </a>
                 <h1 class="text-3xl font-bold text-slate-800">Luyện tập Nhanh</h1>
@@ -66,7 +99,7 @@
                 </div>
 
                 <div class="mt-8 flex justify-end">
-                    <button id="start-practice-btn" class="bg-teal-600 text-white font-bold px-8 py-4 rounded-lg hover:bg-teal-700 transition-transform transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:scale-100" disabled>
+                    <button id="start-practice-btn" class="cta-button text-white font-bold px-8 py-4 rounded-lg hover:bg-teal-700 transition-transform transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:scale-100" disabled>
                         Bắt đầu Luyện tập
                     </button>
                 </div>
@@ -255,10 +288,18 @@
                     startPracticeBtn.textContent = 'Bắt đầu Luyện tập';
                 }
             }
+            
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.body.style.opacity = '0';
+                    setTimeout(() => { window.location.href = this.href; }, 200);
+                });
+            });
+            document.body.style.transition = 'opacity 0.2s ease-in-out';
 
             feather.replace();
         });
     </script>
 </body>
 </html>
-

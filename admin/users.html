@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý Người dùng - AIGEO</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,6 +26,7 @@
             box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
         }
         .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
+        .sidebar-link.active svg { color: white; }
         .sidebar-link svg { margin-right: 0.75rem; }
         
         .brand-gradient-text {
@@ -46,22 +48,25 @@
             background-size: 1.25em;
             padding-right: 2rem;
         }
+        .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
+        .toast.show { transform: translateY(0); opacity: 1; }
     </style>
 </head>
 <body class="flex h-screen">
 
     <aside class="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
-        <div class="h-16 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold brand-gradient-text">AIGEO</a></div>
-        <nav class="flex-grow p-4 space-y-2">
+        <div class="h-16 flex-shrink-0 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold brand-gradient-text">AIGEO</a></div>
+        <nav class="flex-grow p-4 space-y-2 overflow-y-auto">
             <a href="index.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="home"></i>Tổng quan</a>
             <a href="users.html" class="sidebar-link active"><i data-feather="users"></i>Quản lý người dùng</a>
             <a href="subjects.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="book-open"></i>Quản lý Học liệu</a>
             <a href="questions.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="help-circle"></i>Quản lý Câu hỏi</a>
             <a href="tests.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="file-text"></i>Quản lý Đề thi</a>
             <a href="apikeys.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="key"></i>Quản lý API Key</a>
+            <a href="feedback.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="message-square"></i>Quản lý Góp ý</a>
             <a href="settings.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="settings"></i>Cài đặt hệ thống</a>
         </nav>
-        <div class="p-4 border-t"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
+        <div class="p-4 border-t flex-shrink-0"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden">
@@ -102,6 +107,8 @@
         </div>
     </main>
     
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+
     <script src="../firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -117,21 +124,32 @@
             const searchInput = document.getElementById('search-input');
             const userNameEl = document.getElementById('user-name');
             const userAvatarEl = document.getElementById('user-avatar');
+            const toastContainer = document.getElementById('toast-container');
             
             let allUsers = [];
+
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+                toast.className = `toast show ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg`;
+                toast.textContent = message;
+                toastContainer.appendChild(toast);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, 3000);
+            }
 
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     const docSnap = await getDoc(doc(db, "users", user.uid));
                     if (docSnap.exists() && docSnap.data().role === 'admin') {
-                        // Người dùng là Admin, giữ họ ở lại trang và tải nội dung
                         const userData = docSnap.data();
                         userNameEl.textContent = userData.name || 'Admin';
                         const nameInitial = (userData.name || 'A').charAt(0).toUpperCase();
                         userAvatarEl.src = `https://placehold.co/40x40/DC2626/FFFFFF?text=${nameInitial}`;
                         listenForUsers();
                     } else {
-                        // Nếu không phải admin, chuyển hướng họ đi
                         const userRole = docSnap.data()?.role;
                         if (userRole === 'teacher' || userRole === 'student') {
                             window.location.href = `../${userRole}/index.html`;
@@ -178,7 +196,7 @@
                     };
 
                     const roleSelectHTML = `
-                        <select data-uid="${user.uid}" class="role-select text-xs font-semibold rounded-full border-0 px-3 py-1.5 focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors ${getRoleBadgeClass(user.role)}" ${user.role === 'admin' ? 'disabled' : ''}>
+                        <select data-uid="${user.id}" class="role-select text-xs font-semibold rounded-full border-0 px-3 py-1.5 focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors ${getRoleBadgeClass(user.role)}" ${user.role === 'admin' ? 'disabled' : ''}>
                             <option value="student" ${user.role === 'student' ? 'selected' : ''}>Học sinh</option>
                             <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Giáo viên</option>
                             <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
@@ -201,21 +219,31 @@
                     const selectEl = e.target;
                     const newRole = selectEl.value;
                     const uid = selectEl.dataset.uid;
-                    const userToUpdate = allUsers.find(u => u.uid === uid);
+                    const userToUpdate = allUsers.find(u => u.id === uid);
                     
-                    // Cập nhật màu sắc ngay lập tức để phản hồi
+                    const originalRole = userToUpdate.role;
+                    
+                    const getRoleBadgeClass = (role) => {
+                        switch (role) {
+                            case 'admin': return 'bg-red-100 text-red-800';
+                            case 'teacher': return 'bg-sky-100 text-sky-800';
+                            default: return 'bg-green-100 text-green-800';
+                        }
+                    };
+
+                    // Optimistically update UI
                     selectEl.className = `role-select text-xs font-semibold rounded-full border-0 px-3 py-1.5 focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors ${getRoleBadgeClass(newRole)}`;
+                    selectEl.disabled = true;
 
                     try {
-                        selectEl.disabled = true;
                         await updateDoc(doc(db, "users", uid), { role: newRole });
-                        // Không cần alert, vì giao diện đã cập nhật qua onSnapshot
+                        showToast('Cập nhật vai trò thành công!', 'success');
                     } catch (error) {
                         console.error("Error updating role:", error);
-                        alert('Có lỗi xảy ra, không thể cập nhật vai trò.');
-                        // Hoàn tác lại nếu lỗi
-                        selectEl.value = userToUpdate.role;
-                        selectEl.className = `role-select text-xs font-semibold rounded-full border-0 px-3 py-1.5 focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors ${getRoleBadgeClass(userToUpdate.role)}`;
+                        showToast('Có lỗi xảy ra, không thể cập nhật vai trò.', 'error');
+                        // Revert UI on error
+                        selectEl.value = originalRole;
+                        selectEl.className = `role-select text-xs font-semibold rounded-full border-0 px-3 py-1.5 focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors ${getRoleBadgeClass(originalRole)}`;
                     } finally {
                         selectEl.disabled = newRole === 'admin';
                     }

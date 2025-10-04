@@ -2,9 +2,9 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bảng điều khiển Admin - AIGEO</title>
-    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
@@ -18,8 +18,7 @@
             font-family: 'Be Vietnam Pro', sans-serif; 
             background-color: #f1f5f9; 
         }
-        /* FIXED: Added gap for robust spacing and removed redundant svg margin */
-        .sidebar-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
         .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
         .sidebar-link.active { 
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
@@ -28,7 +27,8 @@
             box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
         }
         .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
-        /* .sidebar-link svg { margin-right: 0.75rem; } <-- Removed */
+        .sidebar-link.active svg { color: white; }
+        .sidebar-link svg { margin-right: 0.75rem; }
         
         .brand-gradient-text {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
@@ -64,8 +64,8 @@
 <body class="flex h-screen">
 
     <aside class="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
-        <div class="h-16 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold brand-gradient-text">AIGEO</a></div>
-        <nav class="flex-grow p-4 space-y-2">
+        <div class="h-16 flex items-center justify-center border-b flex-shrink-0"><a href="/index.html" class="text-2xl font-bold brand-gradient-text">AIGEO</a></div>
+        <nav class="flex-grow p-4 space-y-2 overflow-y-auto">
             <a href="index.html" class="sidebar-link active"><i data-feather="home"></i>Tổng quan</a>
             <a href="users.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="users"></i>Quản lý người dùng</a>
             <a href="subjects.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="book-open"></i>Quản lý Học liệu</a>
@@ -75,7 +75,7 @@
             <a href="feedback.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="message-square"></i>Quản lý Góp ý</a>
             <a href="settings.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="settings"></i>Cài đặt hệ thống</a>
         </nav>
-        <div class="p-4 border-t"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
+        <div class="p-4 border-t flex-shrink-0"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden">
@@ -327,3 +327,4 @@
     </script>
 </body>
 </html>
+

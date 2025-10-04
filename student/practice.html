@@ -2,32 +2,64 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luyện tập - AI Quiz Learning</title>
+    <title>Luyện tập - AIGEO</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        :root {
+            --primary-teal: #0D9488;
+            --primary-emerald: #10B981;
+        }
+        body { font-family: 'Be Vietnam Pro', sans-serif; background-color: #f1f5f9; }
         .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
         .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
-        .sidebar-link.active { background-color: #1d4ed8; color: white; font-weight: 600; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-        .sidebar-link.active:hover { background-color: #1e40af; }
+        .sidebar-link.active { 
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            color: white; 
+            font-weight: 600; 
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+        }
+        .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
+        .sidebar-link.active svg { color: white; }
         .sidebar-link svg { margin-right: 0.75rem; }
+        
+        .brand-gradient-text {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .cta-button {
+            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+        }
+        .cta-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+        }
     </style>
 </head>
 <body class="flex h-screen">
 
     <aside class="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
-        <div class="h-16 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold text-blue-600">AI Quiz</a></div>
-        <nav class="flex-grow p-4 space-y-2">
+        <div class="h-16 flex-shrink-0 flex items-center justify-center border-b px-4">
+            <a href="/index.html" class="flex items-center gap-2">
+                <img src="https://i.ibb.co/JWTx6WrX/FAVICON.png" alt="AIGEO Logo" class="h-8 w-auto">
+                <span class="text-2xl font-bold brand-gradient-text">AIGEO</span>
+            </a>
+        </div>
+        <nav class="flex-grow p-4 space-y-2 overflow-y-auto">
             <a href="index.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="home"></i>Bảng điều khiển</a>
             <a href="classrooms.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="book"></i>Lớp học của tôi</a>
-            <a href="practice.html" class="sidebar-link active"><i data-feather="edit-3"></i>Luyện tập</a>
+            <a href="practice-hub.html" class="sidebar-link active"><i data-feather="zap"></i>Luyện tập</a>
             <a href="stats.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="bar-chart-2"></i>Thống kê</a>
+            <a href="chat-bot.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="message-circle"></i>Chatbot AI</a>
             <a href="account.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="user"></i>Tài khoản</a>
         </nav>
-        <div class="p-4 border-t"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
+        <div class="p-4 border-t flex-shrink-0"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden">
@@ -48,7 +80,7 @@
                         <i data-feather="zap" class="w-10 h-10 text-teal-500"></i>
                         <h2 class="text-xl font-bold text-slate-800 mt-4">Luyện tập Nhanh</h2>
                         <p class="mt-2 text-slate-500">Tự chọn Môn và một Bài học cụ thể để tạo đề ôn tập ngẫu nhiên.</p>
-                        <a href="practice-step1.html" class="mt-6 block text-center w-full bg-teal-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-teal-700 transition">Bắt đầu ngay</a>
+                        <a href="practice-hub.html" class="mt-6 block text-center w-full cta-button text-white font-semibold px-6 py-3 rounded-lg">Bắt đầu ngay</a>
                     </div>
 
                     <!-- Test Practice -->
@@ -56,7 +88,7 @@
                         <i data-feather="file-text" class="w-10 h-10 text-indigo-500"></i>
                         <h2 class="text-xl font-bold text-slate-800 mt-4">Luyện Đề</h2>
                         <p class="mt-2 text-slate-500">Thực hiện các bài kiểm tra có cấu trúc từ Ngân hàng đề thi chung của hệ thống.</p>
-                        <a href="practice-hub.html" class="mt-6 block text-center w-full bg-indigo-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-indigo-700 transition">Vào luyện đề</a>
+                        <a href="practice-hub.html" class="mt-6 block text-center w-full cta-button text-white font-semibold px-6 py-3 rounded-lg">Vào luyện đề</a>
                     </div>
                 </div>
             </div>
@@ -89,7 +121,7 @@
                         }
                         document.getElementById('user-name').textContent = userData.name || 'Học sinh';
                         const nameInitial = (userData.name || 'S').charAt(0).toUpperCase();
-                        document.getElementById('user-avatar').src = `https://placehold.co/40x40/3B82F6/FFFFFF?text=${nameInitial}`;
+                        document.getElementById('user-avatar').src = `https://placehold.co/40x40/10B981/FFFFFF?text=${nameInitial}`;
                     } else {
                          window.location.href = '../auth.html';
                     }

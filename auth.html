@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng nhập & Đăng ký - AIGEO</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -119,12 +120,44 @@
         #password-strength-bar.medium { background-color: #f59e0b; width: 60%; }
         #password-strength-bar.strong { background-color: #10b981; width: 100%; }
         .password-criteria li.met { color: #10b981; }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s ease, opacity 0.3s ease; transform: translateY(-20px); }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translate3d(0, 30px, 0);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 sm:p-6">
     <div id="auth-background"></div>
 
-    <div class="w-full max-w-4xl mx-auto">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="text-center animate-fade-in-up">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700 mx-auto"></div>
+        <p class="mt-4 text-slate-600 font-semibold">Đang kết nối đến máy chủ...</p>
+    </div>
+
+    <!-- Error Overlay -->
+    <div id="error-overlay" class="hidden text-center max-w-md mx-auto animate-fade-in-up">
+        <div class="auth-card p-8 rounded-2xl shadow-2xl">
+            <i data-feather="wifi-off" class="w-16 h-16 mx-auto text-red-500"></i>
+            <h2 class="text-2xl font-bold text-slate-800 mt-4">Lỗi Kết Nối</h2>
+            <p class="mt-2 text-slate-600">Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại đường truyền Internet và thử lại.</p>
+            <button id="retry-connection-btn" class="mt-8 w-full cta-button text-white font-bold py-3 px-6 rounded-lg">Thử lại</button>
+        </div>
+    </div>
+
+    <div id="main-auth-card" class="w-full max-w-4xl mx-auto hidden animate-fade-in-up">
         <div class="auth-card relative rounded-2xl overflow-hidden grid md:grid-cols-2 shadow-2xl">
             <div class="hidden md:block relative">
                 <img src="https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2070&auto=format&fit=crop" alt="Abstract gradient background" class="absolute h-full w-full object-cover">
@@ -305,19 +338,54 @@
         </div>
     </div>
     
+    <!-- Maintenance Modal -->
+    <div id="maintenance-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-lg modal-content text-center animate-fade-in-up">
+            <i data-feather="tool" class="w-16 h-16 mx-auto text-amber-500"></i>
+            <h2 class="text-2xl font-bold text-slate-800 mt-4">Thông Báo Bảo Trì</h2>
+            <p id="maintenance-reason" class="mt-4 text-slate-600"></p>
+            <div class="mt-4 text-sm text-slate-500 space-y-1">
+                <p id="maintenance-start-time"></p>
+                <p id="maintenance-end-time"></p>
+            </div>
+            <p class="mt-6 text-sm text-slate-600">Chỉ Quản trị viên có thể đăng nhập trong thời gian này. Cảm ơn sự kiên nhẫn của bạn!</p>
+        </div>
+    </div>
+    
+    <!-- Admin Login Button -->
+    <button id="admin-login-button" class="hidden fixed bottom-5 right-5 z-50 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg flex items-center text-sm font-semibold hover:bg-slate-900 transition-colors">
+        <i data-feather="shield" class="w-4 h-4 mr-2"></i>
+        Đăng nhập Quản trị
+    </button>
+    
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-sm modal-content animate-fade-in-up">
+            <h2 class="text-xl font-bold text-center text-slate-800 mb-6">Đăng nhập Quản trị viên</h2>
+            <form id="admin-login-form">
+                <div class="input-group">
+                    <label for="admin-email" class="input-label">Email Admin</label>
+                    <i data-feather="mail" class="input-icon"></i>
+                    <input id="admin-email" type="email" required class="input-field">
+                </div>
+                <div class="input-group">
+                    <label for="admin-password" class="input-label">Mật khẩu</label>
+                    <i data-feather="lock" class="input-icon"></i>
+                    <input id="admin-password" type="password" required class="input-field">
+                </div>
+                <div class="flex items-center justify-end space-x-3">
+                    <button type="button" id="admin-login-cancel" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg">Hủy</button>
+                    <button type="submit" class="cta-button text-white px-4 py-2 rounded-lg">Đăng nhập</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getRedirectResult, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getRedirectResult, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyDpXc-F0y1GyeMYTe3T_omqRJ_uc8UB6iM",
-            authDomain: "ai-quiz-learning2025.firebaseapp.com",
-            projectId: "ai-quiz-learning2025",
-            storageBucket: "ai-quiz-learning2025.appspot.com",
-            messagingSenderId: "137949679960",
-            appId: "1:137949679960:web:4807e8b0476dd00380952d"
-        };
         
         document.addEventListener('DOMContentLoaded', () => {
             feather.replace();
@@ -326,6 +394,7 @@
             const db = getFirestore(app);
 
             // --- DOM Element Declarations ---
+            const mainAuthCard = document.getElementById('main-auth-card');
             const wrapper = document.getElementById('form-wrapper');
             const messageDisplay = document.getElementById('message-display');
             const loginTab = document.getElementById('login-tab');
@@ -339,6 +408,18 @@
             const googleLoginBtn = document.getElementById('google-login-btn');
             const forgotPasswordLink = document.getElementById('forgot-password-link');
 
+            // Overlays
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const errorOverlay = document.getElementById('error-overlay');
+            const retryConnectionBtn = document.getElementById('retry-connection-btn');
+
+            // Maintenance & Admin Login Elements
+            const maintenanceModal = document.getElementById('maintenance-modal');
+            const adminLoginButton = document.getElementById('admin-login-button');
+            const adminLoginModal = document.getElementById('admin-login-modal');
+            const adminLoginForm = document.getElementById('admin-login-form');
+            const adminLoginCancelBtn = document.getElementById('admin-login-cancel');
+
             // Password strength elements
             const registerPasswordInput = document.getElementById('register-password');
             const strengthIndicator = document.getElementById('password-strength-indicator');
@@ -346,33 +427,102 @@
             const passwordCriteriaList = document.getElementById('password-criteria');
             
             const showMessage = (message, isError = true, duration = 5000) => {
-                messageDisplay.textContent = message;
-                messageDisplay.className = `p-3 text-sm text-center rounded-lg mb-6 transition-all duration-300 ${isError ? "text-red-800 bg-red-100" : "text-green-800 bg-green-100"}`;
-                 setTimeout(adjustWrapperHeight, 50);
-                 if(duration > 0 && duration !== 0) {
-                     setTimeout(hideMessage, duration);
-                 }
+                const targetDisplay = adminLoginModal.style.display === 'flex' ? null : messageDisplay;
+                if(targetDisplay){
+                    targetDisplay.textContent = message;
+                    targetDisplay.className = `p-3 text-sm text-center rounded-lg mb-6 transition-all duration-300 ${isError ? "text-red-800 bg-red-100" : "text-green-800 bg-green-100"}`;
+                    setTimeout(adjustWrapperHeight, 50);
+                     if(duration > 0 && duration !== 0) {
+                         setTimeout(hideMessage, duration);
+                     }
+                } else {
+                    alert(message); // Fallback for admin modal
+                }
             };
 
             const hideMessage = () => {
                 messageDisplay.className = 'hidden p-3 text-sm text-center rounded-lg mb-6';
                  setTimeout(adjustWrapperHeight, 50);
             };
+
+            async function checkInitialConnection() {
+                loadingOverlay.classList.remove('hidden');
+                errorOverlay.classList.add('hidden');
+                mainAuthCard.classList.add('hidden');
+                
+                try {
+                    const settingsSnap = await getDoc(doc(db, "system_settings", "general"));
+                    
+                    loadingOverlay.classList.add('hidden');
+
+                    if (settingsSnap.exists() && settingsSnap.data().maintenanceMode === true) {
+                        handleMaintenanceMode(settingsSnap.data());
+                    } else {
+                        mainAuthCard.classList.remove('hidden');
+                        setTimeout(adjustWrapperHeight, 100);
+                    }
+                } catch (error) {
+                    console.error("Error checking initial connection:", error);
+                    loadingOverlay.classList.add('hidden');
+                    errorOverlay.classList.remove('hidden');
+                    feather.replace();
+                }
+            }
+            
+            retryConnectionBtn.addEventListener('click', checkInitialConnection);
+
+            function handleMaintenanceMode(settings) {
+                mainAuthCard.classList.add('hidden');
+                maintenanceModal.classList.remove('hidden');
+                maintenanceModal.classList.add('flex');
+                adminLoginButton.classList.remove('hidden');
+
+                document.getElementById('maintenance-reason').textContent = settings.maintenanceReason || 'Hệ thống đang được bảo trì để nâng cấp. Vui lòng quay lại sau.';
+                const formatTime = (timestamp) => timestamp ? new Date(timestamp.seconds * 1000).toLocaleString('vi-VN') : '';
+                const startTime = formatTime(settings.maintenanceStartTime);
+                const endTime = formatTime(settings.maintenanceEndTime);
+                
+                document.getElementById('maintenance-start-time').textContent = startTime ? `Bắt đầu từ: ${startTime}` : '';
+                document.getElementById('maintenance-end-time').textContent = endTime ? `Dự kiến hoàn thành: ${endTime}` : '';
+                
+                feather.replace();
+            }
+
+            checkInitialConnection();
             
             onAuthStateChanged(auth, async (user) => {
                 if (!user) return;
-                
-                const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
 
-                if (docSnap.exists()) {
-                    if(sessionStorage.getItem('isNewAuth')) {
-                        showMessage("Đăng nhập thành công! Đang chuyển hướng...", false, 0);
-                        sessionStorage.removeItem('isNewAuth');
+                try {
+                    const [settingsSnap, userDocSnap] = await Promise.all([
+                        getDoc(doc(db, "system_settings", "general")),
+                        getDoc(doc(db, "users", user.uid))
+                    ]);
+
+                    const settings = settingsSnap.exists() ? settingsSnap.data() : { maintenanceMode: false };
+                    
+                    if (userDocSnap.exists()) {
+                        const userData = userDocSnap.data();
+
+                        if (settings.maintenanceMode === true && userData.role !== 'admin') {
+                            showMessage('Hệ thống đang bảo trì. Chỉ quản trị viên có thể đăng nhập.', true, 0);
+                            await signOut(auth);
+                            sessionStorage.removeItem('isNewAuth');
+                            return;
+                        }
+
+                        if (sessionStorage.getItem('isNewAuth')) {
+                            showMessage("Đăng nhập thành công! Đang chuyển hướng...", false, 0);
+                            sessionStorage.removeItem('isNewAuth');
+                        }
+                        const { role } = userData;
+                        const destination = { teacher: "/teacher/index.html", student: "/student/index.html", admin: "/admin/index.html" }[role] || "/student/index.html";
+                        setTimeout(() => { window.location.href = destination; }, 1500);
                     }
-                    const { role } = docSnap.data();
-                    const destination = { teacher: "/teacher/index.html", student: "/student/index.html", admin: "/admin/index.html" }[role] || "/student/index.html";
-                    setTimeout(() => { window.location.href = destination; }, 1500);
+                } catch (error) {
+                    console.error("Auth state change error:", error);
+                    showMessage("Đã có lỗi xảy ra. Vui lòng thử lại.", true);
+                    if(auth.currentUser) await signOut(auth);
                 }
             });
 
@@ -428,7 +578,7 @@
 
             const adjustWrapperHeight = () => {
                 const activeFormContainer = loginFormContainer.classList.contains('hidden') ? registerFormContainer : loginFormContainer;
-                wrapper.style.height = `${activeFormContainer.offsetHeight}px`;
+                if(wrapper) wrapper.style.height = `${activeFormContainer.offsetHeight}px`;
             };
 
             const switchTab = (showLogin) => {
@@ -442,7 +592,10 @@
             };
 
             loginTab.addEventListener("click", () => switchTab(true));
-            registerTab.addEventListener("click", () => switchTab(false));
+            registerTab.addEventListener("click", (e) => {
+                if(e.target.disabled) return;
+                switchTab(false);
+            });
 
             // --- Login Logic ---
             loginForm.addEventListener("submit", async (e) => {
@@ -455,6 +608,29 @@
                     showMessage("Email hoặc mật khẩu không đúng.");
                 }
             });
+
+            // --- Admin Login Logic ---
+            adminLoginButton.addEventListener('click', () => {
+                adminLoginModal.classList.remove('hidden');
+                adminLoginModal.classList.add('flex');
+            });
+            adminLoginCancelBtn.addEventListener('click', () => {
+                adminLoginModal.classList.add('hidden');
+                adminLoginModal.classList.remove('flex');
+            });
+            adminLoginForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const email = adminLoginForm["admin-email"].value;
+                const password = adminLoginForm["admin-password"].value;
+                try {
+                    sessionStorage.setItem('isNewAuth', 'true');
+                    await signInWithEmailAndPassword(auth, email, password);
+                } catch (error) {
+                    sessionStorage.removeItem('isNewAuth');
+                    alert("Email hoặc mật khẩu Admin không đúng.");
+                }
+            });
+
 
             // --- Register Logic ---
             const roleButtons = document.querySelectorAll('.role-button');
@@ -637,10 +813,9 @@
                 console.error("Error fetching subjects: ", error);
             });
 
-            // ✅ SỬA LỖI: Truyền hàm `adjustWrapperHeight` làm callback
-            setTimeout(adjustWrapperHeight, 100);
-            new ResizeObserver(adjustWrapperHeight).observe(wrapper);
+            if(wrapper) new ResizeObserver(adjustWrapperHeight).observe(wrapper);
         });
     </script>
 </body>
 </html>
+

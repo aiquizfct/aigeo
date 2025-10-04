@@ -2,47 +2,60 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tạo Đề Thi - Bước 1 - AIGEO</title>
     <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Đề thi - AIGEO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <style>
         :root {
             --primary-teal: #0D9488;
             --primary-emerald: #10B981;
         }
-        body { font-family: 'Be Vietnam Pro', sans-serif; background-color: #f1f5f9; }
+        body { 
+            font-family: 'Be Vietnam Pro', sans-serif; 
+            background-color: #f1f5f9; 
+        }
         .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
         .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
         .sidebar-link.active { 
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
-            color: white; font-weight: 600; box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+            color: white; 
+            font-weight: 600; 
+            box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
         }
+        .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
+        .sidebar-link svg { margin-right: 0.75rem; }
+        
         .brand-gradient-text {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        /* ADDED/REFINED FORM-INPUT STYLE for consistency */
-        .form-input, .form-select {
-            width: 100%; padding: 0.75rem 1rem; margin-top: 0.5rem; border: 1px solid #cbd5e1;
-            border-radius: 0.5rem; background-color: #f8fafc; transition: all 0.2s ease-in-out;
-        }
-        .form-input:focus, .form-select:focus {
-            outline: none; background-color: white; border-color: var(--primary-teal);
-            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
-        }
-        /* END ADDED/REFINED FORM-INPUT STYLE */
         
         .cta-button {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
-            transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
         }
         .cta-button:hover:not(:disabled) {
-            transform: translateY(-2px); box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.3);
         }
+
+        .form-input {
+            width: 100%; padding: 0.75rem 1rem; margin-top: 0.5rem; border: 1px solid #cbd5e1;
+            border-radius: 0.5rem; background-color: #f8fafc; transition: all 0.2s ease-in-out;
+        }
+        .form-input:focus {
+            outline: none; background-color: white; border-color: var(--primary-teal);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+        }
+        
         .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
         .toast.show { transform: translateY(0); opacity: 1; }
     </style>
@@ -64,277 +77,210 @@
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden">
-        <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6">
-            <h1 class="text-xl font-semibold text-slate-800">Tạo Đề Thi (Bước 1/2)</h1>
-             <div class="flex items-center">
+        <header class="bg-white shadow-sm h-16 flex items-center justify-end px-6">
+            <div class="flex items-center">
                 <span id="user-name" class="font-semibold text-gray-700 mr-4">Đang tải...</span>
-                <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=A" alt="Admin Avatar">
+                <img id="user-avatar" class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/40x40/E2E8F0/475569?text=A" alt="Admin Avatar" onerror="this.onerror=null; this.src='https://placehold.co/40x40/f87171/ffffff?text=Lỗi';">
             </div>
         </header>
         <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
-            <div class="max-w-xl mx-auto">
-                <div class="bg-white rounded-xl shadow-lg p-8">
-                    <div class="flex items-center space-x-2 text-sm font-medium text-slate-500 mb-6">
-                        <span class="text-slate-800 font-bold">1. Thông tin cơ bản</span>
-                        <i data-feather="arrow-right" class="w-4 h-4"></i>
-                        <span>2. Cài đặt chi tiết</span>
-                    </div>
-
-                    <form id="upload-form" class="space-y-6">
-                        <div class="border border-slate-200 rounded-lg p-6 bg-slate-50">
-                            <h2 class="text-lg font-bold text-slate-800 mb-4">Tải lên File Word/PDF</h2>
-                            <p class="text-sm text-slate-600 mb-4">Hệ thống AI sẽ tự động trích xuất các câu hỏi từ file để tạo đề thi. File phải tuân thủ định dạng mẫu.</p>
-                            
-                            <div>
-                                <label for="file-upload" class="block text-sm font-medium text-slate-700">Chọn File (.docx, .pdf)</label>
-                                <input type="file" id="file-upload" class="form-input" accept=".docx,.pdf" required>
-                                <p class="mt-2 text-xs text-slate-500">Kích thước tối đa: 10MB</p>
-                            </div>
-                            
-                            <div>
-                                <label for="ai-model-upload" class="block text-sm font-medium text-slate-700">Chọn AI Model xử lý (DeepSeek V3.1)</label>
-                                <select id="ai-model-upload" class="form-select" required>
-                                    <option value="deepseek-v2-chat">DeepSeek V3.1 (Mặc định)</option>
-                                </select>
-                            </div>
-                            
-                            <div class="mt-6 flex justify-end">
-                                <button type="submit" id="upload-btn" class="cta-button text-white font-semibold px-6 py-3 rounded-lg flex items-center" disabled>
-                                    <i data-feather="upload-cloud" class="w-5 h-5 mr-2"></i> Trích xuất Câu hỏi
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                    
-                    <div class="text-center py-4 text-slate-500 font-semibold">HOẶC</div>
-                    
-                    <form id="manual-form" class="space-y-6">
-                         <div class="border border-slate-200 rounded-lg p-6 bg-slate-50">
-                            <h2 class="text-lg font-bold text-slate-800 mb-4">Tạo Đề Thi Trống</h2>
-                            <p class="text-sm text-slate-600 mb-4">Chuyển sang bước 2 để điền thông tin và chọn câu hỏi thủ công hoặc ngẫu nhiên.</p>
-                            
-                            <div>
-                                <label for="manual-subject" class="block text-sm font-medium text-slate-700">Môn Học (để dễ quản lý)</label>
-                                <select id="manual-subject" class="form-select" required>
-                                    <option value="">--- Chọn Môn Học ---</option>
+            <div class="max-w-4xl mx-auto">
+                <div class="flex items-center mb-6">
+                    <a href="tests.html" class="p-2 mr-2 hover:bg-slate-200 rounded-full"><i data-feather="arrow-left"></i></a>
+                    <h1 id="page-title" class="text-3xl font-bold text-slate-800">Tạo đề thi mới - Bước 1</h1>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <form id="test-form" class="space-y-6">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-800 border-b pb-2">Thông tin chung</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                <div class="md:col-span-2">
+                                    <label for="test-name" class="block text-sm font-medium text-gray-700">Tên đề thi</label>
+                                    <input type="text" id="test-name" class="form-input" required>
+                                </div>
+                                <div>
+                                    <label for="test-type" class="block text-sm font-medium text-gray-700">Loại đề thi</label>
+                                    <select id="test-type" class="form-input">
+                                        <option value="practice">Đề luyện tập</option>
+                                        <option value="15_min">Kiểm tra 15 phút</option>
+                                        <option value="45_min">Kiểm tra 1 tiết</option>
+                                        <option value="mid_term">Kiểm tra giữa kỳ</option>
+                                        <option value="final_term">Kiểm tra cuối kỳ</option>
+                                        <option value="thptqg">Đề luyện thi THPTQG</option>
                                     </select>
-                            </div>
-                            
-                            <div class="mt-6 flex justify-end">
-                                <button type="submit" id="manual-next-btn" class="cta-button text-white font-semibold px-6 py-3 rounded-lg flex items-center">
-                                    <i data-feather="arrow-right" class="w-5 h-5 mr-2"></i> Sang Bước 2
-                                </button>
+                                </div>
+                                 <div>
+                                    <label for="test-subject" class="block text-sm font-medium text-gray-700">Môn học</label>
+                                    <select id="test-subject" class="form-input"></select>
+                                </div>
                             </div>
                         </div>
+                        
+                        <div class="mt-6 flex justify-end space-x-3 border-t pt-4">
+                             <button type="button" id="test-cancel-btn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md">Hủy</button>
+                             <button type="submit" form="test-form" id="test-submit-btn" class="cta-button text-white px-4 py-2 rounded-md">Tiếp tục</button>
+                        </div>
                     </form>
-                    
                 </div>
             </div>
         </div>
     </main>
-
+    
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
     
     <script src="../firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-        import { generateUniqueId } from '../utils.js'; // Assuming you have a utility file for ID generation
-
+        import { getFirestore, doc, getDoc, collection, getDocs, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
             const db = getFirestore(app);
-            const storage = getStorage(app);
-
-            // DOM Elements
-            const userNameEl = document.getElementById('user-name');
-            const userAvatarEl = document.getElementById('user-avatar');
+            
+            const testForm = document.getElementById('test-form');
+            const testCancelBtn = document.getElementById('test-cancel-btn');
+            const testSubmitBtn = document.getElementById('test-submit-btn');
             const toastContainer = document.getElementById('toast-container');
-            const fileUploadInput = document.getElementById('file-upload');
-            const uploadForm = document.getElementById('upload-form');
-            const uploadBtn = document.getElementById('upload-btn');
-            const manualForm = document.getElementById('manual-form');
-            const manualSubjectSelect = document.getElementById('manual-subject');
-            const manualNextBtn = document.getElementById('manual-next-btn');
 
-            let currentUserId = null;
-            let currentUserName = null;
-            let currentTestTemplate = {}; // Store data temporarily
+            let allSubjects = [];
+            let currentUser = null;
+            let currentEditingTestId = null;
 
-            // Utility functions
             function showToast(message, type = 'success') {
                 const toast = document.createElement('div');
                 const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-                toast.className = `toast show ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg`;
-                toast.textContent = message;
+                const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+                toast.className = `toast show ${bgColor} text-white p-4 rounded-lg shadow-lg flex items-center space-x-3`;
+                toast.innerHTML = `<i data-feather="${icon}" class="w-5 h-5"></i><span>${message}</span>`;
                 toastContainer.appendChild(toast);
+                feather.replace();
                 setTimeout(() => {
                     toast.classList.remove('show');
                     toast.addEventListener('transitionend', () => toast.remove());
                 }, 3000);
             }
-
-            function setButtonState(button, text, disabled) {
-                button.textContent = text;
-                button.disabled = disabled;
-                if (disabled) {
-                    button.classList.add('opacity-60', 'cursor-not-allowed');
-                } else {
-                    button.classList.remove('opacity-60', 'cursor-not-allowed');
-                }
+            
+            function populateSelect(selectElement, data, placeholder) {
+                selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.name;
+                    selectElement.appendChild(option);
+                });
             }
-
-            // Auth state listener
+            
             onAuthStateChanged(auth, async (user) => {
-                 if (user) {
-                    currentUserId = user.uid;
+                if (user) {
+                    currentUser = user;
                     const docSnap = await getDoc(doc(db, "users", user.uid));
                     if (docSnap.exists() && docSnap.data().role === 'admin') {
                         const userData = docSnap.data();
-                        currentUserName = userData.name || 'Admin';
-                        userNameEl.textContent = currentUserName;
+                        document.getElementById('user-name').textContent = userData.name || 'Admin';
                         const nameInitial = (userData.name || 'A').charAt(0).toUpperCase();
-                        userAvatarEl.src = `https://placehold.co/40x40/DC2626/FFFFFF?text=${nameInitial}`;
-                        
-                        // Load data and init logic
-                        await loadSubjects();
-                        loadInitialData();
-                        initEventListeners();
+                        document.getElementById('user-avatar').src = `https://placehold.co/40x40/DC2626/FFFFFF?text=${nameInitial}`;
+                        initPage();
                     } else { window.location.href = '../auth.html'; }
-                 } else { window.location.href = '../auth.html'; }
+                } else { window.location.href = '../auth.html'; }
             });
 
-            async function loadSubjects() {
+            async function initPage() {
                 try {
-                    const subjectsSnapshot = await getDocs(collection(db, "subjects"));
-                    manualSubjectSelect.innerHTML = '<option value="">--- Chọn Môn Học ---</option>';
-                    subjectsSnapshot.forEach(doc => {
-                        const subject = doc.data();
-                        manualSubjectSelect.innerHTML += `<option value="${doc.id}">${subject.name}</option>`;
-                    });
+                    const subjectsSnap = await getDocs(collection(db, "subjects"));
+                    allSubjects = subjectsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    populateSelect(document.getElementById('test-subject'), allSubjects, "Chọn môn học");
+
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const testId = urlParams.get('id');
+                    currentEditingTestId = testId;
+
+                    if (testId) {
+                        document.getElementById('page-title').textContent = 'Chỉnh sửa Đề thi - Bước 1';
+                        document.getElementById('test-submit-btn').textContent = 'Lưu & Tiếp tục';
+                        await loadTestData(testId);
+                    }
+
+                    setupEventListeners();
                 } catch (error) {
-                    console.error("Error loading subjects:", error);
-                    showToast("Lỗi tải danh sách môn học.", "error");
+                    console.error("Initialization Error: ", error);
+                    showToast("Lỗi khi tải dữ liệu.", "error");
                 }
             }
 
-            function loadInitialData() {
-                const savedTemplate = sessionStorage.getItem('currentTestTemplate');
-                if (savedTemplate) {
-                    currentTestTemplate = JSON.parse(savedTemplate);
-                    // Pre-fill subject if available from previous step (though this page mostly initiates a new flow)
-                    if (currentTestTemplate.subject_id) {
-                         manualSubjectSelect.value = currentTestTemplate.subject_id;
+            async function loadTestData(testId) {
+                const docRef = doc(db, "tests", testId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const testData = docSnap.data();
+                    if (testData.authorId !== currentUser.uid) {
+                        showToast("Bạn không có quyền chỉnh sửa đề thi này.", "error");
+                        setTimeout(() => window.location.href = 'tests.html', 2000);
+                        return;
                     }
+
+                    document.getElementById('test-name').value = testData.name;
+                    document.getElementById('test-type').value = testData.type;
+                    document.getElementById('test-subject').value = testData.subjectId || '';
+                } else {
+                    showToast("Không tìm thấy đề thi.", "error");
+                    setTimeout(() => window.location.href = 'tests.html', 2000);
                 }
             }
             
-            function saveTemplateToSession(subjectId) {
-                // Save basic template data for step 2
-                const testTemplate = {
-                    subject_id: subjectId,
-                    name: `Đề thi mới môn ${manualSubjectSelect.options[manualSubjectSelect.selectedIndex].text}`,
-                    duration: 90,
-                    question_count: 50,
-                    is_public: true,
-                    allow_review: true,
-                    question_method: 'manual-select',
-                    selected_questions: []
-                };
-                sessionStorage.setItem('currentTestTemplate', JSON.stringify(testTemplate));
-            }
-
-            function initEventListeners() {
-                // File upload validation
-                fileUploadInput.addEventListener('change', () => {
-                    if (fileUploadInput.files.length > 0) {
-                        setButtonState(uploadBtn, '<i data-feather="upload-cloud" class="w-5 h-5 mr-2"></i> Trích xuất Câu hỏi', false);
-                    } else {
-                        setButtonState(uploadBtn, '<i data-feather="upload-cloud" class="w-5 h-5 mr-2"></i> Trích xuất Câu hỏi', true);
-                    }
-                    feather.replace();
-                });
-
-                // Upload form submission logic (AI Extraction)
-                uploadForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    if (fileUploadInput.files.length === 0) {
-                        showToast("Vui lòng chọn một file Word/PDF.", "error");
-                        return;
-                    }
-
-                    const file = fileUploadInput.files[0];
-                    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-                        showToast("Kích thước file vượt quá 10MB.", "error");
-                        return;
-                    }
-
-                    setButtonState(uploadBtn, 'Đang tải lên...', true);
-                    manualNextBtn.disabled = true;
-
-                    try {
-                        const uniqueId = generateUniqueId();
-                        const fileExtension = file.name.split('.').pop();
-                        const storageRef = ref(storage, `uploads/temp-test-files/${uniqueId}.${fileExtension}`);
-                        
-                        // 1. Upload File
-                        const uploadSnapshot = await uploadBytes(storageRef, file);
-                        const fileUrl = await getDownloadURL(uploadSnapshot.ref);
-
-                        showToast("Đã tải file lên thành công. Đang chờ AI xử lý...", "success");
-                        setButtonState(uploadBtn, 'Đang chờ AI xử lý...', true);
-
-                        // 2. Call Cloud Function/API for AI Processing (SIMULATION)
-                        // In a real application, you would call a backend endpoint here
-                        // For this front-end only implementation, we simulate success and skip to step 2
-
-                        // SIMULATION: Assume AI processing returns a temporary ID and subject, then proceeds to step 2
-                        // For now, we just save a basic template to proceed
-                        
-                        const tempSubjectId = manualSubjectSelect.value || 'temp_subject_id'; // Fallback for subject
-
-                        const aiExtractedData = {
-                             subject_id: tempSubjectId, 
-                             name: `Đề thi từ File - ${file.name}`,
-                             question_count: 50, // Default estimate
-                             duration: 90,
-                             is_public: true,
-                             allow_review: true,
-                             question_method: 'manual-select',
-                             // In a real scenario, the AI would return extracted question IDs/data
-                             selected_questions: [], // Placeholder for AI-extracted Qs
-                             is_from_upload: true,
-                             uploaded_file_url: fileUrl,
-                        };
-                        
-                        sessionStorage.setItem('currentTestTemplate', JSON.stringify(aiExtractedData));
-                        window.location.href = 'create-test-step2.html';
-
-                    } catch (error) {
-                        console.error("Error during upload/processing:", error);
-                        showToast(`Lỗi: ${error.message}. Vui lòng thử lại.`, "error");
-                        setButtonState(uploadBtn, '<i data-feather="upload-cloud" class="w-5 h-5 mr-2"></i> Trích xuất Câu hỏi', false);
-                        manualNextBtn.disabled = false;
-                    }
-                    feather.replace();
-                });
-
-                // Manual next step logic
-                manualForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    if (!manualSubjectSelect.value) {
-                         showToast("Vui lòng chọn Môn Học trước.", "error");
-                         return;
-                    }
-                    saveTemplateToSession(manualSubjectSelect.value);
-                    window.location.href = 'create-test-step2.html';
-                });
-
+            function setupEventListeners() {
                 document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+                testForm.onsubmit = handleTestFormSubmit;
+                testCancelBtn.onclick = () => { window.location.href = 'tests.html'; };
             }
+
+            async function handleTestFormSubmit(e) {
+                e.preventDefault();
+                testSubmitBtn.disabled = true;
+
+                const name = document.getElementById('test-name').value.trim();
+                const subjectId = document.getElementById('test-subject').value;
+                if (!name || !subjectId) {
+                    showToast("Vui lòng nhập tên đề thi và chọn môn học.", "error");
+                    testSubmitBtn.disabled = false;
+                    return;
+                }
+                
+                const payload = {
+                    name,
+                    subjectId,
+                    type: document.getElementById('test-type').value,
+                    authorId: currentUser.uid,
+                    status: 'approved',
+                    updatedAt: serverTimestamp()
+                };
+
+                try {
+                    let testId;
+                    if (currentEditingTestId) {
+                        await updateDoc(doc(db, 'tests', currentEditingTestId), payload);
+                        testId = currentEditingTestId;
+                        showToast('Cập nhật thành công! Chuyển sang Bước 2...');
+                    } else {
+                        payload.createdAt = serverTimestamp();
+                        payload.questions = [];
+                        const docRef = await addDoc(collection(db, 'tests'), payload);
+                        testId = docRef.id;
+                        showToast('Tạo thành công! Chuyển sang Bước 2...');
+                    }
+                    setTimeout(() => window.location.href = `create-test-step2.html?id=${testId}`, 1500);
+                } catch (error) {
+                    console.error("Error saving test:", error);
+                    showToast("Lỗi khi lưu đề thi.", "error");
+                } finally {
+                    testSubmitBtn.disabled = false;
+                }
+            }
+            
+            feather.replace();
         });
     </script>
 </body>

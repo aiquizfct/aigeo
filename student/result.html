@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết quả Bài làm - AIGEO</title>
     <!-- 
@@ -34,6 +35,7 @@
             box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
         }
         .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
+        .sidebar-link.active svg { color: white; }
         .sidebar-link svg { margin-right: 0.75rem; }
         .brand-gradient-text {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
@@ -60,8 +62,13 @@
 <body class="flex h-screen">
     <canvas id="confetti-canvas"></canvas>
     <aside class="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
-        <div class="h-16 flex items-center justify-center border-b"><a href="/index.html" class="text-2xl font-bold brand-gradient-text">AIGEO</a></div>
-        <nav class="flex-grow p-4 space-y-2">
+        <div class="h-16 flex-shrink-0 flex items-center justify-center border-b px-4">
+            <a href="/index.html" class="flex items-center gap-2">
+                <img src="https://i.ibb.co/JWTx6WrX/FAVICON.png" alt="AIGEO Logo" class="h-8 w-auto">
+                <span class="text-2xl font-bold brand-gradient-text">AIGEO</span>
+            </a>
+        </div>
+        <nav class="flex-grow p-4 space-y-2 overflow-y-auto">
             <a href="index.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="home"></i>Bảng điều khiển</a>
             <a href="classrooms.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="book"></i>Lớp học của tôi</a>
             <a href="practice-hub.html" class="sidebar-link active"><i data-feather="zap"></i>Luyện tập</a>
@@ -69,7 +76,7 @@
             <a href="chat-bot.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="message-circle"></i>Chatbot AI</a>
             <a href="account.html" class="sidebar-link text-slate-600 nav-link"><i data-feather="user"></i>Tài khoản</a>
         </nav>
-        <div class="p-4 border-t"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
+        <div class="p-4 border-t flex-shrink-0"><button id="logout-btn" class="w-full sidebar-link text-slate-600 text-left"><i data-feather="log-out"></i>Đăng xuất</button></div>
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden">
@@ -105,7 +112,12 @@
 
                 <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                     <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm">
-                        <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center"><i data-feather="cpu" class="w-6 h-6 mr-3 text-teal-600"></i>Nhận xét từ AI</h2>
+                        <div class="flex justify-between items-center mb-4">
+                             <h2 class="text-xl font-bold text-slate-800 flex items-center"><i data-feather="cpu" class="w-6 h-6 mr-3 text-teal-600"></i>Nhận xét từ AI</h2>
+                             <button id="ai-detail-btn" class="cta-button text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center">
+                                <i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết
+                            </button>
+                        </div>
                         <div id="ai-feedback" class="prose prose-sm text-slate-600"><div class="skeleton h-24 w-full"></div></div>
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-sm">
@@ -117,7 +129,7 @@
                 <div class="mt-8">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4">
                          <h2 class="text-xl font-bold text-slate-700">Xem lại chi tiết bài làm</h2>
-                         <div class="flex space-x-2">
+                         <div id="action-buttons" class="flex space-x-2">
                              <a id="back-to-hub" href="practice-hub.html" class="bg-white text-slate-700 font-semibold px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition nav-link flex items-center"><i data-feather="zap" class="w-4 h-4 mr-2"></i>Luyện tập tiếp</a>
                              <a id="back-to-dashboard" href="index.html" class="cta-button text-white font-semibold px-4 py-2 rounded-lg nav-link flex items-center"><i data-feather="home" class="w-4 h-4 mr-2"></i>Về trang chủ</a>
                          </div>
@@ -152,8 +164,12 @@
             const reviewTopicsEl = document.getElementById('review-topics');
             const reviewContainerEl = document.getElementById('review-container');
             const resultPageContent = document.getElementById('result-page-content');
+            const aiDetailBtn = document.getElementById('ai-detail-btn');
+            const actionButtons = document.getElementById('action-buttons');
             
             let currentUser = null;
+            let currentResultData = null;
+            let currentQuestions = [];
 
             onAuthStateChanged(auth, async (user) => {
                 if (!user) { window.location.href = '../auth.html'; return; }
@@ -184,9 +200,13 @@
                     const resultSnap = await getDoc(resultDocRef);
                     if (!resultSnap.exists()) throw new Error("Không tìm thấy dữ liệu kết quả.");
                     
-                    const resultData = resultSnap.data();
-                    const { score, totalQuestions, userAnswers, incorrectQuestions, questionIds, embeddedQuestions, timeTaken, completedAt, testName } = resultData;
+                    currentResultData = resultSnap.data();
+                    const { score, totalQuestions, userAnswers, incorrectQuestions, questionIds, embeddedQuestions, timeTaken, completedAt, testName, type } = currentResultData;
                     
+                    if (testName.startsWith("Luyện tập")) {
+                        actionButtons.querySelector('#back-to-hub').classList.add('hidden');
+                    }
+
                     // Populate Summary Card
                     const tenPointScore = totalQuestions > 0 ? (score / totalQuestions) * 10 : 0;
                     scoreDisplayEl.textContent = tenPointScore.toFixed(1);
@@ -204,9 +224,9 @@
                         getDoc(doc(db, "system_settings", "api_keys"))
                     ]);
                     
-                    const finalQuestions = [...fetchedQuestions, ...(embeddedQuestions || [])];
+                    currentQuestions = [...fetchedQuestions, ...(embeddedQuestions || [])];
 
-                    renderReviewSection(finalQuestions, userAnswers, allLessons);
+                    renderReviewSection(currentQuestions, userAnswers, allLessons);
                     
                     const uniqueIncorrectLessonIds = [...new Set((incorrectQuestions || []).map(q => q.lessonId).filter(id => id))];
                     const topicsToReview = allLessons.filter(l => uniqueIncorrectLessonIds.includes(l.id));
@@ -215,7 +235,9 @@
                         : `<li><i data-feather="check-circle" class="w-4 h-4 inline-block mr-2 text-green-500"></i>Làm tốt lắm, không có lỗi sai!</li>`;
                     
                     const apiKeysData = apiKeySnap.exists() ? apiKeySnap.data() : null;
-                    getAiFeedback(incorrectQuestions || [], topicsToReview, score, totalQuestions, apiKeysData);
+                    getAiFeedback(incorrectQuestions || [], topicsToReview, score, totalQuestions, apiKeysData, false);
+                    
+                    aiDetailBtn.addEventListener('click', () => getAiFeedback(incorrectQuestions || [], topicsToReview, score, totalQuestions, apiKeysData, true));
                     
                     resultPageContent.classList.add('opacity-100');
                     feather.replace();
@@ -280,18 +302,24 @@
                         const formattedUserAnswer = String(userAnswer || "").trim().toLowerCase();
                         isCorrect = formattedUserAnswer === formattedCorrectAnswer;
                         answerHTML = `<div class="mt-4"><p><strong>Đáp án đúng:</strong> <span class="font-mono bg-green-100 text-green-800 px-2 py-1 rounded">${q.correctAnswer}</span></p><p><strong>Câu trả lời của bạn:</strong> <span class="font-mono ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded">${userAnswer || '(bỏ trống)'}</span></p></div>`;
-                    } else if (q.type === 'true_false') {
-                        isCorrect = (q.statements || []).every((stmt, i) => {
-                            if (!stmt.statement) return true;
-                            return (userAnswer ? userAnswer[i] : undefined) === stmt.answer;
-                        });
+                    } else if (q.type === 'true_false' || q.type === 'true_false_group') {
+                        const statements = q.statements || {};
+                        const statementKeys = Array.isArray(statements) ? Object.keys(statements) : Object.keys(statements).filter(k => statements[k]);
 
-                        answerHTML = (q.statements || []).map((stmt, i) => {
-                             if(!stmt.statement) return '';
-                            const userAns = userAnswer ? userAnswer[i] : undefined;
-                            const correctAns = stmt.answer;
-                            const isSubCorrect = userAns === correctAns;
-                            return `<div class="p-3 border-t"><p>${i+1}) ${stmt.statement}</p><div class="text-sm mt-2"><span>Đáp án: <strong class="${correctAns ? 'text-green-600' : 'text-red-600'}">${correctAns ? 'Đúng' : 'Sai'}</strong></span> | <span>Bạn chọn: <strong class="${isSubCorrect ? 'text-green-600' : 'text-red-600'}">${userAns === undefined ? '(bỏ trống)' : (userAns ? 'Đúng' : 'Sai')}</strong></span></div></div>`;
+                        isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => {
+                             const correctAnswer = Array.isArray(statements) ? statements[key].answer : q.answers[key];
+                             return userAnswer[key] === correctAnswer;
+                        });
+                        
+                        answerHTML = statementKeys.map(key => {
+                             const statementContent = Array.isArray(statements) ? statements[key].statement : statements[key];
+                             if(!statementContent) return '';
+                             
+                             const userAns = userAnswer ? userAnswer[key] : undefined;
+                             const correctAns = Array.isArray(statements) ? statements[key].answer : q.answers[key];
+                             const isSubCorrect = userAns === correctAns;
+                             
+                             return `<div class="p-3 border-t"><p>${key}) ${statementContent}</p><div class="text-sm mt-2"><span>Đáp án: <strong class="${correctAns ? 'text-green-600' : 'text-red-600'}">${correctAns ? 'Đúng' : 'Sai'}</strong></span> | <span>Bạn chọn: <strong class="${isSubCorrect ? 'text-green-600' : 'text-red-600'}">${userAns === undefined ? '(bỏ trống)' : (userAns ? 'Đúng' : 'Sai')}</strong></span></div></div>`;
                         }).join('');
                         answerHTML = `<div class="mt-4 border rounded-lg divide-y">${answerHTML}</div>`;
                     }
@@ -312,91 +340,89 @@
                 renderMathWithKaTeX(reviewContainerEl);
             }
 
-            // START OF MODIFIED AI FEEDBACK FUNCTION
             function getNextApiKey(openRouterKeys) {
                 let currentKeyIndex = parseInt(sessionStorage.getItem('orKeyIndex') || '0', 10) % openRouterKeys.length;
                 const key = openRouterKeys[currentKeyIndex];
-                // Luan phien key cho lan gui tiep theo (neu co)
                 sessionStorage.setItem('orKeyIndex', ((currentKeyIndex + 1) % openRouterKeys.length).toString());
                 return key;
             }
 
-            async function getAiFeedback(incorrectQuestions, topicsToReview, score, total, apiKeysData) {
-                // SỬ DỤNG OPENROUTER API VỚI DEEPSEEK V3.1
+            async function getAiFeedback(incorrectQuestions, topicsToReview, score, total, apiKeysData, isDetailed) {
                 const openRouterKeys = apiKeysData?.openrouter_keys;
-
                 if (!openRouterKeys || openRouterKeys.length === 0) {
-                    aiFeedbackEl.innerHTML = "Tính năng nhận xét AI chưa được quản trị viên cấu hình. Vui lòng liên hệ để được hỗ trợ.";
-                    return;
+                    aiFeedbackEl.innerHTML = "Tính năng nhận xét AI chưa được cấu hình."; return;
                 }
+                
+                aiDetailBtn.disabled = true;
+                aiDetailBtn.innerHTML = `<i data-feather="loader" class="animate-spin w-4 h-4 mr-2"></i>Đang phân tích...`;
+                feather.replace();
+
                 if(incorrectQuestions.length === 0) {
-                    aiFeedbackEl.innerHTML = "<strong>Xuất sắc!</strong><p>Bạn đã trả lời đúng tất cả các câu hỏi. Hãy tiếp tục phát huy nhé!</p>";
+                    aiFeedbackEl.innerHTML = "<strong>Xuất sắc!</strong><p>Bạn đã trả lời đúng tất cả các câu hỏi. Hãy tiếp tục phát huy nhé!</p>"; 
+                    aiDetailBtn.classList.add('hidden');
                     return;
                 }
                 
                 const openRouterApiKey = getNextApiKey(openRouterKeys);
                 
-                const incorrectContent = incorrectQuestions.slice(0, 5).map(q => `- ${q.questionContent.replace(/\s+/g, ' ').substring(0, 100)}...`).join('\n');
-                const topicsContent = topicsToReview.map(t => t.name).join(', ');
+                let systemPrompt, userPrompt;
 
-                const systemPrompt = "You are a helpful AI assistant for AIGEO, a geography learning platform. Your task is to provide a concise, motivational, and constructive review (about 3-4 sentences) in Vietnamese based on the student's quiz results. The review MUST use HTML formatting (<strong>, <p>, <ul><li>) and start with <strong>. Do not use markdown or backticks.";
-                
-                const userPrompt = `
-                    Một học sinh vừa hoàn thành bài kiểm tra và đạt ${score}/${total} điểm.
-                    Các chủ đề kiến thức bị sai là: ${topicsContent}.
-                    Một vài câu hỏi bị sai:
-                    ${incorrectContent}
-                    Dựa vào thông tin trên, hãy động viên học sinh, chỉ ra các mảng kiến thức chính cần củng cố và đề xuất hành động cụ thể.
-                `;
+                if (isDetailed) {
+                    const incorrectQuestionsData = currentQuestions.filter(q => incorrectQuestions.some(iq => iq.questionContent === q.content));
+                    const detailedIncorrectContent = incorrectQuestionsData.map((q, index) => {
+                        let questionText = `Câu ${index + 1}: ${q.content}\n`;
+                        if (q.type === 'multiple_choice') {
+                            questionText += q.options.map((opt, i) => `  ${String.fromCharCode(65+i)}. ${opt}`).join('\n');
+                            questionText += `\n  Đáp án đúng: ${q.correctAnswer}`;
+                        } else {
+                            questionText += `\n  Đáp án đúng: ${q.correctAnswer}`;
+                        }
+                        return questionText;
+                    }).join('\n\n');
+
+                    systemPrompt = "You are a professional and friendly AI tutor for AIGEO. Your task is to provide a detailed, step-by-step explanation for each incorrect question provided by the user. Respond in Vietnamese. Use HTML formatting (e.g., <p>, <strong>, <ul>, <li>) and KaTeX for math formulas (e.g., $ax^2+b=0$). Structure your response clearly for each question.";
+                    userPrompt = `Tôi vừa làm sai những câu sau đây, vui lòng giải thích chi tiết cách giải và đáp án đúng cho từng câu:\n\n${detailedIncorrectContent}`;
+                } else {
+                    const topicsContent = topicsToReview.map(t => t.name).join(', ');
+                    systemPrompt = "You are a helpful AI assistant for AIGEO. Provide a concise, motivational, and constructive review (about 3-4 sentences) in Vietnamese based on the student's quiz results. The review MUST use HTML formatting (<strong>, <p>, <ul><li>) and start with <strong>. Do not use markdown.";
+                    userPrompt = `Một học sinh vừa hoàn thành bài kiểm tra và đạt ${score}/${total} điểm. Các chủ đề kiến thức bị sai là: ${topicsContent}. Dựa vào thông tin trên, hãy động viên, chỉ ra các mảng kiến thức chính cần củng cố và đề xuất hành động cụ thể.`;
+                }
 
                 aiFeedbackEl.innerHTML = '<p class="text-center text-slate-500"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500 mx-auto"></div> Đang tạo nhận xét...</p>';
-
+                
                 try {
-                    const API_URL = `https://openrouter.ai/api/v1/chat/completions`;
-                    
-                    const response = await fetch(API_URL, {
+                    const response = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
                         method: 'POST',
                         headers: { 
-                            'Authorization': `Bearer ${openRouterApiKey}`,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`, 
-                            'X-Title': 'AIGEO Student Review' 
+                            'Authorization': `Bearer ${openRouterApiKey}`, 'Content-Type': 'application/json',
+                            'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`, 'X-Title': 'AIGEO Student Review' 
                         },
                         body: JSON.stringify({ 
-                            model: "deepseek/deepseek-chat-v3.1:free", // Sử dụng mô hình DeepSeek V3.1
-                            messages: [
-                                { role: "system", content: systemPrompt },
-                                { role: "user", content: userPrompt }
-                            ] 
+                            model: "deepseek/deepseek-chat-v3.1:free",
+                            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }] 
                         })
                     });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error.message || `Lỗi API: ${response.statusText}`);
-                    }
-                    
+                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error.message || `API Error: ${response.statusText}`); }
                     const data = await response.json();
                     const text = data.choices[0]?.message?.content;
-
                     if (!text) throw new Error("Phản hồi từ AI không hợp lệ.");
                     
-                    aiFeedbackEl.innerHTML = text;
+                    const renderedHtml = marked.parse(text);
+                    aiFeedbackEl.innerHTML = renderedHtml;
+                    renderMathWithKaTeX(aiFeedbackEl);
+
                 } catch (error) {
                     console.error("AI Feedback Error:", error);
                     aiFeedbackEl.innerHTML = "Rất tiếc, không thể tạo nhận xét tự động lúc này. Vui lòng tự xem lại các câu sai ở bên dưới nhé.";
+                } finally {
+                    aiDetailBtn.disabled = false;
+                    aiDetailBtn.innerHTML = `<i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết`;
+                    feather.replace();
                 }
             }
-            // END OF MODIFIED AI FEEDBACK FUNCTION
             
             function renderMathWithKaTeX(elem) {
-                if (window.renderMathInElement) {
-                    renderMathInElement(elem, {
-                        delimiters: [
-                            {left: "$$", right: "$$", display: true}, {left: "\\(", right: "\\)", display: false}, {left: "$", right: "$", display: false}
-                        ]
-                    });
-                }
+                if (window.renderMathInElement) { renderMathInElement(elem, { delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}] }); }
             }
 
             function launchConfetti() {
@@ -455,3 +481,4 @@
     </script>
 </body>
 </html>
+

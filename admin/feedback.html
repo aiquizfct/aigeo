@@ -2,9 +2,9 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý Góp ý - AIGEO</title>
-    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
@@ -33,17 +33,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        /* ADDED/REFINED FORM-INPUT STYLE for consistency */
-        .form-input {
-            width: 100%; padding: 0.75rem 1rem; margin-top: 0.5rem; border: 1px solid #cbd5e1;
-            border-radius: 0.5rem; background-color: #f8fafc; transition: all 0.2s ease-in-out;
-        }
-        .form-input:focus {
-            outline: none; background-color: white; border-color: var(--primary-teal);
-            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
-        }
-        /* END ADDED/REFINED FORM-INPUT STYLE */
-
         .cta-button {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
             transition: all 0.3s ease;
@@ -120,7 +109,7 @@
                 <p id="original-feedback-content" class="mt-2 text-slate-800 whitespace-pre-wrap"></p>
             </div>
             <form id="reply-form">
-                <textarea id="reply-content" rows="5" class="form-input" placeholder="Nhập nội dung phản hồi của bạn..." required></textarea>
+                <textarea id="reply-content" rows="5" class="w-full p-3 border border-slate-300 rounded-lg" placeholder="Nhập nội dung phản hồi của bạn..." required></textarea>
                 <div class="flex justify-end space-x-3 mt-6">
                     <button type="button" id="reply-cancel-btn" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-300 font-semibold">Hủy</button>
                     <button type="submit" id="reply-submit-btn" class="cta-button text-white px-4 py-2 rounded-lg font-semibold">Gửi phản hồi</button>

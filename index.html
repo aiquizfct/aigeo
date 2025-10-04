@@ -2,6 +2,7 @@
 <html lang="vi" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AIGEO - Khám phá tri thức Địa lý</title>
     
@@ -60,13 +61,9 @@
             transition: transform 0.1s linear, opacity 0.1s linear;
         }
         
-        .reveal {
+        .reveal, .anime-title-scroll, .feature-icon, .step-number {
             opacity: 0;
-            transform: translateY(40px);
-            transition: opacity 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            transition-delay: var(--delay, 0s);
         }
-        .reveal.active { opacity: 1; transform: translateY(0); }
 
         .cta-button {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
@@ -92,10 +89,13 @@
             to { transform: scale(4); opacity: 0; }
         }
 
+        .anime-title .line {
+            overflow: hidden;
+            display: block;
+        }
         .anime-title .letter {
             display: inline-block;
-            line-height: 1em;
-            opacity: 0;
+            transform: translateY(100%);
         }
         
         #how-it-works-svg path {
@@ -107,10 +107,14 @@
 <body class="antialiased">
     <header class="glass-header sticky top-0 z-50">
         <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="#" class="text-2xl font-bold gradient-text">AIGEO</a>
+            <a href="#" class="flex items-center gap-2">
+                <img src="https://i.ibb.co/JWTx6WrX/FAVICON.png" alt="AIGEO Logo" class="h-8 w-auto">
+                <span class="text-2xl font-bold gradient-text">AIGEO</span>
+            </a>
             <div class="hidden md:flex items-center space-x-8 text-sm font-semibold">
                 <a href="#features" class="text-slate-600 hover:text-teal-600 transition">Tính năng</a>
                 <a href="#how-it-works" class="text-slate-600 hover:text-teal-600 transition">Cách hoạt động</a>
+                <a href="#testimonials" class="text-slate-600 hover:text-teal-600 transition">Đánh giá</a>
                 <a href="#about" class="text-slate-600 hover:text-teal-600 transition">Về chúng tôi</a>
             </div>
             <div class="flex items-center space-x-4">
@@ -121,6 +125,7 @@
         <div id="mobile-menu" class="hidden md:hidden px-6 pt-2 pb-4 space-y-2">
             <a href="#features" class="block py-2 text-slate-600 hover:text-teal-600 font-medium">Tính năng</a>
             <a href="#how-it-works" class="block py-2 text-slate-600 hover:text-teal-600 font-medium">Cách hoạt động</a>
+            <a href="#testimonials" class="block py-2 text-slate-600 hover:text-teal-600 font-medium">Đánh giá</a>
             <a href="#about" class="block py-2 text-slate-600 hover:text-teal-600 font-medium">Về chúng tôi</a>
             <a href="auth.html" class="block cta-button text-white text-center mt-2 px-5 py-2.5 rounded-lg font-semibold">Khám phá ngay</a>
         </div>
@@ -132,13 +137,13 @@
             <div class="container mx-auto px-6 text-center relative z-10">
                 <div class="anime-title">
                     <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-text-dark uppercase [text-shadow:_0_2px_8px_rgba(0,0,0,0.1)] tracking-wide">
-                        KHÁM PHÁ THẾ GIỚI
+                        <span class="line">KHÁM PHÁ THẾ GIỚI</span>
                     </h1>
                     <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-text-dark uppercase [text-shadow:_0_2px_8px_rgba(0,0,0,0.1)] tracking-wide mt-2">
-                        QUA TỪNG CÂU HỎI
+                        <span class="line">QUA TỪNG CÂU HỎI</span>
                     </h1>
                     <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-text-dark uppercase [text-shadow:_0_2px_8px_rgba(0,0,0,0.1)] tracking-wide mt-2">
-                        VỚI <span class="gradient-text">AIGEO</span>
+                        <span class="line">VỚI <span class="gradient-text">AIGEO</span></span>
                     </h1>
                 </div>
 
@@ -165,7 +170,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div class="feature-card p-8 rounded-2xl reveal" style="--delay: 0.1s;">
                         <div class="relative z-10">
-                            <div class="flex items-center justify-center h-14 w-14 rounded-xl bg-teal-100 text-teal-600 mb-6 transition-all duration-300 group-hover:scale-110">
+                            <div class="feature-icon flex items-center justify-center h-14 w-14 rounded-xl bg-teal-100 text-teal-600 mb-6">
                                 <i data-feather="globe" class="w-7 h-7"></i>
                             </div>
                             <h3 class="text-xl font-semibold mb-3 text-text-dark">Lộ trình cá nhân hóa</h3>
@@ -175,7 +180,7 @@
                     </div>
                     <div class="feature-card p-8 rounded-2xl reveal" style="--delay: 0.25s;">
                         <div class="relative z-10">
-                           <div class="flex items-center justify-center h-14 w-14 rounded-xl bg-emerald-100 text-emerald-600 mb-6 transition-all duration-300 group-hover:scale-110">
+                           <div class="feature-icon flex items-center justify-center h-14 w-14 rounded-xl bg-emerald-100 text-emerald-600 mb-6">
                                <i data-feather="map" class="w-7 h-7"></i>
                            </div>
                            <h3 class="text-xl font-semibold mb-3 text-text-dark">Ngân hàng câu hỏi khổng lồ</h3>
@@ -185,7 +190,7 @@
                     </div>
                     <div class="feature-card p-8 rounded-2xl reveal" style="--delay: 0.4s;">
                         <div class="relative z-10">
-                             <div class="flex items-center justify-center h-14 w-14 rounded-xl bg-sky-100 text-sky-600 mb-6 transition-all duration-300 group-hover:scale-110">
+                             <div class="feature-icon flex items-center justify-center h-14 w-14 rounded-xl bg-sky-100 text-sky-600 mb-6">
                                  <i data-feather="compass" class="w-7 h-7"></i>
                             </div>
                              <h3 class="text-xl font-semibold mb-3 text-text-dark">Tạo đề thi bằng AI</h3>
@@ -197,7 +202,7 @@
             </div>
         </section>
 
-        <section id="how-it-works" class="py-24 bg-bg-light">
+        <section id="how-it-works" class="py-24 bg-slate-50">
              <div class="container mx-auto px-6">
                 <div class="text-center mb-20 reveal">
                     <h2 class="anime-title-scroll text-3xl md:text-4xl font-bold text-text-dark uppercase tracking-wider">Bắt đầu thật dễ dàng</h2>
@@ -211,17 +216,17 @@
                     </div>
                     <div class="relative grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 text-center">
                         <div class="reveal step-1" style="--delay: 0.1s;">
-                            <div class="flex justify-center items-center mb-5"><div class="bg-teal-600 text-white w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl shadow-lg shadow-teal-500/30">1</div></div>
+                            <div class="flex justify-center items-center mb-5"><div class="step-number bg-teal-600 text-white w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl shadow-lg shadow-teal-500/30">1</div></div>
                             <h3 class="text-lg font-semibold mb-2 text-text-dark">Đăng ký tài khoản</h3>
                             <p class="text-text-light text-sm">Tạo tài khoản miễn phí và thiết lập hồ sơ học tập của bạn chỉ trong một phút.</p>
                         </div>
                         <div class="reveal step-2" style="--delay: 0.25s;">
-                            <div class="flex justify-center items-center mb-5"><div class="bg-emerald-600 text-white w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl shadow-lg shadow-emerald-500/30">2</div></div>
+                            <div class="flex justify-center items-center mb-5"><div class="step-number bg-emerald-600 text-white w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl shadow-lg shadow-emerald-500/30">2</div></div>
                             <h3 class="text-lg font-semibold mb-2 text-text-dark">Làm bài & Nhận phân tích</h3>
                             <p class="text-text-light text-sm">Hoàn thành các bài kiểm tra đầu vào để AI hiểu rõ năng lực của bạn.</p>
                         </div>
                          <div class="reveal step-3" style="--delay: 0.4s;">
-                            <div class="flex justify-center items-center mb-5"><div class="bg-sky-600 text-white w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl shadow-lg shadow-sky-500/30">3</div></div>
+                            <div class="flex justify-center items-center mb-5"><div class="step-number bg-sky-600 text-white w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl shadow-lg shadow-sky-500/30">3</div></div>
                             <h3 class="text-lg font-semibold mb-2 text-text-dark">Học theo lộ trình AI</h3>
                             <p class="text-text-light text-sm">Luyện tập với các câu hỏi được cá nhân hóa để cải thiện nhanh chóng.</p>
                         </div>
@@ -250,6 +255,48 @@
                 </div>
             </div>
         </section>
+
+        <section id="testimonials" class="py-24 bg-slate-50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 reveal">
+                    <h2 class="anime-title-scroll text-3xl md:text-4xl font-bold text-text-dark uppercase tracking-wider">Học sinh & Giáo viên nói gì?</h2>
+                    <p class="mt-4 text-text-light max-w-2xl mx-auto">Lắng nghe chia sẻ từ những người đã và đang trải nghiệm AIGEO.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="bg-white p-8 rounded-2xl shadow-lg reveal testimonial-card" style="--delay: 0.1s;">
+                        <div class="flex items-center mb-4">
+                            <img src="https://placehold.co/48x48/E2E8F0/475569?text=A" alt="Avatar" class="w-12 h-12 rounded-full mr-4">
+                            <div>
+                                <p class="font-semibold text-text-dark">Trần Minh Anh</p>
+                                <p class="text-sm text-text-light">Học sinh lớp 12</p>
+                            </div>
+                        </div>
+                        <p class="text-text-light italic">"AIGEO thực sự đã thay đổi cách em học Địa lý. Tính năng tạo đề theo năng lực AI giúp em tập trung vào đúng những phần kiến thức còn yếu. Điểm số của em đã cải thiện rõ rệt!"</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-lg reveal testimonial-card" style="--delay: 0.25s;">
+                        <div class="flex items-center mb-4">
+                            <img src="https://placehold.co/48x48/E2E8F0/475569?text=L" alt="Avatar" class="w-12 h-12 rounded-full mr-4">
+                            <div>
+                                <p class="font-semibold text-text-dark">Cô Nguyễn Thị Lan</p>
+                                <p class="text-sm text-text-light">Giáo viên Địa lý</p>
+                            </div>
+                        </div>
+                        <p class="text-text-light italic">"Tính năng tạo đề thi từ file và giám sát thi cử của AIGEO giúp tôi tiết kiệm rất nhiều thời gian và công sức. Giao diện thân thiện, học sinh của tôi rất thích thú khi sử dụng."</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-lg reveal testimonial-card" style="--delay: 0.4s;">
+                        <div class="flex items-center mb-4">
+                            <img src="https://placehold.co/48x48/E2E8F0/475569?text=H" alt="Avatar" class="w-12 h-12 rounded-full mr-4">
+                            <div>
+                                <p class="font-semibold text-text-dark">Lê Quang Huy</p>
+                                <p class="text-sm text-text-light">Học sinh luyện thi THPT</p>
+                            </div>
+                        </div>
+                        <p class="text-text-light italic">"Ngân hàng câu hỏi rất đa dạng và chất lượng. Em đặc biệt thích chatbot AI, nó giải đáp thắc mắc của em gần như ngay lập tức, rất tiện lợi cho việc tự học tại nhà."</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <footer id="contact" class="bg-text-dark text-white">
@@ -262,8 +309,7 @@
             </div>
             <div class="mt-16 border-t border-slate-700 pt-8 text-center reveal" style="--delay: 0.4s;">
                 <div class="flex justify-center space-x-6 mb-4 text-sm">
-                    <a href="dieu-khoan-su-dung.html" class="text-slate-400 hover:text-white transition-colors">Điều Khoản Sử Dụng</a>
-                    <a href="bao-mat-nguoi-dung.html" class="text-slate-400 hover:text-white transition-colors">Bảo Mật Người Dùng</a>
+                    <a href="huong-dan-su-dung.html" class="text-slate-400 hover:text-white transition-colors">Hướng dẫn sử dụng</a>
                 </div>
                 <p class="text-slate-400 text-sm">&copy; 2025 AIGEO. All rights reserved.</p>
             </div>
@@ -291,15 +337,12 @@
                     const circle = document.createElement('span');
                     const diameter = Math.max(button.clientWidth, button.clientHeight);
                     const radius = diameter / 2;
-
                     circle.style.width = circle.style.height = `${diameter}px`;
                     circle.style.left = `${e.clientX - rect.left - radius}px`;
                     circle.style.top = `${e.clientY - rect.top - radius}px`;
                     circle.classList.add('ripple');
-                    
                     const ripple = button.getElementsByClassName("ripple")[0];
                     if (ripple) { ripple.remove(); }
-                    
                     button.appendChild(circle);
                 });
             });
@@ -308,19 +351,15 @@
             const canvas = document.getElementById('hero-canvas');
             if (canvas) {
                 const ctx = canvas.getContext('2d');
-                let width, height, particles, mouse;
-
+                let width, height, particles;
                 function init() {
                     width = canvas.width = window.innerWidth;
                     height = canvas.height = canvas.parentElement.offsetHeight;
                     particles = [];
-                    mouse = { x: width / 2, y: height / 2 };
-                    for (let i = 0; i < 60; i++) { // Reduced particle count
+                    for (let i = 0; i < 60; i++) {
                         particles.push(new Particle());
                     }
-                    loop();
                 }
-
                 class Particle {
                     constructor() {
                         this.x = Math.random() * width;
@@ -328,6 +367,7 @@
                         this.vx = (Math.random() - 0.5) * 0.4;
                         this.vy = (Math.random() - 0.5) * 0.4;
                         this.radius = Math.random() * 1.5 + 1;
+                        this.alpha = 0;
                     }
                     update() {
                         this.x += this.vx;
@@ -338,11 +378,10 @@
                     draw() {
                         ctx.beginPath();
                         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                        ctx.fillStyle = 'rgba(13, 148, 136, 0.3)'; // Reduced opacity
+                        ctx.fillStyle = `rgba(13, 148, 136, ${this.alpha})`;
                         ctx.fill();
                     }
                 }
-
                 function loop() {
                     ctx.clearRect(0, 0, width, height);
                     particles.forEach(p => {
@@ -351,11 +390,11 @@
                         for (let other of particles) {
                             if (p !== other) {
                                 let dist = Math.hypot(p.x - other.x, p.y - other.y);
-                                if (dist < 150) { // Increased distance for lines
+                                if (dist < 150) {
                                     ctx.beginPath();
                                     ctx.moveTo(p.x, p.y);
                                     ctx.lineTo(other.x, other.y);
-                                    ctx.strokeStyle = `rgba(13, 148, 136, ${0.5 - dist / 150})`; // Reduced line opacity
+                                    ctx.strokeStyle = `rgba(13, 148, 136, ${(0.5 - dist / 150) * p.alpha})`;
                                     ctx.lineWidth = 0.2;
                                     ctx.stroke();
                                 }
@@ -364,86 +403,131 @@
                     });
                     requestAnimationFrame(loop);
                 }
-                
-                canvas.parentElement.addEventListener('mousemove', e => {
-                    mouse.x = e.clientX;
-                    mouse.y = e.clientY;
-                });
-                
                 window.addEventListener('resize', init);
                 init();
+                anime({
+                    targets: particles,
+                    alpha: 0.3,
+                    duration: 1200,
+                    easing: 'easeInQuad',
+                    delay: anime.stagger(10)
+                });
             }
 
-            // --- REVISED Hero Animations ---
-            const heroTimeline = anime.timeline({
-                easing: 'easeOutExpo',
-                duration: 1000
-            });
-
+            // --- Hero Text Animation ---
             const heroTitle = document.querySelector('.anime-title');
             if (heroTitle) {
-                // Find all h1 tags inside the container and process them
-                heroTitle.querySelectorAll('h1').forEach(h1 => {
-                    h1.innerHTML = h1.textContent.replace(/(\S)/g, "<span class='letter'>$&</span>");
+                heroTitle.querySelectorAll('.line').forEach(line => {
+                    line.innerHTML = line.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
                 });
-                
-                heroTimeline.add({
+                anime.timeline({
+                    complete: () => {
+                         anime({
+                            targets: '#hero-subtitle, #hero-button',
+                            opacity: [0, 1],
+                            translateY: [20, 0],
+                            duration: 800,
+                            easing: 'easeOutExpo',
+                            delay: anime.stagger(100)
+                        });
+                    }
+                })
+                .add({
                     targets: '.anime-title .letter',
-                    translateY: ["1.1em", 0],
-                    translateX: ["0.55em", 0],
+                    translateY: [100,0],
                     translateZ: 0,
-                    rotateZ: [180, 0],
-                    opacity: [0, 1],
-                    duration: 750,
-                    delay: anime.stagger(40)
+                    opacity: [0,1],
+                    easing: "easeOutExpo",
+                    duration: 1400,
+                    delay: (el, i) => 300 + 30 * i
                 });
             }
-            
-            heroTimeline.add({
-                targets: '#hero-subtitle, #hero-button',
-                opacity: [0, 1],
-                translateY: [20, 0],
-                delay: anime.stagger(200)
-            }, '-=800'); // Overlap with title animation for a smoother effect
 
-
-            // --- Scroll Animations for elements below the fold ---
+            // --- Scroll Animations ---
             const scrollObserver = new IntersectionObserver((entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
-                        entry.target.classList.add('active');
-                        // Animate title on scroll
-                        if (entry.target.querySelector('.anime-title-scroll')) {
-                           const title = entry.target.querySelector('.anime-title-scroll');
-                           if (!title.classList.contains('animated')) {
-                               title.classList.add('animated');
-                               title.innerHTML = title.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
+                        const target = entry.target;
+                        
+                        if(target.classList.contains('anime-title-scroll')) {
+                           if (!target.classList.contains('animated')) {
+                               target.classList.add('animated');
+                               target.innerHTML = target.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
                                anime({
-                                   targets: title.querySelectorAll('.letter'),
-                                   translateY: [-30,0],
+                                   targets: target.querySelectorAll('.letter'),
+                                   translateY: [40,0],
                                    opacity: [0,1],
                                    easing: "easeOutExpo",
-                                   duration: 600,
-                                   delay: (el, i) => 30 * i
+                                   duration: 1000,
+                                   delay: anime.stagger(30)
                                });
                            }
-                        }
-                        // Animate "How it works" SVG
-                        if (entry.target.id === 'how-it-works-svg-wrapper') {
-                            anime({
+                        } 
+                        else if (target.id === 'how-it-works-svg-wrapper') {
+                           anime({
                                 targets: '#how-it-works-svg path',
                                 strokeDashoffset: [anime.setDashoffset, 0],
                                 easing: 'easeInOutSine',
-                                duration: 1500,
-                                delay: 300
+                                duration: 2000,
                             });
                         }
+                        else {
+                           target.style.opacity = 1;
+                           target.style.transform = 'translateY(0)';
+                           
+                           // Staggered animations for specific sections
+                            if (target.parentElement.id === 'features') {
+                                anime({
+                                    targets: target.querySelector('.feature-icon'),
+                                    scale: [0, 1],
+                                    opacity: [0, 1],
+                                    translateZ: 0,
+                                    easing: "spring(1, 80, 10, 0)",
+                                    duration: 800,
+                                    delay: 200
+                                });
+                            }
+                            if (target.classList.contains('step-number')) {
+                                 anime({
+                                    targets: target,
+                                    scale: [0.5, 1],
+                                    rotate: [-30, 0],
+                                    opacity: [0, 1],
+                                    easing: "easeOutBack",
+                                    duration: 600,
+                                });
+                            }
+                            if(target.classList.contains('testimonial-card')) {
+                                anime({
+                                    targets: target,
+                                    translateX: [ (target.dataset.delay * 1000) % 2 === 0 ? -50 : 50, 0],
+                                    opacity: [0,1],
+                                    easing: 'easeOutExpo',
+                                    duration: 1000,
+                                });
+                            }
+                        }
+                        scrollObserver.unobserve(target);
                     }
                 });
             }, { threshold: 0.2 });
 
-            document.querySelectorAll('.reveal').forEach(el => {
+            document.querySelectorAll('.reveal, .anime-title-scroll, #how-it-works-svg-wrapper, .feature-icon, .step-number, .testimonial-card').forEach(el => {
                 scrollObserver.observe(el);
+            });
+            
+            // --- Parallax Effect for About Image ---
+            const aboutImage = document.getElementById('about-image');
+            window.addEventListener('scroll', () => {
+                const scrollY = window.scrollY;
+                const sectionTop = document.getElementById('about').offsetTop;
+                const sectionHeight = document.getElementById('about').offsetHeight;
+                
+                if (scrollY > sectionTop - window.innerHeight && scrollY < sectionTop + sectionHeight) {
+                    const scrollPercent = (scrollY - (sectionTop - window.innerHeight)) / (window.innerHeight + sectionHeight);
+                    const yOffset = (scrollPercent - 0.5) * -80; // Adjust multiplier for parallax strength
+                    aboutImage.style.transform = `translateY(${yOffset}px)`;
+                }
             });
 
             // --- 3D Tilt Effect for Feature Cards ---
@@ -474,3 +558,4 @@
     </script>
 </body>
 </html>
+

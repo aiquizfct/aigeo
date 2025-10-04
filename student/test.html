@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Làm bài thi - AIGEO</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -273,15 +274,13 @@
                         return;
                     }
                     
-                    // *** FIX: LẤY THÔNG TIN LỚP HỌC VÀ TEACHER ID ***
                     const classDocRef = doc(db, "classrooms", currentClassId);
                     const classDocSnap = await getDoc(classDocRef);
                     if (classDocSnap.exists()) {
-                        currentTeacherId = classDocSnap.data().teacherId; // Lưu lại ID giáo viên
+                        currentTeacherId = classDocSnap.data().teacherId; 
                     } else {
                         throw new Error("Không tìm thấy thông tin lớp học.");
                     }
-                    // *** KẾT THÚC PHẦN SỬA ***
 
                     const testDocRef = doc(db, "tests", currentTestId);
                     const testDocSnap = await getDoc(testDocRef);
@@ -292,26 +291,33 @@
                     timeLeft = (testData.timeLimit || 45) * 60;
                     timeLimitInSeconds = timeLeft;
 
-                    if (!testData.questionIds || testData.questionIds.length === 0) {
+                    if ((!testData.questionIds || testData.questionIds.length === 0) && (!testData.questions || testData.questions.length === 0)) {
                          mainContentArea.innerHTML = `<p class="text-center text-slate-500">Đề thi này chưa có câu hỏi nào.</p>`;
                          return;
                     }
 
-                    const questionIds = testData.questionIds;
-                    const fetchedQuestions = [];
-                    for (let i = 0; i < questionIds.length; i += 30) {
-                        const chunk = questionIds.slice(i, i + 30);
-                        const q = query(collection(db, "questions"), where("__name__", "in", chunk));
-                        const snapshot = await getDocs(q);
-                        snapshot.forEach(doc => fetchedQuestions.push({ id: doc.id, ...doc.data() }));
+                    let questionIds = testData.questionIds || [];
+                    
+                    if (testData.questions && testData.questions.length > 0) {
+                         questions = testData.questions.map((q, index) => ({...q, id: `embedded_${index}`}));
                     }
-                    questions = fetchedQuestions.sort((a, b) => questionIds.indexOf(a.id) - questionIds.indexOf(b.id));
-
+                    
+                    if (questionIds.length > 0) {
+                        const fetchedQuestions = [];
+                        for (let i = 0; i < questionIds.length; i += 30) {
+                            const chunk = questionIds.slice(i, i + 30);
+                            const q = query(collection(db, "questions"), where("__name__", "in", chunk));
+                            const snapshot = await getDocs(q);
+                            snapshot.forEach(doc => fetchedQuestions.push({ id: doc.id, ...doc.data() }));
+                        }
+                        questions = questions.concat(fetchedQuestions.sort((a, b) => questionIds.indexOf(a.id) - questionIds.indexOf(b.id)));
+                    }
+                    
                     questions.forEach(q => {
                         if (q.type === 'multiple_choice' && q.options) {
                             const optionsWithOriginalLetter = ['A', 'B', 'C', 'D']
                                 .map((letter, index) => ({ originalLetter: letter, content: q.options[index] }))
-                                .filter(opt => opt.content);
+                                .filter(opt => opt && opt.content);
 
                             for (let i = optionsWithOriginalLetter.length - 1; i > 0; i--) {
                                 const j = Math.floor(Math.random() * (i + 1));
@@ -351,21 +357,41 @@
                                     <span class="flex-1">${optionData.content}</span>
                                 </div>`;
                     }).join('');
-                } else if (question.type === 'true_false_group') {
-                    const statements = question.statements || {};
+                } else if (question.type === 'true_false_group' || question.type === 'true_false') {
+                    let statementsHTML = '<div class="space-y-4">';
+                    const statements = question.statements || (Array.isArray(question.statements) ? [] : {});
                     const savedAnswers = savedAnswer || {};
-                    answerHTML = Object.keys(statements).map(key => {
-                        if (!statements[key]) return '';
-                        const isTrueSelected = savedAnswers[key] === true;
-                        const isFalseSelected = savedAnswers[key] === false;
-                        return `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
-                                    <p class="mb-3 text-slate-800">${statements[key]}</p>
-                                    <div class="flex space-x-3" data-statement-key="${key}">
-                                        <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
-                                        <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
-                                    </div>
-                                </div>`;
-                    }).join('');
+
+                     if(Array.isArray(statements)) {
+                        statements.forEach((stmt, i) => {
+                            if (stmt.statement) {
+                                const isTrueSelected = savedAnswers[i] === true;
+                                const isFalseSelected = savedAnswers[i] === false;
+                                statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
+                                            <p class="mb-3 text-slate-800">${i + 1}) ${stmt.statement}</p>
+                                            <div class="flex space-x-3" data-statement-key="${i}">
+                                                <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
+                                                <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
+                                            </div>
+                                        </div>`;
+                            }
+                        });
+                     } else { // Object format
+                        Object.keys(statements).forEach(key => {
+                             if(statements[key]) {
+                                const isTrueSelected = savedAnswers[key] === true;
+                                const isFalseSelected = savedAnswers[key] === false;
+                                 statementsHTML += `<div class="p-4 rounded-lg bg-slate-50 border-2 border-slate-200">
+                                            <p class="mb-3 text-slate-800">${key}) ${statements[key]}</p>
+                                            <div class="flex space-x-3" data-statement-key="${key}">
+                                                <button data-value="true" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isTrueSelected ? 'selected' : ''}">Đúng</button>
+                                                <button data-value="false" class="tf-btn flex-1 p-3 rounded-lg font-semibold ${isFalseSelected ? 'selected' : ''}">Sai</button>
+                                            </div>
+                                        </div>`;
+                             }
+                        });
+                     }
+                    answerHTML = statementsHTML + '</div>';
                 } else if (question.type === 'short_answer') {
                     answerHTML = `<input type="text" class="mt-2 w-full p-3 border-2 border-slate-200 rounded-lg focus:ring-2 focus:ring-teal-300 focus:border-teal-500 transition" value="${savedAnswer || ''}" placeholder="Nhập câu trả lời của bạn...">`;
                 }
@@ -383,10 +409,11 @@
                     </div>
                 `;
             }
-
+            
              function renderFullTest() {
                 const questionsByType = {
                     multiple_choice: [],
+                    true_false: [],
                     true_false_group: [],
                     short_answer: []
                 };
@@ -395,7 +422,8 @@
                 });
                 let fullTestHTML = '', questionCounter = 0;
                 renderedQuestionsOrder = [];
-                const renderSection = (title, type, questionsOfType) => {
+                const allTrueFalse = [...questionsByType.true_false, ...questionsByType.true_false_group];
+                const renderSection = (title, questionsOfType) => {
                     if (questionsOfType.length === 0) return '';
                     let sectionHTML = `<div class="question-section"><h2 class="text-2xl font-bold text-slate-800 pb-2 mb-6 border-b-2 border-slate-200">${title}</h2><div class="space-y-8">`;
                     questionsOfType.forEach(q => {
@@ -406,9 +434,9 @@
                     sectionHTML += `</div></div>`;
                     return sectionHTML;
                 };
-                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', 'multiple_choice', questionsByType.multiple_choice);
-                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', 'true_false_group', questionsByType.true_false_group);
-                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', 'short_answer', questionsByType.short_answer);
+                fullTestHTML += renderSection('I. TRẮC NGHIỆM NHIỀU LỰA CHỌN', questionsByType.multiple_choice);
+                fullTestHTML += renderSection('II. TRẮC NGHIỆM ĐÚNG/SAI', allTrueFalse);
+                fullTestHTML += renderSection('III. TRẢ LỜI NGẮN', questionsByType.short_answer);
                 mainContentArea.innerHTML = fullTestHTML;
                 renderMathWithKaTeX(mainContentArea);
             }
@@ -558,13 +586,12 @@
                 if (!currentSessionId) return;
                 try {
                     const sessionRef = doc(db, 'test_sessions', currentSessionId);
-                    // *** FIX: THÊM teacherId VÀO DỮ LIỆU GỬI ĐI ***
                     await setDoc(sessionRef, {
                         studentId: currentUser.uid,
                         studentName: userData.name || 'Học sinh',
                         testId: currentTestId,
                         classId: currentClassId,
-                        teacherId: currentTeacherId, // Dữ liệu quan trọng được thêm vào
+                        teacherId: currentTeacherId, 
                         status: status,
                         warnings: warningCount,
                         progress: countAnsweredQuestions(),
@@ -586,11 +613,9 @@
                 warningCount++;
 
                 try {
-                    // Không có hàm captureScreenAsDataURL, nên chúng ta sẽ bỏ qua phần upload ảnh
-                    // Chỉ cập nhật trạng thái là 'locked'
                     await updateSessionStatus('locked', { 
                         violationTime: serverTimestamp(),
-                        lastViolationImageUrl: null // Gửi null vì không có ảnh
+                        lastViolationImageUrl: null 
                     });
 
                 } catch (error) {
@@ -679,9 +704,13 @@
                         }
                     } else if (q.type === 'short_answer') {
                         isCorrect = (String(userAnswer || "").trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase());
-                    } else if (q.type === 'true_false_group') {
-                        const statementKeys = Object.keys(q.statements).filter(k => q.statements[k]);
-                        isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => userAnswer[key] === q.answers[key]);
+                    } else if (q.type === 'true_false_group' || q.type === 'true_false') {
+                        const statements = q.statements || {};
+                        const statementKeys = Array.isArray(statements) ? Object.keys(statements) : Object.keys(statements).filter(k => statements[k]);
+                        isCorrect = userAnswer && statementKeys.length > 0 && statementKeys.every(key => {
+                             const correctAnswer = Array.isArray(statements) ? statements[key].answer : q.answers[key];
+                             return userAnswer[key] === correctAnswer;
+                        });
                     }
                     if (isCorrect) score++;
                     else incorrectQuestions.push({ questionContent: q.content, lessonId: q.lessonId });
