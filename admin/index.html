@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bảng điều khiển Admin - AIGEO</title>
+    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
@@ -17,7 +18,8 @@
             font-family: 'Be Vietnam Pro', sans-serif; 
             background-color: #f1f5f9; 
         }
-        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
+        /* FIXED: Added gap for robust spacing and removed redundant svg margin */
+        .sidebar-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
         .sidebar-link:hover { background-color: #e2e8f0; color: #0f172a; }
         .sidebar-link.active { 
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
@@ -26,7 +28,7 @@
             box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
         }
         .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
-        .sidebar-link svg { margin-right: 0.75rem; }
+        /* .sidebar-link svg { margin-right: 0.75rem; } <-- Removed */
         
         .brand-gradient-text {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
