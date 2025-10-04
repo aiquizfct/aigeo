@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "FocusFlow AI 2.0 (No Icons)",
+  "version": "2.1",
+  "description": "Trợ lý học tập AI giúp bạn tập trung và hiệu quả hơn.",
+  "permissions": [
+    "storage",
+    "notifications",
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "alarms",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "FocusFlow AI"
+  },
+  "options_page": "admin.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "sidebar.css"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "sidebar.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
