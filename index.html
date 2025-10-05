@@ -37,11 +37,29 @@
         }
 
         .hero-section { position: relative; overflow: hidden; }
-        #hero-canvas {
+        
+        #background-carousel {
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 0;
+            background-size: cover; 
+            background-position: center;
+            transition: background-image 2s ease-in-out; 
+            background-color: rgba(0, 0, 0, 0.4); 
+            background-blend-mode: multiply; 
+        }
+
+        /* Lớp phủ gradient làm tối hai đầu trên dưới */
+        .hero-mask {
+            background: linear-gradient(
+                to bottom, 
+                rgba(0, 0, 0, 0.5) 0%, 
+                rgba(0, 0, 0, 0.2) 20%, 
+                rgba(0, 0, 0, 0.2) 80%, 
+                rgba(0, 0, 0, 0.5) 100%
+            );
+            pointer-events: none;
         }
 
         .glass-header { background-color: rgba(255, 255, 255, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(0,0,0,0.05); }
@@ -133,29 +151,28 @@
 
     <main>
         <section class="py-28 md:py-40 hero-section">
-            <canvas id="hero-canvas"></canvas>
+            <div id="background-carousel" class="absolute inset-0 z-0"></div>
+            
+            <div class="absolute inset-0 z-[1] hero-mask"></div> 
+            
             <div class="container mx-auto px-6 text-center relative z-10">
                 <div class="anime-title">
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-text-dark uppercase [text-shadow:_0_2px_8px_rgba(0,0,0,0.1)] tracking-wide">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white uppercase [text-shadow:_0_2px_8px_rgba(0,0,0,0.9)] tracking-wide space-y-2 md:space-y-4">
                         <span class="line">KHÁM PHÁ THẾ GIỚI</span>
-                    </h1>
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-text-dark uppercase [text-shadow:_0_2px_8px_rgba(0,0,0,0.1)] tracking-wide mt-2">
                         <span class="line">QUA TỪNG CÂU HỎI</span>
-                    </h1>
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-text-dark uppercase [text-shadow:_0_2px_8px_rgba(0,0,0,0.1)] tracking-wide mt-2">
-                        <span class="line">VỚI <span class="gradient-text">AIGEO</span></span>
+                        <span class="line">VỚI AIGEO</span>
                     </h1>
                 </div>
 
-                <p id="hero-subtitle" class="mt-8 text-base md:text-lg text-text-light max-w-2xl mx-auto opacity-0">
+                <p id="hero-subtitle" class="mt-8 text-base md:text-lg text-white max-w-2xl mx-auto opacity-0 [text-shadow:_0_1px_4px_rgba(0,0,0,1)]">
                     Nền tảng học tập Địa lý cá nhân hóa bởi trí tuệ nhân tạo.
                 </p>
                 <div id="hero-button" class="mt-10 opacity-0">
                     <a href="auth.html" class="cta-button text-white px-8 py-4 rounded-lg text-base font-semibold inline-block">
                         Bắt đầu hành trình <i data-feather="arrow-right" class="inline-block ml-2 w-5 h-5"></i>
                     </a>
-                    <p class="mt-4 text-sm text-text-light">
-                        hoặc <a href="client/index.html" class="font-semibold text-teal-600 hover:underline">dùng thử với tư cách khách</a>
+                    <p class="mt-4 text-sm text-white">
+                        hoặc <a href="client/index.html" class="font-semibold text-teal-300 hover:underline">dùng thử với tư cách khách</a>
                     </p>
                 </div>
             </div>
@@ -193,8 +210,8 @@
                              <div class="feature-icon flex items-center justify-center h-14 w-14 rounded-xl bg-sky-100 text-sky-600 mb-6">
                                  <i data-feather="compass" class="w-7 h-7"></i>
                             </div>
-                             <h3 class="text-xl font-semibold mb-3 text-text-dark">Tạo đề thi bằng AI</h3>
-                             <p class="text-text-light">Giáo viên có thể tạo ra các bộ đề kiểm tra đa dạng theo yêu cầu chỉ trong vài giây, tiết kiệm tối đa thời gian soạn thảo.</p>
+                            <h3 class="text-xl font-semibold mb-3 text-text-dark">Tạo đề thi bằng AI</h3>
+                            <p class="text-text-light">Giáo viên có thể tạo ra các bộ đề kiểm tra đa dạng theo yêu cầu chỉ trong vài giây, tiết kiệm tối đa thời gian soạn thảo.</p>
                         </div>
                         <div class="shine"></div>
                     </div>
@@ -225,7 +242,7 @@
                             <h3 class="text-lg font-semibold mb-2 text-text-dark">Làm bài & Nhận phân tích</h3>
                             <p class="text-text-light text-sm">Hoàn thành các bài kiểm tra đầu vào để AI hiểu rõ năng lực của bạn.</p>
                         </div>
-                         <div class="reveal step-3" style="--delay: 0.4s;">
+                           <div class="reveal step-3" style="--delay: 0.4s;">
                             <div class="flex justify-center items-center mb-5"><div class="step-number bg-sky-600 text-white w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl shadow-lg shadow-sky-500/30">3</div></div>
                             <h3 class="text-lg font-semibold mb-2 text-text-dark">Học theo lộ trình AI</h3>
                             <p class="text-text-light text-sm">Luyện tập với các câu hỏi được cá nhân hóa để cải thiện nhanh chóng.</p>
@@ -243,14 +260,14 @@
                         <p class="mt-6 text-text-light text-base leading-relaxed">Chúng tôi tin rằng công nghệ là chìa khóa để khai mở tiềm năng học tập vô hạn. AIGEO ra đời với sứ mệnh mang đến một công cụ học tập thông minh, hiệu quả và dễ dàng tiếp cận cho mọi học sinh, giúp các em tự tin chinh phục tri thức và đạt được những mục tiêu lớn lao.</p>
                      </div>
                      <div class="md:w-1/2 mt-12 md:mt-0 reveal parallax-img-wrapper" style="--delay: 0.2s;">
-                         <div class="relative p-4">
-                             <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="w-full h-full absolute inset-0">
-                              <path fill="#e0f2f1" d="M47.3,-69.3C60.5,-59.4,70,-44.7,74.5,-29.3C79,-13.9,78.5,2.1,72.6,16.2C66.7,30.3,55.4,42.5,43.2,52.3C31.1,62.1,18.1,69.5,3.6,71.7C-10.8,73.9,-23.1,70.9,-35.5,64.2C-47.9,57.5,-60.4,47.1,-67.2,34.4C-74,21.7,-75,6.6,-71.4,-7.1C-67.8,-20.8,-59.6,-33.1,-49.2,-43.9C-38.8,-54.7,-26.2,-64,-13.2,-68.8C-0.3,-73.6,12.9,-74.7,25.6,-74.6C38.4,-74.4,51.6,-74.1,47.3,-69.3Z" transform="translate(100 100)" />
-                             </svg>
-                             <div class="relative flex items-center justify-center">
-                                <img id="about-image" src="https://images.unsplash.com/photo-1521295121783-8a321d551ad2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="Nhóm học sinh đang học với bản đồ" class="rounded-2xl shadow-2xl w-10/12 parallax-img">
-                             </div>
-                         </div>
+                           <div class="relative p-4">
+                              <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class="w-full h-full absolute inset-0">
+                                 <path fill="#e0f2f1" d="M47.3,-69.3C60.5,-59.4,70,-44.7,74.5,-29.3C79,-13.9,78.5,2.1,72.6,16.2C66.7,30.3,55.4,42.5,43.2,52.3C31.1,62.1,18.1,69.5,3.6,71.7C-10.8,73.9,-23.1,70.9,-35.5,64.2C-47.9,57.5,-60.4,47.1,-67.2,34.4C-74,21.7,-75,6.6,-71.4,-7.1C-67.8,-20.8,-59.6,-33.1,-49.2,-43.9C-38.8,-54.7,-26.2,-64,-13.2,-68.8C-0.3,-73.6,12.9,-74.7,25.6,-74.6C38.4,-74.4,51.6,-74.1,47.3,-69.3Z" transform="translate(100 100)" />
+                              </svg>
+                              <div class="relative flex items-center justify-center">
+                                 <img id="about-image" src="https://images.unsplash.com/photo-1521295121783-8a321d551ad2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80" alt="Nhóm học sinh đang học với bản đồ" class="rounded-2xl shadow-2xl w-10/12 parallax-img">
+                              </div>
+                           </div>
                      </div>
                 </div>
             </div>
@@ -347,72 +364,45 @@
                 });
             });
 
-            // --- Hero Section Canvas Animation ---
-            const canvas = document.getElementById('hero-canvas');
-            if (canvas) {
-                const ctx = canvas.getContext('2d');
-                let width, height, particles;
-                function init() {
-                    width = canvas.width = window.innerWidth;
-                    height = canvas.height = canvas.parentElement.offsetHeight;
-                    particles = [];
-                    for (let i = 0; i < 60; i++) {
-                        particles.push(new Particle());
-                    }
-                }
-                class Particle {
-                    constructor() {
-                        this.x = Math.random() * width;
-                        this.y = Math.random() * height;
-                        this.vx = (Math.random() - 0.5) * 0.4;
-                        this.vy = (Math.random() - 0.5) * 0.4;
-                        this.radius = Math.random() * 1.5 + 1;
-                        this.alpha = 0;
-                    }
-                    update() {
-                        this.x += this.vx;
-                        this.y += this.vy;
-                        if (this.x < 0 || this.x > width) this.vx *= -1;
-                        if (this.y < 0 || this.y > height) this.vy *= -1;
-                    }
-                    draw() {
-                        ctx.beginPath();
-                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                        ctx.fillStyle = `rgba(13, 148, 136, ${this.alpha})`;
-                        ctx.fill();
-                    }
-                }
-                function loop() {
-                    ctx.clearRect(0, 0, width, height);
-                    particles.forEach(p => {
-                        p.update();
-                        p.draw();
-                        for (let other of particles) {
-                            if (p !== other) {
-                                let dist = Math.hypot(p.x - other.x, p.y - other.y);
-                                if (dist < 150) {
-                                    ctx.beginPath();
-                                    ctx.moveTo(p.x, p.y);
-                                    ctx.lineTo(other.x, other.y);
-                                    ctx.strokeStyle = `rgba(13, 148, 136, ${(0.5 - dist / 150) * p.alpha})`;
-                                    ctx.lineWidth = 0.2;
-                                    ctx.stroke();
-                                }
-                            }
-                        }
-                    });
-                    requestAnimationFrame(loop);
-                }
-                window.addEventListener('resize', init);
-                init();
-                anime({
-                    targets: particles,
-                    alpha: 0.3,
-                    duration: 1200,
-                    easing: 'easeInQuad',
-                    delay: anime.stagger(10)
-                });
+            // --- Background Carousel Slideshow Logic ---
+            const images = [
+                'https://i.ibb.co/q3R9kyYK/asia-5013466-1280.jpg',
+                'https://i.ibb.co/q3j5HZPb/bridge-7504605-1280.jpg',
+                'https://i.ibb.co/ZzH9RPmw/dawn-6562286-1280.jpg',
+                'https://i.ibb.co/fdX76zCw/dogs-7369533-1280.jpg',
+                'https://i.ibb.co/7Nx4jVvB/ham-ninh-1050828-1280.jpg',
+                'https://i.ibb.co/twPvnJqy/hanoi-vietnam-6915207-1280.jpg',
+                'https://i.ibb.co/SwvZhfcp/lake-7199278-1280.jpg',
+                'https://i.ibb.co/BVYFh4tf/rice-field-4690387-1280.jpg',
+                'https://i.ibb.co/xKB80hhn/rice-fields-7247360-1280.jpg',
+                'https://i.ibb.co/ycjMZ3LT/salt-harvesting-3060093-1280.jpg',
+                'https://i.ibb.co/1h1dhFN/scenery-2870651-1280.jpg',
+                'https://i.ibb.co/27Wkxg5K/sea-5755604-1280.jpg',
+                'https://i.ibb.co/Jb8Y0gV/vietnam-2672413-1280.jpg',
+                'https://i.ibb.co/35Rgwt3W/vietnam-7427067-1280.jpg'
+            ];
+
+            let currentIndex = 0;
+            const carousel = document.getElementById('background-carousel');
+
+            function changeBackground() {
+                // Tải trước ảnh tiếp theo
+                const nextImage = new Image();
+                
+                nextImage.onload = () => {
+                    // Cập nhật background-image sau khi ảnh tải xong
+                    carousel.style.backgroundImage = `url('${images[currentIndex]}')`;
+                    
+                    // Chuyển sang ảnh tiếp theo
+                    currentIndex = (currentIndex + 1) % images.length;
+                };
+                
+                // Bắt đầu tải ảnh
+                nextImage.src = images[currentIndex];
             }
+
+            changeBackground();
+            setInterval(changeBackground, 5000); // 5 seconds
 
             // --- Hero Text Animation ---
             const heroTitle = document.querySelector('.anime-title');
@@ -422,7 +412,7 @@
                 });
                 anime.timeline({
                     complete: () => {
-                         anime({
+                        anime({
                             targets: '#hero-subtitle, #hero-button',
                             opacity: [0, 1],
                             translateY: [20, 0],
@@ -451,31 +441,42 @@
                         
                         if(target.classList.contains('anime-title-scroll')) {
                            if (!target.classList.contains('animated')) {
-                               target.classList.add('animated');
-                               target.innerHTML = target.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
-                               anime({
-                                   targets: target.querySelectorAll('.letter'),
-                                   translateY: [40,0],
-                                   opacity: [0,1],
-                                   easing: "easeOutExpo",
-                                   duration: 1000,
-                                   delay: anime.stagger(30)
-                               });
+                                target.classList.add('animated');
+                                target.innerHTML = target.textContent.replace(/\S/g, "<span class='letter'>$&</span>");
+                                anime({
+                                    targets: target.querySelectorAll('.letter'),
+                                    translateY: [40,0],
+                                    opacity: [0,1],
+                                    easing: "easeOutExpo",
+                                    duration: 1000,
+                                    delay: anime.stagger(30)
+                                });
                            }
                         } 
                         else if (target.id === 'how-it-works-svg-wrapper') {
-                           anime({
-                                targets: '#how-it-works-svg path',
-                                strokeDashoffset: [anime.setDashoffset, 0],
-                                easing: 'easeInOutSine',
-                                duration: 2000,
+                            anime({
+                                 targets: '#how-it-works-svg path',
+                                 strokeDashoffset: [anime.setDashoffset, 0],
+                                 easing: 'easeInOutSine',
+                                 duration: 2000,
                             });
                         }
                         else {
-                           target.style.opacity = 1;
-                           target.style.transform = 'translateY(0)';
-                           
-                           // Staggered animations for specific sections
+                            // Default reveal animation for all other elements
+                            anime({
+                                targets: target,
+                                translateY: [target.style.getPropertyValue('--delay') ? 20 : 50, 0], // Move up
+                                opacity: [0, 1],
+                                easing: 'easeOutExpo',
+                                duration: 1000,
+                                delay: target.style.getPropertyValue('--delay') ? parseFloat(target.style.getPropertyValue('--delay')) * 1000 : 0,
+                                complete: () => {
+                                    target.style.opacity = 1;
+                                    target.style.transform = 'translateY(0)';
+                                }
+                            });
+                            
+                            // Staggered animations for specific sections
                             if (target.parentElement.id === 'features') {
                                 anime({
                                     targets: target.querySelector('.feature-icon'),
@@ -484,27 +485,28 @@
                                     translateZ: 0,
                                     easing: "spring(1, 80, 10, 0)",
                                     duration: 800,
-                                    delay: 200
+                                    delay: (el, i, l) => 200 + parseFloat(target.style.getPropertyValue('--delay')) * 1000
                                 });
                             }
                             if (target.classList.contains('step-number')) {
                                  anime({
-                                    targets: target,
-                                    scale: [0.5, 1],
-                                    rotate: [-30, 0],
-                                    opacity: [0, 1],
-                                    easing: "easeOutBack",
-                                    duration: 600,
-                                });
+                                     targets: target,
+                                     scale: [0.5, 1],
+                                     rotate: [-30, 0],
+                                     opacity: [0, 1],
+                                     easing: "easeOutBack",
+                                     duration: 600,
+                                 });
                             }
                             if(target.classList.contains('testimonial-card')) {
-                                anime({
-                                    targets: target,
-                                    translateX: [ (target.dataset.delay * 1000) % 2 === 0 ? -50 : 50, 0],
-                                    opacity: [0,1],
-                                    easing: 'easeOutExpo',
-                                    duration: 1000,
-                                });
+                                 anime({
+                                     targets: target,
+                                     translateX: [ (parseFloat(target.style.getPropertyValue('--delay')) * 1000 % 2) === 0 ? -50 : 50, 0],
+                                     opacity: [0,1],
+                                     easing: 'easeOutExpo',
+                                     duration: 1000,
+                                     delay: parseFloat(target.style.getPropertyValue('--delay')) * 1000
+                                 });
                             }
                         }
                         scrollObserver.unobserve(target);
@@ -517,11 +519,14 @@
             });
             
             // --- Parallax Effect for About Image ---
+            const aboutSection = document.getElementById('about');
             const aboutImage = document.getElementById('about-image');
             window.addEventListener('scroll', () => {
+                if (!aboutSection || !aboutImage) return;
+
                 const scrollY = window.scrollY;
-                const sectionTop = document.getElementById('about').offsetTop;
-                const sectionHeight = document.getElementById('about').offsetHeight;
+                const sectionTop = aboutSection.offsetTop;
+                const sectionHeight = aboutSection.offsetHeight;
                 
                 if (scrollY > sectionTop - window.innerHeight && scrollY < sectionTop + sectionHeight) {
                     const scrollPercent = (scrollY - (sectionTop - window.innerHeight)) / (window.innerHeight + sectionHeight);
@@ -558,4 +563,3 @@
     </script>
 </body>
 </html>
-
