@@ -56,8 +56,8 @@
             outline: none; background-color: white; border-color: var(--primary-teal);
             box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
         }
-        .editable-div { min-height: 8rem; }
-        .editable-div img { max-width: 80%; display: block; margin: 0.5rem auto; border-radius: 0.25rem; }
+        .editable-div { min-height: 4rem; }
+        .editable-div img { max-width: 100%; height: auto; border-radius: 0.25rem; margin-top: 0.5rem; margin-bottom: 0.5rem;}
         
         .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
         .toast.show { transform: translateY(0); opacity: 1; }
@@ -223,7 +223,7 @@
                     toast.addEventListener('transitionend', () => toast.remove());
                 }, 3000);
             }
-
+            
             function stripStyling(htmlString) {
                 const cleanHtml = DOMPurify.sanitize(htmlString, {
                     ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'u', 'em', 'strong', 'sub', 'sup', 'ol', 'ul', 'li', 'span', 'div', 'img'],
@@ -264,7 +264,7 @@
                 }
                 
                 previewTestBtn.href = `test-view.html?testId=${currentTestId}`;
-
+                
                 try {
                     const apiKeysSnap = await getDoc(doc(db, "system_settings", "api_keys"));
                     if (apiKeysSnap.exists()) {
@@ -304,7 +304,7 @@
                     const file = e.target.files[0];
                     if (file) uploadImage(file);
                 });
-                qContent.addEventListener('paste', handlePaste);
+                qContent.addEventListener('paste', handlePaste); // Cập nhật sự kiện paste
                 qImageRemoveBtn.addEventListener('click', removeImage);
 
                 imageDropZone.addEventListener('dragover', (e) => {
@@ -564,7 +564,7 @@
                 currentImgbbKeyIndex = (currentImgbbKeyIndex + 1) % imgbbApiKeys.length;
                 return key;
             }
-
+            
             async function uploadImage(file) {
                  if (!file) return;
                 const apiKey = getNextImgbbApiKey();
@@ -595,6 +595,10 @@
                         qImagePreview.src = currentImageUrl;
                         imagePreviewContainer.classList.remove('hidden');
                         imagePlaceholder.classList.add('hidden');
+                        
+                        const qContent = document.getElementById('q-content');
+                        qContent.innerHTML += `<img src="${currentImageUrl}" alt="Uploaded image">`;
+
                         showToast("Tải ảnh thành công!", "success");
                     } else {
                         throw new Error('Phản hồi từ ImgBB không hợp lệ.');
