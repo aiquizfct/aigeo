@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
-    <!-- Thêm thư viện DOMPurify để bảo mật -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
     <style>
         :root {
@@ -31,6 +30,7 @@
             box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
         }
         .sidebar-link.active:hover { background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald)); }
+        .sidebar-link.active svg { color: white; }
         .sidebar-link svg { margin-right: 0.75rem; }
         
         .brand-gradient-text {
@@ -57,9 +57,10 @@
             outline: none; background-color: white; border-color: var(--primary-teal);
             box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
         }
-        .editable-div { min-height: 4rem; }
-        .editable-div img { max-width: 100%; height: auto; border-radius: 0.25rem; margin-top: 0.5rem; margin-bottom: 0.5rem;}
-        
+        .editable-div { min-height: 8rem; }
+        .editable-div img { max-width: 80%; display: block; margin: 0.5rem auto; border-radius: 0.25rem; }
+
+
         .toast { transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform: translateY(100%); opacity: 0; }
         .toast.show { transform: translateY(0); opacity: 1; }
         
@@ -106,8 +107,7 @@
                 </div>
                 
                 <div id="questions-list-container" class="space-y-4 mb-8">
-                    <!-- Existing questions will be rendered here -->
-                </div>
+                    </div>
 
                 <div class="bg-white p-6 rounded-lg shadow-sm">
                     <form id="add-question-form">
@@ -225,6 +225,23 @@
                     toast.addEventListener('transitionend', () => toast.remove());
                 }, 3000);
             }
+            
+            function stripStyling(htmlString) {
+                const cleanHtml = DOMPurify.sanitize(htmlString, {
+                    ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'u', 'em', 'strong', 'sub', 'sup', 'ol', 'ul', 'li', 'span', 'div', 'img'],
+                    FORBID_ATTR: ['style', 'face', 'size', 'color', 'class']
+                });
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = cleanHtml;
+                tempDiv.querySelectorAll('font').forEach(fontEl => {
+                    const spanEl = document.createElement('span');
+                    while (fontEl.firstChild) {
+                        spanEl.appendChild(fontEl.firstChild);
+                    }
+                    fontEl.parentNode.replaceChild(spanEl, fontEl);
+                });
+                return tempDiv.innerHTML;
+            }
 
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
@@ -248,7 +265,6 @@
                     return;
                 }
                 
-                // Set preview button link
                 previewTestBtn.href = `test-view.html?testId=${currentTestId}`;
 
                 await loadTestData();
@@ -281,7 +297,7 @@
                     const file = e.target.files[0];
                     if (file) uploadImage(file);
                 });
-                imageDropZone.addEventListener('paste', handleImagePaste);
+                qContent.addEventListener('paste', handleImagePaste);
                 qImageRemoveBtn.addEventListener('click', removeImage);
 
                 imageDropZone.addEventListener('dragover', (e) => {
@@ -387,7 +403,7 @@
             async function handleAddOrUpdateQuestion(e) {
                 e.preventDefault();
                 const rawContent = qContent.innerHTML.trim();
-                const content = DOMPurify.sanitize(rawContent);
+                const content = stripStyling(rawContent);
 
                 if (!content) {
                     showToast("Vui lòng nhập nội dung câu hỏi.", "error");
@@ -515,14 +531,27 @@
             }
 
             function handleImagePaste(e) {
-                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                // *** THÊM LOGIC LÀM SẠCH KHI DÁN ***
+                e.preventDefault();
+                const clipboardData = e.clipboardData || window.clipboardData;
+                
+                // Kiểm tra xem có phải là file ảnh không
+                const items = clipboardData.items;
+                let imageFound = false;
                 for (const item of items) {
                     if (item.kind === 'file' && item.type.startsWith('image/')) {
-                        e.preventDefault();
                         const file = item.getAsFile();
                         uploadImage(file);
-                        return;
+                        imageFound = true;
+                        break; 
                     }
+                }
+
+                // Nếu không phải ảnh, xử lý như text
+                if (!imageFound) {
+                    const pastedData = clipboardData.getData('text/html') || clipboardData.getData('text/plain');
+                    const cleanedData = stripStyling(pastedData);
+                    document.execCommand('insertHTML', false, cleanedData);
                 }
             }
             

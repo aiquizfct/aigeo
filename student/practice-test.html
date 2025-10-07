@@ -22,6 +22,11 @@
             background-color: #f0f4f8;
         }
         .prose { max-width: none; }
+        /* Cập nhật CSS để reset font-size và font-family cho nội dung câu hỏi */
+        .question-content-area, .question-content-area * {
+            font-size: 1rem !important; /* hoặc text-base */
+            font-family: 'Be Vietnam Pro', sans-serif !important;
+        }
 
         .answer-option {
             transition: all 0.2s ease-in-out;
@@ -317,12 +322,14 @@
                 const imageHTML = question.imageUrl
                     ? `<div class="my-4"><img src="${question.imageUrl}" alt="Hình ảnh câu hỏi" class="max-w-full h-auto rounded-lg mx-auto border"></div>`
                     : '';
-
+                
+                // *** ĐÂY LÀ THAY ĐỔI CHÍNH ***
+                // Thêm lớp CSS 'question-content-area' để đồng bộ font
                 return `
                     <div id="question-${question.id}" class="bg-white p-6 rounded-xl shadow-sm">
                         <p class="font-semibold text-slate-600">Câu ${questionNumber}</p>
                         ${imageHTML}
-                        <div class="prose mt-4 text-lg">${cleanPrefix(question.content)}</div>
+                        <div class="prose mt-4 question-content-area">${cleanPrefix(question.content)}</div>
                         <div class="mt-6 space-y-4">${answerHTML}</div>
                     </div>
                 `;
@@ -535,7 +542,6 @@
 
             function renderMathWithKaTeX(elem) {
                 if (window.renderMathInElement) {
-                    // FIX: Changed recursive call to the correct library function
                     window.renderMathInElement(elem, {
                         delimiters: [{left: "$$", right: "$$", display: true}, {left: "$", right: "$", display: false}]
                     });
@@ -547,4 +553,3 @@
     </script>
 </body>
 </html>
-

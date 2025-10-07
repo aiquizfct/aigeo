@@ -150,6 +150,24 @@
                     });
                 }
             }
+            
+            function stripStyling(htmlString) {
+                const cleanHtml = DOMPurify.sanitize(htmlString, {
+                    ALLOWED_TAGS: ['p', 'br', 'b', 'i', 'u', 'em', 'strong', 'sub', 'sup', 'ol', 'ul', 'li', 'span', 'div', 'img'],
+                    FORBID_ATTR: ['style', 'face', 'size', 'color', 'class']
+                });
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = cleanHtml;
+                tempDiv.querySelectorAll('font').forEach(fontEl => {
+                    const spanEl = document.createElement('span');
+                    while (fontEl.firstChild) {
+                        spanEl.appendChild(fontEl.firstChild);
+                    }
+                    fontEl.parentNode.replaceChild(spanEl, fontEl);
+                });
+                return tempDiv.innerHTML;
+            }
+
 
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
@@ -507,7 +525,7 @@
             async function handleAddOrUpdateQuestion(e) {
                 e.preventDefault();
                 const rawContent = document.getElementById('q-content').innerHTML.trim();
-                const content = DOMPurify.sanitize(rawContent);
+                const content = stripStyling(rawContent);
 
                 if (!content) {
                     showToast("Vui lòng nhập nội dung câu hỏi.", "error");
@@ -535,6 +553,7 @@
                 if (editingQuestionIndex !== null) {
                     testData.questions[editingQuestionIndex] = newQuestion;
                 } else {
+                    if (!testData.questions) testData.questions = [];
                     testData.questions.push(newQuestion);
                 }
                 

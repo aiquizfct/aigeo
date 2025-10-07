@@ -83,6 +83,7 @@
              <div class="flex items-center space-x-4">
                  <a href="tests.html" class="p-2 rounded-md hover:bg-slate-100 nav-link"><i data-feather="arrow-left" class="w-6 h-6 text-slate-600"></i></a>
                  <h1 id="test-name-header" class="text-2xl font-bold text-slate-800">Đang tải đề thi...</h1>
+                 <span id="publish-status" class="text-xs font-semibold"></span>
             </div>
             <div class="flex items-center space-x-4">
                 <a id="edit-btn" href="#" class="nav-link bg-slate-100 text-slate-700 font-semibold px-4 py-2 rounded-lg hover:bg-slate-200 flex items-center">
@@ -133,7 +134,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
@@ -143,6 +144,7 @@
             // --- DOM Elements & State ---
             const mainContentArea = document.getElementById('main-content-area');
             const testNameHeader = document.getElementById('test-name-header');
+            const publishStatusEl = document.getElementById('publish-status');
             const questionGridEl = document.getElementById('question-grid');
             const showAnswerBtn = document.getElementById('show-answer-btn');
             const publishBtn = document.getElementById('publish-btn');
@@ -156,6 +158,7 @@
             
             let currentTestId = null;
             let questions = [];
+            let testData = {};
 
             // --- UTILS ---
             function showToast(message, type = 'success') {
@@ -208,22 +211,17 @@
                     const testDocSnap = await getDoc(testDocRef);
                     if (!testDocSnap.exists()) throw new Error("Đề thi không tồn tại.");
                     
-                    const testData = testDocSnap.data();
+                    testData = testDocSnap.data();
                     testNameHeader.textContent = testData.name;
                     editBtn.href = `create-test-step2.html?id=${currentTestId}`;
-                    if (testData.status === 'published') {
-                        publishBtn.disabled = true;
-                        publishBtn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4 mr-2"></i>Đã phân phối';
-                        editBtn.classList.add('hidden');
-                        feather.replace();
-                    }
+                    
+                    updatePublishUI();
 
                     if (!testData.questions || testData.questions.length === 0) {
                         mainContentArea.innerHTML = `<p class="text-center text-slate-500">Đề thi này chưa có câu hỏi nào.</p>`;
                         return;
                     }
                     
-                    // Admin-created tests have questions embedded directly
                     questions = testData.questions.map((q, index) => ({...q, id: `local_${index}`}));
 
                     renderFullTest();
@@ -235,6 +233,18 @@
                 }
             }
             
+            function updatePublishUI() {
+                if (testData.status === 'published') {
+                    const publishCount = testData.publishCount || 1;
+                    publishStatusEl.innerHTML = `<span class="bg-green-100 text-green-800 px-2 py-1 rounded-full">Đã xuất bản ${publishCount} lần</span>`;
+                    publishBtn.innerHTML = '<i data-feather="send" class="w-4 h-4 mr-2"></i>Xuất bản lại';
+                } else {
+                    publishStatusEl.innerHTML = `<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Bản nháp</span>`;
+                    publishBtn.innerHTML = '<i data-feather="send" class="w-4 h-4 mr-2"></i>Phân phối Đề thi';
+                }
+                feather.replace();
+            }
+
             function getQuestionHTML(question, questionNumber) {
                 let answerHTML = '';
                 if (question.type === 'multiple_choice') {
@@ -335,6 +345,12 @@
                 showAnswerBtn.addEventListener('click', checkAllAnswers);
                 
                 publishBtn.addEventListener('click', () => {
+                    const confirmTextEl = document.getElementById('publish-confirm-text');
+                     if (testData.status === 'published') {
+                        confirmTextEl.textContent = 'Hành động này sẽ cập nhật trạng thái đã xuất bản của đề thi. Tiếp tục?';
+                    } else {
+                        confirmTextEl.textContent = 'Bạn có chắc chắn muốn phân phối đề thi này?';
+                    }
                     publishConfirmModal.classList.remove('hidden');
                     publishConfirmModal.classList.add('flex');
                 });
@@ -393,17 +409,28 @@
                 
                 try {
                     const testDocRef = doc(db, "tests", currentTestId);
-                    await updateDoc(testDocRef, { status: 'published' });
-                    showToast("Đề thi đã được phân phối thành công!", "success");
-                    publishBtn.innerHTML = '<i data-feather="check-circle" class="w-4 h-4 mr-2"></i>Đã phân phối';
-                    editBtn.classList.add('hidden');
-                    feather.replace();
+                    const currentCount = testData.publishCount || 0;
+                    const newCount = currentCount + 1;
+
+                    await updateDoc(testDocRef, { 
+                        status: 'published',
+                        publishCount: newCount,
+                        lastPublishedAt: serverTimestamp()
+                    });
+
+                    // Cập nhật state cục bộ
+                    testData.status = 'published';
+                    testData.publishCount = newCount;
+                    
+                    showToast("Đề thi đã được xuất bản/cập nhật thành công!", "success");
+                    updatePublishUI(); // Gọi hàm cập nhật UI
+                    publishBtn.disabled = false; // Bật lại nút sau khi thành công
+
                 } catch (error) {
                     console.error("Error publishing test:", error);
                     showToast("Lỗi khi phân phối đề thi.", "error");
-                    publishBtn.disabled = false;
-                    publishBtn.innerHTML = '<i data-feather="send" class="w-4 h-4 mr-2"></i>Phân phối Đề thi';
-                    feather.replace();
+                    publishBtn.disabled = false; // Bật lại nút khi có lỗi
+                    updatePublishUI(); // Cập nhật lại UI về trạng thái trước đó
                 }
             }
             

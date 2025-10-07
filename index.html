@@ -45,7 +45,7 @@
             z-index: 0;
             background-size: cover; 
             background-position: center;
-            transition: background-image 2s ease-in-out; 
+            transition: opacity 1.5s ease-in-out; /* Cập nhật hiệu ứng chuyển tiếp */
             background-color: rgba(0, 0, 0, 0.4); 
             background-blend-mode: multiply; 
         }
@@ -366,43 +366,40 @@
 
             // --- Background Carousel Slideshow Logic ---
             const images = [
-                'https://i.ibb.co/q3R9kyYK/asia-5013466-1280.jpg',
-                'https://i.ibb.co/q3j5HZPb/bridge-7504605-1280.jpg',
-                'https://i.ibb.co/ZzH9RPmw/dawn-6562286-1280.jpg',
-                'https://i.ibb.co/fdX76zCw/dogs-7369533-1280.jpg',
-                'https://i.ibb.co/7Nx4jVvB/ham-ninh-1050828-1280.jpg',
-                'https://i.ibb.co/twPvnJqy/hanoi-vietnam-6915207-1280.jpg',
-                'https://i.ibb.co/SwvZhfcp/lake-7199278-1280.jpg',
-                'https://i.ibb.co/BVYFh4tf/rice-field-4690387-1280.jpg',
-                'https://i.ibb.co/xKB80hhn/rice-fields-7247360-1280.jpg',
-                'https://i.ibb.co/ycjMZ3LT/salt-harvesting-3060093-1280.jpg',
-                'https://i.ibb.co/1h1dhFN/scenery-2870651-1280.jpg',
-                'https://i.ibb.co/27Wkxg5K/sea-5755604-1280.jpg',
-                'https://i.ibb.co/Jb8Y0gV/vietnam-2672413-1280.jpg',
-                'https://i.ibb.co/35Rgwt3W/vietnam-7427067-1280.jpg'
+                'anh-nen/1.png', 'anh-nen/2.png', 'anh-nen/3.png', 'anh-nen/4.png',
+                'anh-nen/5.png', 'anh-nen/6.png', 'anh-nen/7.png', 'anh-nen/8.png',
+                'anh-nen/9.png', 'anh-nen/10.png', 'anh-nen/11.png', 'anh-nen/12.png', 'anh-nen/13.png'
             ];
 
             let currentIndex = 0;
             const carousel = document.getElementById('background-carousel');
 
             function changeBackground() {
-                // Tải trước ảnh tiếp theo
-                const nextImage = new Image();
-                
-                nextImage.onload = () => {
-                    // Cập nhật background-image sau khi ảnh tải xong
-                    carousel.style.backgroundImage = `url('${images[currentIndex]}')`;
-                    
-                    // Chuyển sang ảnh tiếp theo
-                    currentIndex = (currentIndex + 1) % images.length;
-                };
-                
-                // Bắt đầu tải ảnh
-                nextImage.src = images[currentIndex];
+                carousel.style.opacity = 0; // Bắt đầu làm mờ ảnh cũ
+
+                setTimeout(() => {
+                    // Tải trước ảnh mới
+                    const nextImage = new Image();
+                    nextImage.onload = () => {
+                        // Sau khi ảnh mới tải xong, cập nhật background và làm rõ nét trở lại
+                        carousel.style.backgroundImage = `url('${images[currentIndex]}')`;
+                        carousel.style.opacity = 1; // Làm rõ nét ảnh mới
+                        currentIndex = (currentIndex + 1) % images.length;
+                    };
+                    nextImage.src = images[currentIndex];
+                }, 1500); // Đợi 1.5s cho hiệu ứng mờ hoàn tất rồi mới đổi ảnh
             }
 
-            changeBackground();
-            setInterval(changeBackground, 5000); // 5 seconds
+            // Tải ảnh đầu tiên
+            const firstImage = new Image();
+            firstImage.onload = () => {
+                carousel.style.backgroundImage = `url('${images[currentIndex]}')`;
+                carousel.style.opacity = 1;
+                currentIndex = (currentIndex + 1) % images.length;
+                // Bắt đầu chu trình xoay vòng sau khi ảnh đầu tiên đã hiển thị
+                setInterval(changeBackground, 5000); // 5 giây đổi ảnh 1 lần
+            };
+            firstImage.src = images[0];
 
             // --- Hero Text Animation ---
             const heroTitle = document.querySelector('.anime-title');
