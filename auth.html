@@ -491,37 +491,50 @@
                 const isNewAuth = sessionStorage.getItem('isNewAuth');
                 
                 try {
-                    const [settingsSnap, userDocSnap] = await Promise.all([
-                        getDoc(doc(db, "system_settings", "general")),
-                        getDoc(doc(db, "users", user.uid))
-                    ]);
-
+                    const settingsSnap = await getDoc(doc(db, "system_settings", "general"));
                     const settings = settingsSnap.exists() ? settingsSnap.data() : { maintenanceMode: false };
-                    
-                    if (userDocSnap.exists()) {
-                        const userData = userDocSnap.data();
 
-                        if (settings.maintenanceMode === true && userData.role !== 'admin') {
-                            showMessage('Hệ thống đang bảo trì. Chỉ quản trị viên có thể đăng nhập.', true, 0);
-                            await signOut(auth);
-                            sessionStorage.removeItem('isNewAuth');
-                            return;
-                        }
+                    const userDocRef = doc(db, "users", user.uid);
+                    let userDocSnap = await getDoc(userDocRef);
 
-                        if (isNewAuth) {
-                            showMessage("Đăng nhập thành công! Đang chuyển hướng...", false, 0);
-                            sessionStorage.removeItem('isNewAuth');
-                        }
-                        const { role } = userData;
-                        const destination = { teacher: "/teacher/index.html", student: "/student/index.html", admin: "/admin/index.html" }[role] || "/student/index.html";
-                        setTimeout(() => { window.location.href = destination; }, 1500);
+                    // If user document doesn't exist, it's a new user (likely from Google)
+                    if (!userDocSnap.exists()) {
+                        await setDoc(userDocRef, { 
+                            uid: user.uid, 
+                            name: user.displayName || 'Người dùng mới', 
+                            email: user.email, 
+                            role: "student", // Default role
+                            createdAt: serverTimestamp() 
+                        });
+                        // Re-fetch the document after creating it
+                        userDocSnap = await getDoc(userDocRef);
                     }
+
+                    const userData = userDocSnap.data();
+
+                    if (settings.maintenanceMode === true && userData.role !== 'admin') {
+                        showMessage('Hệ thống đang bảo trì. Chỉ quản trị viên có thể đăng nhập.', true, 0);
+                        await signOut(auth);
+                        sessionStorage.removeItem('isNewAuth');
+                        return;
+                    }
+
+                    if (isNewAuth) {
+                        showMessage("Đăng nhập thành công! Đang chuyển hướng...", false, 0);
+                        sessionStorage.removeItem('isNewAuth');
+                    }
+
+                    const { role } = userData;
+                    const destination = { teacher: "/teacher/index.html", student: "/student/index.html", admin: "/admin/index.html" }[role] || "/student/index.html";
+                    setTimeout(() => { window.location.href = destination; }, 1500);
+
                 } catch (error) {
                     console.error("Auth state change error:", error);
-                    showMessage("Đã có lỗi xảy ra. Vui lòng thử lại.", true);
+                    showMessage("Đã có lỗi xảy ra trong quá trình xác thực. Vui lòng thử lại.", true);
                     if(auth.currentUser) await signOut(auth);
                 }
             });
+
 
             // --- Multi-step form logic ---
             let currentStep = 1;
@@ -754,32 +767,16 @@
                 const provider = new GoogleAuthProvider();
                 
                 signInWithPopup(auth, provider)
-                    .then(async (result) => {
-                        const user = result.user;
-                        const additionalUserInfo = getAdditionalUserInfo(result);
-                        
-                        // Đặt cờ này để `onAuthStateChanged` biết đây là lần đăng nhập mới
+                    .then((result) => {
+                        // The onAuthStateChanged observer will handle the rest.
+                        // We just need to set the flag to show the "welcome" message.
                         sessionStorage.setItem('isNewAuth', 'true');
-
-                        // Nếu là người dùng mới, tạo document trong Firestore
-                        if (additionalUserInfo?.isNewUser) {
-                            const userDocRef = doc(db, "users", user.uid);
-                            await setDoc(userDocRef, { 
-                                uid: user.uid, 
-                                name: user.displayName, 
-                                email: user.email, 
-                                role: "student", // Mặc định là học sinh
-                                createdAt: serverTimestamp() 
-                            });
-                        }
-                        // `onAuthStateChanged` sẽ tự động xử lý việc chuyển hướng
                     })
                     .catch((error) => {
                         sessionStorage.removeItem('isNewAuth');
                         if (error.code === 'auth/popup-blocked') {
                             showMessage('Cửa sổ pop-up bị chặn. Vui lòng cho phép pop-up cho trang này.');
                         } else if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-                            // Chỉ hiển thị lỗi nếu không phải do người dùng tự đóng popup
                             showMessage("Đã có lỗi khi đăng nhập với Google.");
                             console.error("Google Sign-In Error:", error);
                         }
