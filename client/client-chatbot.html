@@ -177,7 +177,7 @@
 
                     const API_URL = "https://openrouter.ai/api/v1/chat/completions";
                     const messagesToSend = [
-                        { role: "system", content: "You are a helpful AI assistant for AIGEO, a geography learning platform. Respond in Vietnamese. Use KaTeX for math." },
+                        { role: "system", content: "You are an expert AI assistant for AIGEO, a learning platform. Your goal is to provide concise, direct, and easy-to-understand answers. Focus on Geography and related topics. Be friendly and helpful, but avoid unnecessary repetition or rambling. Respond in Vietnamese. Use KaTeX for math formulas." },
                         ...history
                     ];
                     
@@ -188,7 +188,7 @@
                                 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json',
                                 'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`, 'X-Title': 'AIGEO Guest Chat'
                             },
-                            body: JSON.stringify({ model: "deepseek/deepseek-chat-v3.1:free", messages: messagesToSend })
+                            body: JSON.stringify({ model: "mistralai/mistral-7b-instruct", messages: messagesToSend })
                         });
 
                         if (response.status === 408 && i < MAX_RETRIES - 1) {
