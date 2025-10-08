@@ -141,13 +141,11 @@
 <body class="flex items-center justify-center min-h-screen p-4 sm:p-6">
     <div id="auth-background"></div>
 
-    <!-- Loading Overlay -->
     <div id="loading-overlay" class="text-center animate-fade-in-up">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700 mx-auto"></div>
         <p class="mt-4 text-slate-600 font-semibold">Đang kết nối đến máy chủ...</p>
     </div>
 
-    <!-- Error Overlay -->
     <div id="error-overlay" class="hidden text-center max-w-md mx-auto animate-fade-in-up">
         <div class="auth-card p-8 rounded-2xl shadow-2xl">
             <i data-feather="wifi-off" class="w-16 h-16 mx-auto text-red-500"></i>
@@ -338,7 +336,6 @@
         </div>
     </div>
     
-    <!-- Maintenance Modal -->
     <div id="maintenance-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-lg modal-content text-center animate-fade-in-up">
             <i data-feather="tool" class="w-16 h-16 mx-auto text-amber-500"></i>
@@ -352,13 +349,11 @@
         </div>
     </div>
     
-    <!-- Admin Login Button -->
     <button id="admin-login-button" class="hidden fixed bottom-5 right-5 z-50 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg flex items-center text-sm font-semibold hover:bg-slate-900 transition-colors">
         <i data-feather="shield" class="w-4 h-4 mr-2"></i>
         Đăng nhập Quản trị
     </button>
     
-    <!-- Admin Login Modal -->
     <div id="admin-login-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-sm modal-content animate-fade-in-up">
             <h2 class="text-xl font-bold text-center text-slate-800 mb-6">Đăng nhập Quản trị viên</h2>
@@ -491,8 +486,26 @@
             checkInitialConnection();
             
             onAuthStateChanged(auth, async (user) => {
-                if (!user) return;
+                if (!user) {
+                    // Handle redirect result if any
+                    try {
+                        const result = await getRedirectResult(auth);
+                        if (result) {
+                            // This is the signed-in user
+                            const user = result.user;
+                            const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
+                            handleSuccessfulAuth(user, isNewUser, 'Google');
+                        }
+                    } catch (error) {
+                        handleAuthError(error, 'Google');
+                    }
+                    return;
+                }
 
+                handleSuccessfulAuth(user, sessionStorage.getItem('isNewAuth'));
+            });
+
+            async function handleSuccessfulAuth(user, isNewAuth, provider = 'Email') {
                 try {
                     const [settingsSnap, userDocSnap] = await Promise.all([
                         getDoc(doc(db, "system_settings", "general")),
@@ -511,20 +524,32 @@
                             return;
                         }
 
-                        if (sessionStorage.getItem('isNewAuth')) {
+                        if (isNewAuth) {
                             showMessage("Đăng nhập thành công! Đang chuyển hướng...", false, 0);
                             sessionStorage.removeItem('isNewAuth');
                         }
                         const { role } = userData;
                         const destination = { teacher: "/teacher/index.html", student: "/student/index.html", admin: "/admin/index.html" }[role] || "/student/index.html";
                         setTimeout(() => { window.location.href = destination; }, 1500);
+                    } else if (provider === 'Google') {
+                        // Create user document for new Google sign-in
+                        await setDoc(doc(db, "users", user.uid), { 
+                            uid: user.uid, 
+                            name: user.displayName, 
+                            email: user.email, 
+                            role: "student", 
+                            createdAt: serverTimestamp() 
+                        });
+                        // Retry handling
+                        handleSuccessfulAuth(user, true, provider);
                     }
                 } catch (error) {
                     console.error("Auth state change error:", error);
                     showMessage("Đã có lỗi xảy ra. Vui lòng thử lại.", true);
                     if(auth.currentUser) await signOut(auth);
                 }
-            });
+            }
+
 
             // --- Multi-step form logic ---
             let currentStep = 1;
@@ -757,30 +782,17 @@
                 const provider = new GoogleAuthProvider();
                 try {
                     sessionStorage.setItem('isNewAuth', 'true');
-                    const result = await signInWithPopup(auth, provider);
-                    const user = result.user;
-                    const userDocRef = doc(db, "users", user.uid);
-                    const docSnap = await getDoc(userDocRef);
-                    if (!docSnap.exists()) {
-                        await setDoc(userDocRef, { 
-                            uid: user.uid, 
-                            name: user.displayName, 
-                            email: user.email, 
-                            role: "student", 
-                            createdAt: serverTimestamp() 
-                        });
-                    }
+                    await signInWithPopup(auth, provider);
                 } catch (error) {
                     sessionStorage.removeItem('isNewAuth');
                     if (error.code === 'auth/popup-blocked') {
                         showMessage('Cửa sổ pop-up bị chặn. Vui lòng cho phép pop-up cho trang này.');
-                    } else if (error.code === 'auth/cancelled-popup-request') {
-                        // User closed the popup, no message needed
-                    } else {
+                    } else if (error.code !== 'auth/popup-closed-by-user') {
                         showMessage("Đã có lỗi khi đăng nhập với Google.");
                     }
                 }
             });
+
             
             // --- Password Toggle Visibility ---
             document.querySelectorAll('.password-toggle').forEach(toggle => {
@@ -818,4 +830,3 @@
     </script>
 </body>
 </html>
-
