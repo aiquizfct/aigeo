@@ -379,7 +379,7 @@
     <script src="firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getRedirectResult, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getRedirectResult, sendPasswordResetEmail, onAuthStateChanged, signOut, getAdditionalUserInfo } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         document.addEventListener('DOMContentLoaded', () => {
@@ -486,26 +486,10 @@
             checkInitialConnection();
             
             onAuthStateChanged(auth, async (user) => {
-                if (!user) {
-                    // Handle redirect result if any
-                    try {
-                        const result = await getRedirectResult(auth);
-                        if (result) {
-                            // This is the signed-in user
-                            const user = result.user;
-                            const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
-                            handleSuccessfulAuth(user, isNewUser, 'Google');
-                        }
-                    } catch (error) {
-                        handleAuthError(error, 'Google');
-                    }
-                    return;
-                }
+                if (!user) return;
 
-                handleSuccessfulAuth(user, sessionStorage.getItem('isNewAuth'));
-            });
-
-            async function handleSuccessfulAuth(user, isNewAuth, provider = 'Email') {
+                const isNewAuth = sessionStorage.getItem('isNewAuth');
+                
                 try {
                     const [settingsSnap, userDocSnap] = await Promise.all([
                         getDoc(doc(db, "system_settings", "general")),
@@ -531,25 +515,13 @@
                         const { role } = userData;
                         const destination = { teacher: "/teacher/index.html", student: "/student/index.html", admin: "/admin/index.html" }[role] || "/student/index.html";
                         setTimeout(() => { window.location.href = destination; }, 1500);
-                    } else if (provider === 'Google') {
-                        // Create user document for new Google sign-in
-                        await setDoc(doc(db, "users", user.uid), { 
-                            uid: user.uid, 
-                            name: user.displayName, 
-                            email: user.email, 
-                            role: "student", 
-                            createdAt: serverTimestamp() 
-                        });
-                        // Retry handling
-                        handleSuccessfulAuth(user, true, provider);
                     }
                 } catch (error) {
                     console.error("Auth state change error:", error);
                     showMessage("Đã có lỗi xảy ra. Vui lòng thử lại.", true);
                     if(auth.currentUser) await signOut(auth);
                 }
-            }
-
+            });
 
             // --- Multi-step form logic ---
             let currentStep = 1;
@@ -776,21 +748,42 @@
                 }
             });
             
-            // --- Google Login ---
-            googleLoginBtn.addEventListener("click", async () => {
+            // --- Google Login (UPDATED) ---
+            googleLoginBtn.addEventListener("click", () => {
                 hideMessage();
                 const provider = new GoogleAuthProvider();
-                try {
-                    sessionStorage.setItem('isNewAuth', 'true');
-                    await signInWithPopup(auth, provider);
-                } catch (error) {
-                    sessionStorage.removeItem('isNewAuth');
-                    if (error.code === 'auth/popup-blocked') {
-                        showMessage('Cửa sổ pop-up bị chặn. Vui lòng cho phép pop-up cho trang này.');
-                    } else if (error.code !== 'auth/popup-closed-by-user') {
-                        showMessage("Đã có lỗi khi đăng nhập với Google.");
-                    }
-                }
+                
+                signInWithPopup(auth, provider)
+                    .then(async (result) => {
+                        const user = result.user;
+                        const additionalUserInfo = getAdditionalUserInfo(result);
+                        
+                        // Đặt cờ này để `onAuthStateChanged` biết đây là lần đăng nhập mới
+                        sessionStorage.setItem('isNewAuth', 'true');
+
+                        // Nếu là người dùng mới, tạo document trong Firestore
+                        if (additionalUserInfo?.isNewUser) {
+                            const userDocRef = doc(db, "users", user.uid);
+                            await setDoc(userDocRef, { 
+                                uid: user.uid, 
+                                name: user.displayName, 
+                                email: user.email, 
+                                role: "student", // Mặc định là học sinh
+                                createdAt: serverTimestamp() 
+                            });
+                        }
+                        // `onAuthStateChanged` sẽ tự động xử lý việc chuyển hướng
+                    })
+                    .catch((error) => {
+                        sessionStorage.removeItem('isNewAuth');
+                        if (error.code === 'auth/popup-blocked') {
+                            showMessage('Cửa sổ pop-up bị chặn. Vui lòng cho phép pop-up cho trang này.');
+                        } else if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+                            // Chỉ hiển thị lỗi nếu không phải do người dùng tự đóng popup
+                            showMessage("Đã có lỗi khi đăng nhập với Google.");
+                            console.error("Google Sign-In Error:", error);
+                        }
+                    });
             });
 
             
