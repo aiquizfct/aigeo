@@ -2,192 +2,280 @@
 <html lang="vi" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tài liệu tham khảo - AIGEO</title>
-    
+    <title>Sổ tay Hướng dẫn sử dụng AIGEO</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
-    
     <style>
         :root {
             --primary-teal: #0D9488;
             --primary-emerald: #10B981;
-            --text-dark: #1E293B;
-            --text-light: #475569;
         }
         body { 
-            font-family: 'Be Vietnam Pro', sans-serif; 
-            background-color: #f1f5f9; /* Màu nền chung của dự án */
+             font-family: 'Be Vietnam Pro', sans-serif; 
+             background-color: #f8fafc; /* Lighter background for better contrast */
         }
-        
-        /* Menu Ngang (Header) */
-        .glass-header { 
-            background-color: rgba(255, 255, 255, 0.65); 
-            backdrop-filter: blur(16px); 
-            -webkit-backdrop-filter: blur(16px); 
-            border-bottom: 1px solid rgba(0,0,0,0.05); 
-        }
-        .cta-button {
-            background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
-        }
-        .cta-button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
-        }
-
-        /* Định dạng văn bản */
         .gradient-text {
             background: linear-gradient(90deg, var(--primary-teal), var(--primary-emerald));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-        }
-        
-        /* Tùy chỉnh lớp .prose cho trang tài liệu */
-        .prose h1 {
-            color: var(--text-dark);
-            font-weight: 800;
         }
         .prose h2 {
             font-size: 1.5rem;
             font-weight: 700;
             color: #1e293b;
             padding-bottom: 0.5rem;
-            border-bottom: 2px solid #e2e8f0;
+            border-bottom: 2px solid var(--primary-teal); /* Đã thay đổi */
             margin-top: 3.5rem;
             margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
         }
-        .prose h2 svg {
-            width: 1.25rem;
-            height: 1.25rem;
-            margin-right: 0.75rem;
-            color: var(--primary-teal);
+        .prose h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #334155;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
         }
         .prose p {
             line-height: 1.75;
             color: #475569;
-            text-align: justify;
-            /* Style cho "hanging indent" (thụt lề dòng 2) */
-            text-indent: -2rem;
-            padding-left: 2rem;
-            margin-bottom: 1rem;
         }
         .prose a {
             color: var(--primary-teal);
             font-weight: 500;
             text-decoration: none;
-            /* Giúp link không bị gạch chân vỡ dòng */
-            word-break: break-all;
         }
-        .prose a:hover { text-decoration: underline; }
-
+        .prose a:hover {
+            text-decoration: underline;
+        }
+        .prose code {
+            background-color: #e2e8f0;
+            color: #475569;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .prose ol {
+            list-style-type: decimal;
+            padding-left: 1.5rem;
+        }
+        .prose li {
+            margin-bottom: 0.75rem;
+        }
+        /* Đã xoá các kiểu .prose img và .prose img:hover */
+        .sidebar-link {
+            display: block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            color: #475569;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar-link:hover {
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+        .sidebar-link.active {
+            background-color: #f0fdfa;
+            color: var(--primary-teal);
+            font-weight: 600;
+            border-left-color: var(--primary-teal);
+        }
+        .sidebar-heading {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            padding: 0 1rem;
+        }
+        /* Custom Scrollbar for Sidebar */
+        #sidebar-nav::-webkit-scrollbar {
+            width: 6px;
+        }
+        #sidebar-nav::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #sidebar-nav::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        #sidebar-nav::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Reveal on scroll animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body class="antialiased">
+    <div class="flex">
+        <aside class="w-72 h-screen sticky top-0 bg-white border-r border-slate-200 shadow-md p-4 hidden md:flex flex-col">
+            <a href="index.html" class="text-2xl font-bold gradient-text block px-4 flex-shrink-0">AIGEO</a>
+            <p class="text-sm text-slate-500 px-4 mt-1 flex-shrink-0">Sổ tay Hướng dẫn</p>
+            <nav id="sidebar-nav" class="mt-8 space-y-2 flex-grow overflow-y-auto">
+                <div>
+                    <a href="#introduction" class="sidebar-link">Giới thiệu</a>
+                </div>
+                <div>
+                    <h3 class="sidebar-heading">Giáo viên</h3>
+                    <a href="#teacher-classrooms" class="sidebar-link">Quản lý Lớp học</a>
+                    <a href="#teacher-questions" class="sidebar-link">Đóng góp Câu hỏi</a>
+                    <a href="#teacher-tests" class="sidebar-link">Tạo & Quản lý Đề thi</a>
+                    <a href="#teacher-monitoring" class="sidebar-link">Giám sát Thi cử</a>
+                </div>
+                <div>
+                    <h3 class="sidebar-heading">Học sinh</h3>
+                    <a href="#student-start" class="sidebar-link">Bắt đầu & Tham gia lớp</a>
+                    <a href="#student-practice" class="sidebar-link">Luyện tập & Thi cử</a>
+                    <a href="#student-stats" class="sidebar-link">Xem Thống kê & Kết quả</a>
+                    <a href="#student-chatbot" class="sidebar-link">Sử dụng Chatbot AI</a>
+                </div>
+            </nav>
+        </aside>
 
-    <header class="glass-header sticky top-0 z-50">
-        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="index.html" class="flex items-center gap-2">
-                <img src="https://i.ibb.co/JWTx6WrX/FAVICON.png" alt="AIGEO Logo" class="h-8 w-auto">
-                <span class="text-2xl font-bold gradient-text">AIGEO</span>
-            </a>
-            
-            <div class="hidden md:flex items-center space-x-8 text-sm font-semibold">
-                <a href="index.html" class="text-slate-600 hover:text-teal-600 transition">Trang chủ</a>
-                <a href="huong-dan-su-dung.html" class="text-slate-600 hover:text-teal-600 transition">Hướng dẫn</a>
-                <a href="client/index.html" class="text-slate-600 hover:text-teal-600 transition">Dùng thử</a>
-            </div>
-            
-            <div class="flex items-center space-x-4">
-                <a href="auth.html" class="hidden md:block cta-button text-white px-5 py-2.5 rounded-lg text-sm font-semibold">
-                    Đăng nhập
-                </a>
-                <button id="mobile-menu-button" class="md:hidden text-slate-800 p-2">
-                    <i data-feather="menu" class="w-6 h-6"></i>
-                </button>
-            </div>
-        </nav>
-
-        <div id="mobile-menu" class="hidden md:hidden px-6 pt-2 pb-4 space-y-2">
-            <a href="index.html" class="block py-2 text-slate-600 hover:text-teal-600 font-medium">Trang chủ</a>
-            <a href="huong-dan-su-dung.html" class="block py-2 text-slate-600 hover:text-teal-600 font-medium">Hướng dẫn</a>
-            <a href="client/index.html" class="block py-2 text-slate-600 hover:text-teal-600 font-medium">Dùng thử</a>
-            <a href="auth.html" class="block cta-button text-white text-center mt-2 px-5 py-2.5 rounded-lg font-semibold">Đăng nhập</a>
-        </div>
-    </header>
-
-    <main class="py-16">
-        <div class="max-w-4xl mx-auto bg-white p-8 md:p-12 rounded-xl shadow-lg">
-            <article class="prose max-w-none">
-                
-                <h1 class="gradient-text !mb-8 !text-center">TÀI LIỆU THAM KHẢO</h1>
-
-                <section id="section-vn">
-                    <h2><i data-feather="book"></i>Tài liệu trong nước</h2>
-                    
-                    <p>Hoàng Thị Mai Anh. (2020). Ứng dụng công nghệ số trong dạy học Địa lí ở trường trung học phổ thông. <i>Tạp chí Khoa học Giáo dục, 66</i>(3), 95–100.</p>
-                    <p>Ngô Thị Ngọc Diệu, Mai Thị Hảo, & Nguyễn Thanh Tùng. (2025). Overview of AI applications in the field of education in Vietnam. <i>TDMU Journal</i>. https://doi.org/10.37550/tdmu.EJS/2025.02.654</p>
-                    <p>Trương Thị Thanh Hà, Nguyễn Thị Hồng Vân, Lê Thị Linh, & Trương Thị Ánh Nguyệt. (2021). Critical success factors for e-learning at university level: A case study from Da Nang University of Technology and Education. <i>Journal of Technical Education Science, 62</i>, 77–88. https://doi.org/10.54644/jte.62.2021.77</p>
-                    <p>Phạm Văn Hùng. (2019). Vận dụng công nghệ thông tin trong kiểm tra, đánh giá kết quả học tập của học sinh trung học phổ thông. <i>Tạp chí Giáo dục, 454</i>(1), 60–63.</p>
-                    <p>Trần Thị Hường. (2021). Ứng dụng hệ thống quản lý học tập (LMS) trong giảng dạy và đánh giá kết quả học tập ở trường phổ thông. <i>Tạp chí Khoa học Giáo dục Việt Nam, 18</i>(2), 77–84.</p>
-                    <p>Nguyễn Đăng Khoa, & Nguyễn Quốc Hưng. (2023). <i>Phát triển và ứng dụng trí tuệ nhân tạo trong giáo dục đại học Việt Nam: Cơ hội, thách thức và giải pháp</i> [Báo cáo khoa học]. Trường Đại học Kinh tế Quốc dân.</p>
-                    <p>Nguyễn Công Khanh, & Đào Thị Oanh. (2016). <i>Kiểm tra – Đánh giá trong giáo dục</i>. Nhà xuất bản Đại học Sư phạm.</p>
-                    <p>Mai Quốc Khanh, & Phan Trung Kiên. (2025). Students’ competency in using learning resources on the LMS at Hanoi National University of Education. <i>Journal of Science – Educational Science (HNUEJS)</i>. https://doi.org/10.18173/2354-1075.2025-0049</p>
-                    <p>Cao Liên. (2021). The use of Learning Management System (LMS) in online learning at University of Foreign Languages, Hue University. <i>Tạp chí Khoa học Đại học Huế: Khoa học Xã hội và Nhân văn, 130</i>(6B). https://doi.org/10.26459/hueunijssh.v130i6B.6262</p>
-                    <p>Cao Thị Xuân Liên. (2023). Benefits and challenges of using LMS in blended learning: Views from EFL teachers and students at a Vietnamese public university. <i>International Journal of TESOL & Education, 3</i>(3), 1–20. https://doi.org/10.54855/ijte.23335</p>
-                    <p>Phạm Thị Ngọc, & Đặng Thị Xuân. (2025). An investigation into the application of artificial intelligence for language teaching and learning in Vietnam. <i>Vietnam Journal of Education, 9</i>(2), 265–283. https://doi.org/10.52296/vje.2025.557</p>
-                    <p>Đỗ Thị Quỳnh Như. (2023). Factors affecting the acceptance of e-learning by learners in the context of the COVID-19 pandemic: A hybrid ANN–SEM method. <i>Vietnam Journal of Education, 7</i>(1), 48–62. https://doi.org/10.52296/vje.2023.255</p>
-                    <p>Huỳnh Phẩm Dũng Phát. (2016). Ứng dụng công nghệ thông tin trong dạy học Địa lí ở trường trung học phổ thông. <i>Tạp chí Khoa học Trường Đại học Cần Thơ, 45</i>(2), 112–120.</p>
-                    <p>Nguyễn Thị Quỳnh Trang, & Phan Thị Thu. (2024). The role of AI in improving student learning outcomes: Evidence in Vietnam. <i>International Journal of Multidisciplinary Research and Analysis, 7</i>(6). https://doi.org/10.47191/ijmra/v7-i06-48</p>
-                    <p>Bùi Diên Thị, Nhân Thúy Thị, Đặng Huệ Thị Thu, & Phùng Trang Thị Thu. (2022). Online learning experiences of secondary school students during COVID-19 – Dataset from Vietnam. <i>Data in Brief, 45</i>, 108662. https://doi.org/10.1016/j.dib.2022.108662</p>
+        <main class="flex-1 p-6 md:p-12">
+            <article class="prose max-w-4xl mx-auto">
+                <section id="introduction" class="reveal">
+                    <h1 class="gradient-text !mb-2">Chào mừng đến với Sổ tay Hướng dẫn AIGEO</h1>
+                    <p class="!text-lg !mt-0 text-slate-500">Tài liệu này sẽ hướng dẫn bạn cách sử dụng các chức năng chính của hệ thống AIGEO, dành cho vai trò Giáo viên và Học sinh.</p>
                 </section>
 
-                <section id="section-en">
-                    <h2><i data-feather="globe"></i>Tài liệu nước ngoài</h2>
-                    
-                    <p>Alshammari, S., & Al-Emran, M. (2023). Trends in LMS research: A systematic review of adoption and pedagogical impact. <i>Education and Information Technologies, 28</i>(1), 111–129. https://doi.org/10.1007/s10639-022-11110-8</p>
-                    <p>Anderson, L. W., & Krathwohl, D. R. (Eds.). (2001). <i>A taxonomy for learning, teaching, and assessing: A revision of Bloom's taxonomy of educational objectives</i>. Longman.</p>
-                    <p>Bloom, B. S. (1956). <i>Taxonomy of educational objectives: The classification of educational goals</i>. David McKay Company.</p>
-                    <p>Brusilovsky, P., & Millán, E. (2007). User models for adaptive hypermedia and adaptive educational systems. In P. Brusilovsky, A. Kobsa, & W. Nejdl (Eds.), <i>The Adaptive Web: Methods and Strategies of Web Personalization</i> (pp. 3–53). Springer.</p>
-                    <p>Chen, L., & Li, X. (2024). Personalized learning paths through AI-based recommendation in LMS. <i>Computers in Human Behavior Reports, 9</i>, 100297. https://doi.org/10.1016/j.chbr.2023.100297</p>
-                    <p>Kim, S. J., & Park, H. (2023). AI-assisted formative assessment in digital learning environments. <i>British Journal of Educational Technology, 54</i>(6), 1410–1425. https://doi.org/10.1111/bjet.13328</p>
-                    <p>Létourneau, K., Poirier, M., & Bélanger, C. (2024). A systematic review of AI-driven intelligent tutoring systems in K–12 education. <i>Frontiers in Education, 9</i>, 1342112. https://doi.org/10.3389/feduc.2024.1342112</p>
-                    <p>Liao, C., & Yang, J. (2024). Adaptive learning systems using AI analytics: Trends and frameworks. <i>Educational Technology Research and Development, 72</i>(3), 187–205. https://doi.org/10.1007/s11423-023-10255-7</p>
-                    <p>Liao, Y., & Zhang, H. (2023). Learning analytics and educational data mining in AI-enhanced environments. <i>Journal of Educational Computing Research, 61</i>(2), 207–230. https://doi.org/10.1177/07356331221109315</p>
-                    <p>Martínez, M., & Rodríguez, A. (2022). Integrating artificial intelligence into LMS: Challenges and perspectives. <i>Computers & Education, 188</i>, 104594. https://doi.org/10.1016/j.compedu.2022.104594</p>
-                    <p>Martínez-García, A., García-Holgado, A., & García-Peñalvo, F. J. (2023). Evolution and current state of research into e-learning: A bibliometric analysis. <i>Heliyon, 9</i>(5), e15412. https://doi.org/10.1016/j.heliyon.2023.e15412</p>
-                    <p>Noesgaard, S. S., & Ørngreen, R. (2015). The effectiveness of e-learning: An explorative and integrative review. <i>International Review of Research in Open and Distributed Learning, 16</i>(1), 305–329. https://doi.org/10.19173/irrodl.v16i1.2197</p>
-                    <p>Qiu, Z., & Xu, J. (2022). AI in education: From data to decision – A conceptual review. <i>Computers & Education: Artificial Intelligence, 3</i>, 100053. https://doi.org/10.1016/j.caeai.2022.100053</p>
-                    <p>U.S. Department of Education, Office of Educational Technology. (2023). <i>Artificial intelligence and the future of teaching and learning: Insights and recommendations</i>. U.S. Department of Education.</p>
-                    <p>Wang, S., & Zhao, Y. (2024). Artificial intelligence in education: A systematic literature review. <i>Expert Systems with Applications, 243</i>, 122907. https://doi.org/10.1016/j.eswa.2024.122907</p>
-                </section>
+                <section id="teacher-guide" class="reveal">
+                    <h2><i data-feather="briefcase" class="inline-block -mt-1 mr-2"></i>Hướng dẫn cho Giáo viên</h2>
 
+                    <h3 id="teacher-classrooms">Quản lý Lớp học</h3>
+                    <p>Tạo và quản lý các lớp học của riêng bạn để tương tác với học sinh.</p>
+                    <ol>
+                        <li>Vào trang <strong>Quản lý Lớp học</strong> và nhấn nút "Tạo Lớp học mới".</li>
+                        <li>Điền thông tin và lưu lại. Hệ thống sẽ tạo một <strong>Mã lớp</strong> duy nhất.</li>
+                        <li>Gửi mã lớp này hoặc sao chép link mời cho học sinh của bạn để họ tham gia.</li>
+                        <li>Nhấn vào "Xem tiến độ" để theo dõi kết quả làm bài của từng học sinh trong lớp.</li>
+                    </ol>
+                    <h3 id="teacher-questions">Đóng góp Câu hỏi</h3>
+                    <p>Bạn có thể đóng góp câu hỏi do mình soạn vào ngân hàng câu hỏi của hệ thống.</p>
+                    <ol>
+                        <li>Vào trang <strong>Ngân hàng câu hỏi</strong>.</li>
+                        <li>Dùng bộ lọc để chọn chính xác Bài học bạn muốn đóng góp câu hỏi.</li>
+                        <li>Nhấn nút "Đóng góp câu hỏi" và điền đầy đủ thông tin.</li>
+                        <li>Câu hỏi của bạn sẽ được gửi đến Quản trị viên để chờ duyệt. Bạn có thể xem trạng thái (Chờ duyệt, Đã duyệt, Bị từ chối) ngay tại danh sách câu hỏi.</li>
+                    </ol>
+
+                    <h3 id="teacher-tests">Tạo & Quản lý Đề thi</h3>
+                    <p>Tạo các bài kiểm tra và giao cho các lớp học của bạn một cách linh hoạt.</p>
+                    <ol>
+                        <li>Vào trang <strong>Quản lý đề thi</strong>, nhấn "Tạo Đề Thi Mới".</li>
+                        <li>Chọn phương thức tạo đề phù hợp:
+                            <ul>
+                                <li><strong>Ngân hàng chung & Cá nhân:</strong> Tự chọn câu hỏi từ hệ thống và câu hỏi do bạn tạo.</li>
+                                <li><strong>Chỉ câu hỏi cá nhân:</strong> Chỉ dùng các câu hỏi do bạn tạo.</li>
+                                <li><strong>Tạo từ File (AI):</strong> Tải lên file Word/PDF, AI sẽ tự động phân tích và tạo câu hỏi.</li>
+                            </ul>
+                        </li>
+                        <li>Sau khi tạo đề, bạn có thể vào "Xem trước" và nhấn "Giao bài" để chọn các lớp học sẽ nhận bài kiểm tra này.</li>
+                    </ol>
+
+                    <h3 id="teacher-monitoring">Giám sát Thi cử</h3>
+                    <p>Theo dõi học sinh làm bài trong thời gian thực để đảm bảo tính công bằng và hỗ trợ kịp thời.</p>
+                    <ol>
+                        <li>Vào trang <strong>Quản lý đề thi</strong>.</li>
+                        <li>Với các đề đã giao, nhấn vào nút "Giám sát".</li>
+                        <li>Chọn lớp học bạn muốn giám sát.</li>
+                        <li>Màn hình sẽ hiển thị trạng thái của từng học sinh: Đang thi, Offline, Bị khóa (do vi phạm), Đã nộp bài.</li>
+                        <li>Nếu học sinh bị khóa do thoát chế độ toàn màn hình, bạn có thể quyết định "Cho phép thi tiếp" hoặc "Buộc nộp bài".</li>
+                    </ol>
+                    </section>
+
+                <section id="student-guide" class="reveal">
+                    <h2><i data-feather="user" class="inline-block -mt-1 mr-2"></i>Hướng dẫn cho Học sinh</h2>
+                                        
+                    <h3 id="student-start">Bắt đầu & Tham gia lớp</h3>
+                    <ol>
+                        <li>Đăng ký tài khoản và đăng nhập vào hệ thống.</li>
+                        <li>Lần đầu đăng nhập, bạn sẽ được yêu cầu cập nhật thông tin cá nhân (trường, khối lớp) tại trang <strong>Tài khoản</strong>. Việc này là cần thiết để hệ thống gợi ý đúng nội dung học tập.</li>
+                        <li>Để tham gia lớp, vào mục <strong>Lớp học của tôi</strong>, chọn "Tham gia lớp mới".</li>
+                        <li>Nhập <strong>Mã lớp</strong> do giáo viên cung cấp và nhấn "Tham gia".</li>
+                    </ol>
+
+                    <h3 id="student-practice">Luyện tập & Thi cử</h3>
+                    <p>AIGEO cung cấp nhiều hình thức luyện tập để bạn củng cố kiến thức một cách hiệu quả.</p>
+                    <ul>
+                        <li><strong>Bài tập được giao:</strong> Các bài kiểm tra do giáo viên giao sẽ xuất hiện ở Bảng điều khiển và trong chi tiết từng lớp học. Nhấn "Vào thi" để bắt đầu làm bài.</li>
+                        <li><strong>Trung tâm Luyện tập:</strong> Vào mục <strong>Luyện tập</strong>, bạn có thể chọn các hình thức:
+                            <ul>
+                                <li><strong>Đề theo Năng lực (AI):</strong> AI tự động tạo đề dựa trên các lỗi sai của bạn trong các bài làm trước.</li>
+                                <li><strong>Luyện Đề:</strong> Làm các đề thi chung từ ngân hàng đề của hệ thống.</li>
+                                <li><strong>Theo Bài / Tổng hợp:</strong> Tự chọn môn, bài học và số lượng câu hỏi để tạo đề ôn tập theo ý muốn.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <h3 id="student-stats">Xem Thống kê & Kết quả</h3>
+                    <ul>
+                        <li>Sau mỗi bài làm, bạn sẽ được chuyển đến trang kết quả chi tiết, bao gồm điểm số, nhận xét từ AI và đáp án chi tiết từng câu.</li>
+                        <li>Vào mục <strong>Thống kê</strong> để xem biểu đồ tiến độ, điểm trung bình, và lịch sử tất cả các bài đã làm.</li>
+                    </ul>
+
+                    <h3 id="student-chatbot">Sử dụng Chatbot AI</h3>
+                    <p>Khi có bất kỳ thắc mắc nào về kiến thức, hãy vào mục <strong>Chatbot AI</strong>. Trợ lý ảo sẽ giúp bạn giải đáp các câu hỏi liên quan đến môn học một cách nhanh chóng.</p>
+                </section>
             </article>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             feather.replace();
 
-            // --- Menu Mobile ---
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            if (mobileMenuButton) {
-                mobileMenuButton.addEventListener('click', () => {
-                    mobileMenu.classList.toggle('hidden');
-                    const icon = mobileMenuButton.querySelector('i');
-                    icon.setAttribute('data-feather', mobileMenu.classList.contains('hidden') ? 'menu' : 'x');
-                    feather.replace();
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('#sidebar-nav a');
+
+            // Scroll reveal animation
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
                 });
-            }
+            }, { threshold: 0.1 });
+            
+            document.querySelectorAll('.reveal').forEach(el => {
+                revealObserver.observe(el);
+            });
+
+            // Active sidebar link on scroll
+            const activeLinkObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            const isChildOfHeading = link.previousElementSibling && link.previousElementSibling.classList.contains('sidebar-heading');
+                            let targetId = link.getAttribute('href').substring(1);
+                            
+                            // Special case for headings
+                            if (entry.target.id.startsWith('teacher') && link.getAttribute('href') === '#teacher-classrooms') {
+                                targetId = 'teacher-guide';
+                            } else if (entry.target.id.startsWith('student') && link.getAttribute('href') === '#student-start') {
+                                targetId = 'student-guide';
+                            }
+
+                            link.classList.toggle('active', targetId === entry.target.id);
+                        });
+                    }
+                });
+            }, { rootMargin: "-40% 0px -60% 0px" });
+
+            sections.forEach(section => {
+                activeLinkObserver.observe(section);
+            });
         });
     </script>
 </body>
