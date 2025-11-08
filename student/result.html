@@ -5,11 +5,6 @@
     <link rel="icon" type="image/png" href="https://i.ibb.co/JWTx6WrX/FAVICON.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kết quả Bài làm - AIGEO</title>
-    <!-- 
-      Lưu ý: Link CDN của Tailwind này phù hợp cho việc phát triển. 
-      Đối với website thực tế (production), bạn nên cài đặt Tailwind CSS trực tiếp vào dự án
-      để tối ưu tốc độ tải trang theo khuyến nghị trong console.
-    -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
@@ -90,7 +85,6 @@
             <div id="result-page-content" class="max-w-4xl mx-auto opacity-0 transition-opacity duration-500">
                 <h1 id="test-name-title" class="text-3xl font-bold text-slate-800">Kết quả Bài làm</h1>
                 
-                <!-- Summary Card -->
                 <div class="mt-6 bg-white p-6 rounded-xl shadow-lg grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                     <div>
                         <p class="text-sm font-semibold text-slate-500">ĐIỂM SỐ</p>
@@ -114,9 +108,14 @@
                     <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm">
                         <div class="flex justify-between items-center mb-4">
                              <h2 class="text-xl font-bold text-slate-800 flex items-center"><i data-feather="cpu" class="w-6 h-6 mr-3 text-teal-600"></i>Nhận xét từ AI</h2>
-                             <button id="ai-detail-btn" class="cta-button text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center">
-                                <i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết
-                            </button>
+                             <div class="flex items-center space-x-2">
+                                <button id="ai-retry-btn" class="hidden bg-yellow-100 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-lg flex items-center">
+                                    <i data-feather="refresh-cw" class="w-4 h-4 mr-2"></i>Thử lại
+                                </button>
+                                <button id="ai-detail-btn" class="cta-button text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center">
+                                    <i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết
+                                </button>
+                             </div>
                         </div>
                         <div id="ai-feedback" class="prose prose-sm text-slate-600"><div class="skeleton h-24 w-full"></div></div>
                     </div>
@@ -131,6 +130,9 @@
                          <h2 class="text-xl font-bold text-slate-700">Xem lại chi tiết bài làm</h2>
                          <div id="action-buttons" class="flex space-x-2">
                              <a id="back-to-hub" href="practice-hub.html" class="bg-white text-slate-700 font-semibold px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition nav-link flex items-center"><i data-feather="zap" class="w-4 h-4 mr-2"></i>Luyện tập tiếp</a>
+                             <a id="retry-test-btn" href="#" class="bg-white text-teal-600 font-semibold px-4 py-2 rounded-lg border border-teal-300 hover:bg-teal-50 transition nav-link flex items-center">
+                                <i data-feather="refresh-cw" class="w-4 h-4 mr-2"></i>Làm lại
+                             </a>
                              <a id="back-to-dashboard" href="index.html" class="cta-button text-white font-semibold px-4 py-2 rounded-lg nav-link flex items-center"><i data-feather="home" class="w-4 h-4 mr-2"></i>Về trang chủ</a>
                          </div>
                     </div>
@@ -165,11 +167,15 @@
             const reviewContainerEl = document.getElementById('review-container');
             const resultPageContent = document.getElementById('result-page-content');
             const aiDetailBtn = document.getElementById('ai-detail-btn');
+            const aiRetryBtn = document.getElementById('ai-retry-btn'); 
             const actionButtons = document.getElementById('action-buttons');
+            const retryTestBtn = document.getElementById('retry-test-btn');
             
             let currentUser = null;
             let currentResultData = null;
             let currentQuestions = [];
+            let allLessonsCache = [];
+            let apiKeysCache = null;
 
             onAuthStateChanged(auth, async (user) => {
                 if (!user) { window.location.href = '../auth.html'; return; }
@@ -201,7 +207,7 @@
                     if (!resultSnap.exists()) throw new Error("Không tìm thấy dữ liệu kết quả.");
                     
                     currentResultData = resultSnap.data();
-                    const { score, totalQuestions, userAnswers, incorrectQuestions, questionIds, embeddedQuestions, timeTaken, completedAt, testName, type } = currentResultData;
+                    const { score, totalQuestions, userAnswers, incorrectQuestions, questionIds, embeddedQuestions, timeTaken, completedAt, testName, type, testId, classId } = currentResultData;
                     
                     if (testName.startsWith("Luyện tập")) {
                         actionButtons.querySelector('#back-to-hub').classList.add('hidden');
@@ -217,6 +223,12 @@
                     timeTakenDisplay.textContent = `${minutes}m ${seconds}s`;
                     completedAtDisplay.textContent = completedAt.toDate().toLocaleDateString('vi-VN');
                     if(tenPointScore >= 8) launchConfetti();
+
+                    if (classId) {
+                        retryTestBtn.href = `test.html?testId=${testId}&classId=${classId}`;
+                    } else {
+                        retryTestBtn.href = `practice-test.html?testId=${testId}`;
+                    }
                     
                     const [fetchedQuestions, allLessons, apiKeySnap] = await Promise.all([
                         fetchQuestions(questionIds),
@@ -224,20 +236,32 @@
                         getDoc(doc(db, "system_settings", "api_keys"))
                     ]);
                     
-                    currentQuestions = [...fetchedQuestions, ...(embeddedQuestions || [])];
+                    allLessonsCache = allLessons; // Lưu cache
+                    apiKeysCache = apiKeySnap.exists() ? apiKeySnap.data() : null; // Lưu cache
+                    currentQuestions = [...(embeddedQuestions || []), ...fetchedQuestions];
 
-                    renderReviewSection(currentQuestions, userAnswers, allLessons);
+                    renderReviewSection(currentQuestions, userAnswers, allLessonsCache);
                     
                     const uniqueIncorrectLessonIds = [...new Set((incorrectQuestions || []).map(q => q.lessonId).filter(id => id))];
-                    const topicsToReview = allLessons.filter(l => uniqueIncorrectLessonIds.includes(l.id));
+                    const topicsToReview = allLessonsCache.filter(l => uniqueIncorrectLessonIds.includes(l.id));
                     reviewTopicsEl.innerHTML = topicsToReview.length > 0
                         ? topicsToReview.map(l => `<li><i data-feather="target" class="w-4 h-4 inline-block mr-2 text-red-500"></i>${cleanPrefix(l.name)}</li>`).join('')
                         : `<li><i data-feather="check-circle" class="w-4 h-4 inline-block mr-2 text-green-500"></i>Làm tốt lắm, không có lỗi sai!</li>`;
                     
-                    const apiKeysData = apiKeySnap.exists() ? apiKeySnap.data() : null;
-                    getAiFeedback(incorrectQuestions || [], topicsToReview, score, totalQuestions, apiKeysData, false);
-                    
-                    aiDetailBtn.addEventListener('click', () => getAiFeedback(incorrectQuestions || [], topicsToReview, score, totalQuestions, apiKeysData, true));
+                    const aiFeedbackFn = (isDetailed) => getAiFeedback(
+                        incorrectQuestions || [], 
+                        topicsToReview, 
+                        score, 
+                        totalQuestions, 
+                        apiKeysCache, 
+                        isDetailed
+                    );
+
+                    // Thêm listener cho các nút AI
+                    aiDetailBtn.addEventListener('click', () => aiFeedbackFn(true));
+                    aiRetryBtn.addEventListener('click', () => aiFeedbackFn(false)); // Nút thử lại sẽ gọi lại bản tóm tắt
+
+                    aiFeedbackFn(false); // Tải bản tóm tắt ban đầu
                     
                     resultPageContent.classList.add('opacity-100');
                     feather.replace();
@@ -269,7 +293,8 @@
                     const snapshot = await getDocs(q);
                     snapshot.forEach(doc => fetchedQuestions.push({ id: doc.id, ...doc.data() }));
                 }
-                return fetchedQuestions.sort((a, b) => questionIds.indexOf(a.id) - questionIds.indexOf(b.id));
+                const originalIdOrder = currentResultData.questionIds || [];
+                return fetchedQuestions.sort((a, b) => originalIdOrder.indexOf(a.id) - originalIdOrder.indexOf(b.id));
             }
             
             async function fetchAllLessons() {
@@ -279,7 +304,10 @@
             
             function renderReviewSection(questions, userAnswers, allLessons) {
                 reviewContainerEl.innerHTML = '';
-                questions.forEach((q, index) => {
+                const originalIdOrder = currentResultData.questionIds || questions.map(q => q.id);
+                const sortedQuestions = questions.sort((a, b) => originalIdOrder.indexOf(a.id) - originalIdOrder.indexOf(b.id));
+
+                sortedQuestions.forEach((q, index) => {
                     const lesson = allLessons.find(l => l.id === q.lessonId);
                     const userAnswer = userAnswers[q.id];
                     let isCorrect = false;
@@ -319,7 +347,9 @@
                              const correctAns = Array.isArray(statements) ? statements[key].answer : q.answers[key];
                              const isSubCorrect = userAns === correctAns;
                              
-                             return `<div class="p-3 border-t"><p>${key}) ${statementContent}</p><div class="text-sm mt-2"><span>Đáp án: <strong class="${correctAns ? 'text-green-600' : 'text-red-600'}">${correctAns ? 'Đúng' : 'Sai'}</strong></span> | <span>Bạn chọn: <strong class="${isSubCorrect ? 'text-green-600' : 'text-red-600'}">${userAns === undefined ? '(bỏ trống)' : (userAns ? 'Đúng' : 'Sai')}</strong></span></div></div>`;
+                             const displayKey = Array.isArray(statements) ? (parseInt(key, 10) + 1) : key;
+
+                             return `<div class="p-3 border-t"><p>${displayKey}) ${statementContent}</p><div class="text-sm mt-2"><span>Đáp án: <strong class="${correctAns ? 'text-green-600' : 'text-red-600'}">${correctAns ? 'Đúng' : 'Sai'}</strong></span> | <span>Bạn chọn: <strong class="${isSubCorrect ? 'text-green-600' : 'text-red-600'}">${userAns === undefined ? '(bỏ trống)' : (userAns ? 'Đúng' : 'Sai')}</strong></span></div></div>`;
                         }).join('');
                         answerHTML = `<div class="mt-4 border rounded-lg divide-y">${answerHTML}</div>`;
                     }
@@ -347,6 +377,7 @@
                 return key;
             }
 
+            // *** HÀM getAiFeedback ĐÃ CẬP NHẬT VỚI LOGIC TỰ ĐỘNG THỬ LẠI ***
             async function getAiFeedback(incorrectQuestions, topicsToReview, score, total, apiKeysData, isDetailed) {
                 const openRouterKeys = apiKeysData?.openrouter_keys;
                 if (!openRouterKeys || openRouterKeys.length === 0) {
@@ -354,6 +385,7 @@
                 }
                 
                 aiDetailBtn.disabled = true;
+                aiRetryBtn.classList.add('hidden'); // Ẩn nút thử lại khi bắt đầu
                 aiDetailBtn.innerHTML = `<i data-feather="loader" class="animate-spin w-4 h-4 mr-2"></i>Đang phân tích...`;
                 feather.replace();
 
@@ -363,8 +395,6 @@
                     return;
                 }
                 
-                const openRouterApiKey = getNextApiKey(openRouterKeys);
-                
                 let systemPrompt, userPrompt;
 
                 if (isDetailed) {
@@ -372,53 +402,100 @@
                     const detailedIncorrectContent = incorrectQuestionsData.map((q, index) => {
                         let questionText = `Câu ${index + 1}: ${q.content}\n`;
                         if (q.type === 'multiple_choice') {
-                            questionText += q.options.map((opt, i) => `  ${String.fromCharCode(65+i)}. ${opt}`).join('\n');
-                            questionText += `\n  Đáp án đúng: ${q.correctAnswer}`;
+                            questionText += (q.shuffledOptions || []).map((opt, i) => `  ${String.fromCharCode(65+i)}. ${opt.content}`).join('\n');
+                            const correctLetter = q.shuffledOptions.find(opt => opt.originalLetter === q.correctAnswer);
+                            const correctChoice = correctLetter ? String.fromCharCode(65 + q.shuffledOptions.indexOf(correctLetter)) : q.correctAnswer;
+                            questionText += `\n  Đáp án đúng: ${correctChoice}`;
                         } else {
                             questionText += `\n  Đáp án đúng: ${q.correctAnswer}`;
                         }
                         return questionText;
                     }).join('\n\n');
 
-                    systemPrompt = "You are a professional and friendly AI tutor for AIGEO. Your task is to provide a detailed, step-by-step explanation for each incorrect question provided by the user. Respond in Vietnamese. Use HTML formatting (e.g., <p>, <strong>, <ul>, <li>) and KaTeX for math formulas (e.g., $ax^2+b=0$). Structure your response clearly for each question.";
-                    userPrompt = `Tôi vừa làm sai những câu sau đây, vui lòng giải thích chi tiết cách giải và đáp án đúng cho từng câu:\n\n${detailedIncorrectContent}`;
+                    systemPrompt = "Bạn là một gia sư AI chuyên nghiệp của AIGEO. Nhiệm vụ của bạn là giải thích chi tiết, từng bước một cho từng câu hỏi sai mà người dùng cung cấp. Luôn trả lời bằng tiếng Việt. BẮT BUỘC sử dụng định dạng HTML (ví dụ: <p>, <strong>, <ul>, <li>) và công thức KaTeX (ví dụ: $ax^2+b=0$) nếu cần. Hãy trình bày rõ ràng cho từng câu.";
+                    userPrompt = `Vui lòng phân tích và giải thích chi tiết các câu hỏi sai dưới đây. Hãy giải thích rõ tại sao đáp án đúng lại đúng và tại sao các lựa chọn khác (nếu có) lại sai.\n\n${detailedIncorrectContent}`;
                 } else {
-                    const topicsContent = topicsToReview.map(t => t.name).join(', ');
-                    systemPrompt = "You are a helpful AI assistant for AIGEO. Provide a concise, motivational, and constructive review (about 3-4 sentences) in Vietnamese based on the student's quiz results. The review MUST use HTML formatting (<strong>, <p>, <ul><li>) and start with <strong>. Do not use markdown.";
-                    userPrompt = `Một học sinh vừa hoàn thành bài kiểm tra và đạt ${score}/${total} điểm. Các chủ đề kiến thức bị sai là: ${topicsContent}. Dựa vào thông tin trên, hãy động viên, chỉ ra các mảng kiến thức chính cần củng cố và đề xuất hành động cụ thể.`;
+                    const topicsContent = topicsToReview.map(t => cleanPrefix(t.name)).join(', ');
+                    systemPrompt = "Bạn là một gia sư AI thân thiện và chuyên nghiệp của AIGEO. Hãy đưa ra một nhận xét ngắn gọn (3-4 câu) bằng tiếng Việt cho kết quả bài làm của học sinh. Nhận xét cần mang tính xây dựng và động viên. BẮT BUỘC sử dụng định dạng HTML (ví dụ: <p>, <strong>, <ul>, <li>) và bắt đầu bằng <strong>. Không dùng markdown.";
+                    userPrompt = `Học sinh đạt ${score}/${total} điểm. Các chủ đề bị sai: ${topicsContent || 'Không có'}. Hãy viết một nhận xét ngắn gọn: 1. Động viên. 2. Chỉ ra (các) mảng kiến thức chính cần củng cố. 3. Đề xuất hành động (ví dụ: ôn lại bài, làm thêm bài tập).`;
                 }
 
                 aiFeedbackEl.innerHTML = '<p class="text-center text-slate-500"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500 mx-auto"></div> Đang tạo nhận xét...</p>';
                 
-                try {
-                    const response = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
-                        method: 'POST',
-                        headers: { 
-                            'Authorization': `Bearer ${openRouterApiKey}`, 'Content-Type': 'application/json',
-                            'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`, 'X-Title': 'AIGEO Student Review' 
-                        },
-                        body: JSON.stringify({ 
-                            model: "deepseek/deepseek-chat-v3.1:free",
-                            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }] 
-                        })
-                    });
-                    if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error.message || `API Error: ${response.statusText}`); }
-                    const data = await response.json();
-                    const text = data.choices[0]?.message?.content;
-                    if (!text) throw new Error("Phản hồi từ AI không hợp lệ.");
-                    
-                    const renderedHtml = marked.parse(text);
-                    aiFeedbackEl.innerHTML = renderedHtml;
-                    renderMathWithKaTeX(aiFeedbackEl);
+                const MAX_RETRIES = 3;
+                let lastError = null;
 
-                } catch (error) {
-                    console.error("AI Feedback Error:", error);
-                    aiFeedbackEl.innerHTML = "Rất tiếc, không thể tạo nhận xét tự động lúc này. Vui lòng tự xem lại các câu sai ở bên dưới nhé.";
-                } finally {
-                    aiDetailBtn.disabled = false;
-                    aiDetailBtn.innerHTML = `<i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết`;
-                    feather.replace();
+                for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                    const openRouterApiKey = getNextApiKey(openRouterKeys);
+                    if (!openRouterApiKey) {
+                        lastError = new Error("Chưa cấu hình OpenRouter API Key.");
+                        break; 
+                    }
+                    
+                    try {
+                        const response = await fetch(`https://openrouter.ai/api/v1/chat/completions`, {
+                            method: 'POST',
+                            headers: { 
+                                'Authorization': `Bearer ${openRouterApiKey}`, 'Content-Type': 'application/json',
+                                'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`, 'X-Title': 'AIGEO Student Review' 
+                            },
+                            body: JSON.stringify({ 
+                                model: "openai/gpt-oss-20b:free",
+                                messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }] 
+                            })
+                        });
+
+                        if (response.ok) {
+                            // THÀNH CÔNG
+                            const data = await response.json();
+                            const text = data.choices[0]?.message?.content;
+                            if (!text) throw new Error("Phản hồi từ AI không hợp lệ.");
+                            
+                            const renderedHtml = marked.parse(text);
+                            aiFeedbackEl.innerHTML = renderedHtml;
+                            renderMathWithKaTeX(aiFeedbackEl);
+                            
+                            aiDetailBtn.disabled = false;
+                            aiDetailBtn.innerHTML = `<i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết`;
+                            feather.replace();
+                            return; // Thoát khỏi hàm thành công
+                        }
+
+                        // LỖI HTTP - Sẽ thử lại với bất kỳ lỗi nào
+                        try {
+                            const errorData = await response.json();
+                            lastError = new Error(errorData.error.message || `Lỗi API: ${response.status} ${response.statusText}`);
+                        } catch (e) {
+                            lastError = new Error(`Lỗi API: ${response.status} ${response.statusText}`);
+                        }
+                        
+                        console.warn(`Attempt ${attempt} failed with error: ${lastError.message}.`);
+
+                        if (attempt < MAX_RETRIES) {
+                            const delay = Math.pow(2, attempt) * 1000; // 2s, 4s
+                            console.warn(`Retrying in ${delay / 1000}s...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+
+                    } catch (error) { // Lỗi mạng (fetch thất bại)
+                        lastError = error;
+                        console.error(`Attempt ${attempt} network error:`, error);
+                        if (attempt < MAX_RETRIES) {
+                            const delay = Math.pow(2, attempt) * 1000;
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+                    }
                 }
+                
+                // Nếu vòng lặp kết thúc mà không return, nghĩa là TẤT CẢ đã thất bại
+                console.error("AI Feedback Error (after all retries):", lastError);
+                aiFeedbackEl.innerHTML = `<div class="p-3 bg-red-50 text-red-700 rounded-lg"><p class="font-semibold">Lỗi tạo nhận xét AI</p><p class="text-sm">${lastError.message}</p></div>`;
+                aiRetryBtn.classList.remove('hidden'); // Hiển thị nút thử lại thủ công
+
+                // Đặt lại trạng thái nút
+                aiDetailBtn.disabled = false;
+                aiDetailBtn.innerHTML = `<i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết`;
+                feather.replace();
             }
             
             function renderMathWithKaTeX(elem) {
@@ -481,4 +558,3 @@
     </script>
 </body>
 </html>
-

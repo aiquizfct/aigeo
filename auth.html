@@ -376,6 +376,26 @@
         </div>
     </div>
 
+    <div id="forgot-password-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md modal-content animate-fade-in-up">
+            <h2 class="text-2xl font-bold text-slate-800 mt-4 text-center">Đặt lại mật khẩu</h2>
+            <p class="mt-2 text-slate-600 text-center">Vui lòng nhập email của bạn. Chúng tôi sẽ gửi một liên kết để đặt lại mật khẩu.</p>
+            
+            <div id="forgot-password-message" class="hidden p-3 text-sm text-center rounded-lg my-4"></div>
+
+            <form id="forgot-password-form" class="mt-6">
+                 <div class="input-group">
+                    <label for="forgot-email" class="input-label">Email của bạn</label>
+                    <i data-feather="mail" class="input-icon"></i>
+                    <input id="forgot-email" type="email" autocomplete="email" required class="input-field" placeholder="vidu@email.com">
+                </div>
+                <div class="flex items-center justify-end space-x-3 mt-8">
+                    <button type="button" id="forgot-password-cancel" class="bg-slate-200 text-slate-800 px-6 py-2 rounded-lg hover:bg-slate-300 font-semibold">Hủy</button>
+                    <button type="submit" id="forgot-password-submit" class="cta-button text-white px-6 py-2 rounded-lg font-semibold">Gửi email</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <script src="firebase-config.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -414,6 +434,14 @@
             const adminLoginModal = document.getElementById('admin-login-modal');
             const adminLoginForm = document.getElementById('admin-login-form');
             const adminLoginCancelBtn = document.getElementById('admin-login-cancel');
+
+            // *** START: Forgot Password Elements ***
+            const forgotPasswordModal = document.getElementById('forgot-password-modal');
+            const forgotPasswordForm = document.getElementById('forgot-password-form');
+            const forgotPasswordCancelBtn = document.getElementById('forgot-password-cancel');
+            const forgotPasswordSubmitBtn = document.getElementById('forgot-password-submit');
+            const forgotPasswordMessage = document.getElementById('forgot-password-message');
+            // *** END: Forgot Password Elements ***
 
             // Password strength elements
             const registerPasswordInput = document.getElementById('register-password');
@@ -744,22 +772,50 @@
             registerPasswordInput.addEventListener('input', updatePasswordStrength);
 
 
-            // --- Forgot Password ---
-             forgotPasswordLink.addEventListener('click', async (e) => {
+            // --- *** START: FORGOT PASSWORD LOGIC *** ---
+             forgotPasswordLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                hideMessage();
-                const email = loginForm['login-email'].value;
+                hideMessage(); 
+                forgotPasswordMessage.classList.add('hidden'); 
+                forgotPasswordForm.reset(); 
+                forgotPasswordModal.classList.remove('hidden');
+                forgotPasswordModal.classList.add('flex');
+                feather.replace();
+            });
+
+            forgotPasswordCancelBtn.addEventListener('click', () => {
+                forgotPasswordModal.classList.add('hidden');
+                forgotPasswordModal.classList.remove('flex');
+            });
+
+            forgotPasswordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('forgot-email').value;
                 if (!email) {
-                    showMessage('Vui lòng nhập email của bạn để đặt lại mật khẩu.');
-                    return;
+                    return showMessageInModal('Vui lòng nhập email của bạn.', true);
                 }
+
+                forgotPasswordSubmitBtn.disabled = true;
+                forgotPasswordSubmitBtn.textContent = 'Đang gửi...';
+
                 try {
                     await sendPasswordResetEmail(auth, email);
-                    showMessage('Email đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra hộp thư của bạn.', false);
+                    showMessageInModal('Email đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra hộp thư của bạn (kể cả thư rác).', false);
+                    forgotPasswordForm.classList.add('hidden');
                 } catch (error) {
-                    showMessage('Không thể gửi email. Email có thể không tồn tại trong hệ thống.');
+                    console.error("Forgot Password Error:", error);
+                    showMessageInModal('Không thể gửi email. Email có thể không tồn tại trong hệ thống.', true);
+                } finally {
+                    forgotPasswordSubmitBtn.disabled = false;
+                    forgotPasswordSubmitBtn.textContent = 'Gửi email';
                 }
             });
+
+            function showMessageInModal(message, isError = true) {
+                forgotPasswordMessage.textContent = message;
+                forgotPasswordMessage.className = `p-3 text-sm text-center rounded-lg my-4 ${isError ? "text-red-800 bg-red-100" : "text-green-800 bg-green-100"}`;
+            }
+            // --- *** END: FORGOT PASSWORD LOGIC *** ---
             
             // --- Google Login (UPDATED) ---
             googleLoginBtn.addEventListener("click", () => {

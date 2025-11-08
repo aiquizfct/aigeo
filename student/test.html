@@ -215,7 +215,7 @@
             let userAnswers = {};
             let timerInterval = null;
             let sessionInterval = null;
-            let violationListener = null;
+            let sessionListener = null; 
             let timeLeft = 0;
             let timeLimitInSeconds = 0;
             let eventListenersSetup = false;
@@ -223,7 +223,7 @@
             let isLocked = false;
             let currentTestId = null;
             let currentClassId = null;
-            let currentTeacherId = null; // *** BIẾN ĐỂ LƯU ID GIÁO VIÊN ***
+            let currentTeacherId = null; 
             let warningCount = 0;
             let currentSessionId = null;
 
@@ -263,6 +263,7 @@
                 currentSessionId = `${currentTestId}_${currentUser.uid}`;
 
                 try {
+                    // *** CẬP NHẬT: Thêm lại logic kiểm tra bài nộp ***
                     const submissionId = `assigned_${currentTestId}_${currentUser.uid}`;
                     const submissionDocRef = doc(db, 'submissions', submissionId);
                     const resultSnap = await getDoc(submissionDocRef);
@@ -273,7 +274,8 @@
                         window.location.href = 'result.html';
                         return;
                     }
-                    
+                    // *** KẾT THÚC CẬP NHẬT ***
+
                     const classDocRef = doc(db, "classrooms", currentClassId);
                     const classDocSnap = await getDoc(classDocRef);
                     if (classDocSnap.exists()) {
@@ -333,7 +335,10 @@
                     lobbyTimeLimit.textContent = `Thời gian làm bài: ${testData.timeLimit} phút`;
                     lobbyModal.classList.remove('hidden');
                     lobbyModal.classList.add('flex');
-                    await updateSessionStatus('waiting');
+                    
+                    if (testData.isMonitored !== false) {
+                        await updateSessionStatus('waiting');
+                    }
 
                     updateIcons();
                     setupEventListeners();
@@ -491,9 +496,14 @@
                 confirmJoinBtn.addEventListener('click', () => {
                     lobbyModal.classList.add('hidden');
                     lobbyModal.classList.remove('flex');
-                    startModal.classList.remove('hidden');
-                    startModal.classList.add('flex');
-                    updateIcons();
+                    
+                    if (testData.isMonitored === false) {
+                        startTest(false); 
+                    } else {
+                        startModal.classList.remove('hidden');
+                        startModal.classList.add('flex');
+                        updateIcons();
+                    }
                 });
 
                 mainContentArea.addEventListener('click', (e) => {
@@ -532,31 +542,49 @@
                     }
                 });
                 submitBtn.addEventListener('click', () => handleSubmit(false));
-                startTestBtn.addEventListener('click', startTest);
-                document.addEventListener('fullscreenchange', handleFullscreenChange);
-                document.addEventListener('visibilitychange', handleVisibilityChange);
-                document.body.addEventListener('contextmenu', e => e.preventDefault());
-                document.body.addEventListener('copy', e => e.preventDefault());
-                document.body.addEventListener('cut', e => e.preventDefault());
-                document.body.addEventListener('paste', e => e.preventDefault());
+                startTestBtn.addEventListener('click', () => startTest(true)); 
+
+                if (testData.isMonitored !== false) { 
+                    document.addEventListener('fullscreenchange', handleFullscreenChange);
+                    document.addEventListener('visibilitychange', handleVisibilityChange);
+                    document.body.addEventListener('contextmenu', e => e.preventDefault());
+                    
+                    const clipboardHandler = (e) => {
+                        if (isTestStarted && testData.isMonitored !== false) {
+                            e.preventDefault();
+                            handleCheating('Hành vi Sao chép/Cắt/Dán');
+                        }
+                    };
+                    document.body.addEventListener('copy', clipboardHandler);
+                    document.body.addEventListener('cut', clipboardHandler);
+                    document.body.addEventListener('paste', clipboardHandler);
+                }
                 eventListenersSetup = true;
             }
 
-            async function startTest() {
+            async function startTest(withMonitoring = true) {
                 isTestStarted = true;
+                
                 await updateSessionStatus('online');
+
                 startModal.classList.add('hidden');
                 startModal.classList.remove('flex');
                 testHeader.classList.remove('hidden');
                 testBody.classList.remove('hidden');
                 testBody.classList.add('flex');
+                
                 renderFullTest();
                 renderQuestionMap();
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.warn(`Fullscreen request failed: ${err.message}`);
-                });
+
+                if (withMonitoring) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.warn(`Fullscreen request failed: ${err.message}`);
+                    });
+                    startSessionListener(); // Khởi động listener ngay khi bắt đầu
+                }
+                
                 startTimer();
-                startSessionUpdates();
+                startSessionUpdates(); 
                 updateIcons();
             }
 
@@ -576,14 +604,21 @@
 
             function startSessionUpdates() {
                 if (sessionInterval) clearInterval(sessionInterval);
-                updateSessionStatus('online');
-                sessionInterval = setInterval(() => {
-                    updateSessionStatus('online');
-                }, 10000); // Gửi heartbeat mỗi 10 giây
+                
+                if (testData.isMonitored !== false) {
+                    sessionInterval = setInterval(() => {
+                        updateSessionStatus('online');
+                    }, 10000); 
+                }
             }
 
             async function updateSessionStatus(status, extraData = {}) {
                 if (!currentSessionId) return;
+
+                if (testData.isMonitored === false && status !== 'online' && status !== 'finished') {
+                    return;
+                }
+                
                 try {
                     const sessionRef = doc(db, 'test_sessions', currentSessionId);
                     await setDoc(sessionRef, {
@@ -604,8 +639,8 @@
                 }
             }
             
-            async function handleCheating() {
-                if (timeLeft <= 0 || !isTestStarted || isLocked) return;
+            async function handleCheating(reason = 'Không rõ lý do') {
+                if (timeLeft <= 0 || !isTestStarted || isLocked || testData.isMonitored === false) return;
 
                 isLocked = true;
                 clearInterval(timerInterval);
@@ -615,57 +650,62 @@
                 try {
                     await updateSessionStatus('locked', { 
                         violationTime: serverTimestamp(),
-                        lastViolationImageUrl: null 
+                        lastViolationImageUrl: null,
+                        violationReason: reason // Gửi lý do
                     });
 
                 } catch (error) {
                     console.error("Lỗi khi xử lý vi phạm (không có ảnh):", error);
-                    await updateSessionStatus('locked', { violationTime: serverTimestamp() });
+                    await updateSessionStatus('locked', { violationTime: serverTimestamp(), violationReason: reason });
                 }
 
+                warningText.innerHTML = `Bạn đã vi phạm quy chế thi: <strong class="text-red-600">${reason}</strong>. Bài thi của bạn đã bị tạm khóa.`;
                 warningCountEl.textContent = `Số lần vi phạm: ${warningCount}`;
                 warningModal.classList.remove('hidden');
                 warningModal.classList.add('flex');
                 updateIcons();
-
-                listenForTeacherDecision();
             }
 
 
             function handleFullscreenChange() {
-                if (!document.fullscreenElement && isTestStarted) {
-                    handleCheating();
+                if (!document.fullscreenElement && isTestStarted && testData.isMonitored !== false) {
+                    handleCheating('Thoát toàn màn hình');
                 }
             }
 
             function handleVisibilityChange() {
-                if (document.visibilityState === 'hidden' && isTestStarted) {
-                    handleCheating();
+                if (document.visibilityState === 'hidden' && isTestStarted && testData.isMonitored !== false) {
+                    handleCheating('Chuyển tab hoặc ứng dụng');
                 }
             }
 
-            function listenForTeacherDecision() {
-                if (violationListener) violationListener();
+            function startSessionListener() {
+                if (sessionListener || testData.isMonitored === false) return;
 
                 const sessionRef = doc(db, 'test_sessions', currentSessionId);
-                violationListener = onSnapshot(sessionRef, (docSnap) => {
-                    if (!isLocked) return;
+                sessionListener = onSnapshot(sessionRef, (docSnap) => {
+                    if (!docSnap.exists() || !isTestStarted) {
+                        if(sessionListener) sessionListener();
+                        return;
+                    }
 
-                    if (docSnap.exists()) {
-                        const sessionData = docSnap.data();
-                        if (sessionData.status === 'online') {
-                            if (violationListener) violationListener();
-                            isLocked = false;
-                            warningModal.classList.add('hidden');
-                            warningModal.classList.remove('flex');
-                            document.documentElement.requestFullscreen().catch(err => {});
-                            startTimer();
-                            startSessionUpdates();
-                        } else if (sessionData.status === 'force_submit') {
-                            if (violationListener) violationListener();
-                            isLocked = false;
-                            handleSubmit(true);
-                        }
+                    const sessionData = docSnap.data();
+                    
+                    if (sessionData.status === 'force_submit') {
+                        if (sessionListener) sessionListener();
+                        sessionListener = null;
+                        isLocked = false;
+                        handleSubmit(true); // Tự động nộp bài
+                        return;
+                    }
+
+                    if (isLocked && sessionData.status === 'online') {
+                        isLocked = false;
+                        warningModal.classList.add('hidden');
+                        warningModal.classList.remove('flex');
+                        document.documentElement.requestFullscreen().catch(err => {});
+                        startTimer();
+                        startSessionUpdates();
                     }
                 });
             }
@@ -678,12 +718,14 @@
             }
 
             async function handleSubmit(isAutoSubmit) {
+                if (!isTestStarted && !isAutoSubmit) return; 
+                
                 if (!isAutoSubmit && !confirm("Bạn có chắc chắn muốn nộp bài?")) return;
 
-                isTestStarted = false;
+                isTestStarted = false; 
                 if (timerInterval) clearInterval(timerInterval);
                 if (sessionInterval) clearInterval(sessionInterval);
-                if (violationListener) violationListener();
+                if (sessionListener) sessionListener(); 
 
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="animate-spin h-5 w-5 border-t-2 border-r-2 border-white rounded-full mx-auto"></span>';
@@ -717,7 +759,7 @@
                 });
 
                 try {
-                    await updateSessionStatus('finished');
+                    await updateSessionStatus('finished'); 
 
                     const submissionId = `assigned_${currentTestId}_${currentUser.uid}`;
                     const submissionRef = doc(db, 'submissions', submissionId);
@@ -732,8 +774,12 @@
                         teacherIds: teacherIds
                     });
 
-                    const sessionRef = doc(db, 'test_sessions', currentSessionId);
-                    await deleteDoc(sessionRef);
+                    try {
+                        const sessionRef = doc(db, 'test_sessions', currentSessionId);
+                        await deleteDoc(sessionRef);
+                    } catch (delError) {
+                        console.warn("Không thể xóa session:", delError);
+                    }
 
                     sessionStorage.setItem('latestResultId', submissionId);
                     window.location.href = 'result.html';

@@ -104,7 +104,6 @@
                 <p class="mt-2 text-slate-600">Hãy cùng bắt đầu một ngày học tập hiệu quả nhé.</p>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-                    <!-- Main content -->
                     <div class="lg:col-span-2 space-y-8">
                         <div>
                             <h2 class="text-xl font-bold text-slate-700 mb-4">Lớp học của bạn</h2>
@@ -120,7 +119,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Sidebar: Stats -->
                     <div class="lg:col-span-1">
                          <h2 class="text-xl font-bold text-slate-700 mb-4">Thành tích của bạn</h2>
                          <div class="space-y-4">
@@ -144,7 +142,6 @@
         </main>
     </main>
     
-    <!-- Profile Update Modal -->
     <div id="profile-update-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md modal-content text-center">
             <i data-feather="user-check" class="w-16 h-16 mx-auto text-teal-500"></i>
@@ -157,7 +154,6 @@
         </div>
     </div>
 
-    <!-- Feedback Modal -->
     <div id="feedback-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg modal-content">
             <h2 class="text-xl font-bold text-slate-800 mb-4">Gửi góp ý của bạn</h2>
@@ -172,13 +168,11 @@
         </div>
     </div>
 
-    <!-- View Feedback Modal -->
     <div id="view-feedback-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl modal-content flex flex-col max-h-[80vh]">
             <h2 class="text-xl font-bold text-slate-800 mb-4 flex-shrink-0">Lịch sử góp ý</h2>
             <div id="feedback-list-container" class="flex-grow overflow-y-auto space-y-4 pr-2">
-                <!-- Nội dung lịch sử góp ý -->
-            </div>
+                </div>
             <div class="flex justify-end mt-6 flex-shrink-0 border-t pt-4">
                 <button type="button" id="view-feedback-close-btn" class="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg hover:bg-slate-300 font-semibold">Đóng</button>
             </div>
@@ -365,7 +359,10 @@
                     
                     let buttonHTML = '';
                     if (submission) {
-                        buttonHTML = `<a href="result.html" data-submission-id="${submission.id}" class="view-result-btn bg-white text-slate-700 font-semibold px-5 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition">Xem kết quả</a>`;
+                        buttonHTML = `
+                            <a href="result.html" data-submission-id="${submission.id}" class="view-result-btn bg-white text-slate-700 font-semibold px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 transition text-sm">Xem kết quả</a>
+                            <a href="test.html?testId=${test.id}&classId=${assignmentDetails.classId}" class="cta-button text-white font-semibold px-4 py-2 rounded-lg text-sm">Làm lại</a>
+                        `;
                     } else {
                         buttonHTML = `<a href="test.html?testId=${test.id}&classId=${assignmentDetails.classId}" class="cta-button text-white font-semibold px-5 py-2 rounded-lg">Vào thi</a>`;
                     }
@@ -375,7 +372,7 @@
                             <h3 class="font-bold text-lg text-slate-800">${test.name}</h3>
                             <p class="text-sm text-slate-500 mt-1">${subject?.name || ''} - ${test.questionIds?.length || 0} câu - Lớp: ${assignmentDetails?.className || ''}</p>
                         </div>
-                        <div>${buttonHTML}</div>
+                        <div class="flex-shrink-0 flex items-center space-x-2">${buttonHTML}</div>
                     `;
                     assignmentsContainer.appendChild(card);
                 });

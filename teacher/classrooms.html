@@ -97,8 +97,7 @@
                             </tr>
                         </thead>
                         <tbody id="classrooms-table-body">
-                            <!-- Skeleton loader or content here -->
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
 
@@ -264,7 +263,7 @@
                         <td class="px-6 py-4">${c.students ? c.students.length : 0}</td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end space-x-2">
-                                <a href="student-progress.html?classId=${c.id}" class="font-medium text-teal-600 hover:underline">Xem tiến độ</a>
+                                <a href="student-progress.html?classId=${c.id}" class="font-medium text-teal-600 hover:underline nav-link">Xem chi tiết</a>
                                 <button data-action="edit" data-id="${c.id}" class="p-2 text-slate-500 hover:bg-slate-200 rounded-md"><i data-feather="edit" class="w-4 h-4"></i></button>
                                 <button data-action="delete" data-id="${c.id}" class="p-2 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-md"><i data-feather="trash-2" class="w-4 h-4"></i></button>
                             </div>
@@ -273,11 +272,21 @@
                     classroomsTableBody.appendChild(tr);
                 });
                 feather.replace();
+                
+                // Gắn lại event listener cho các link .nav-link vừa tạo
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        document.body.style.opacity = '0';
+                        setTimeout(() => { window.location.href = this.href; }, 200);
+                    });
+                });
             }
 
             // --- Event Listeners & Handlers ---
             function setupEventListeners() {
-                document.querySelectorAll('.nav-link').forEach(link => {
+                // Chỉ gắn listener cho nav-link cố định một lần
+                document.querySelectorAll('aside .nav-link').forEach(link => {
                     link.addEventListener('click', function(e) {
                         e.preventDefault();
                         document.body.style.opacity = '0';
@@ -294,8 +303,9 @@
                 deleteConfirmBtn.addEventListener('click', handleDelete);
                 deleteCancelBtn.addEventListener('click', hideDeleteModal);
 
-                classroomsArea.addEventListener('click', e => {
-                    const targetElement = e.target.closest('a[href], button[data-action]');
+                // Gắn listener vào Bảng, không phải link <a>
+                classroomsTableBody.addEventListener('click', e => {
+                    const targetElement = e.target.closest('button[data-action]');
                     if (!targetElement) return;
 
                     const action = targetElement.dataset.action;

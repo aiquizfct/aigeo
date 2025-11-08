@@ -94,7 +94,7 @@
 
     <main class="flex-1 flex flex-col overflow-hidden bg-white">
         <header class="bg-white/80 backdrop-blur-sm h-16 flex items-center justify-between px-6 border-b z-10 flex-shrink-0">
-            <h2 class="text-lg font-semibold text-slate-700">Trò chuyện với Trợ lý AI (DeepSeek V3.1)</h2>
+            <h2 class="text-lg font-semibold text-slate-700">Trò chuyện với Trợ lý AI (GPT-OSS)</h2>
             <div class="flex items-center">
                  <button id="clear-chat-btn" class="text-sm font-medium text-red-500 hover:text-red-700 mr-4 flex items-center transition-colors">
                     <i data-feather="trash-2" class="w-4 h-4 mr-1"></i>Xóa trò chuyện
@@ -142,11 +142,9 @@
             let openRouterKeys = [], currentKeyIndex = 0;
             let userName = 'Học sinh', nameInitial = 'S';
             
-            // Khắc phục lỗi: Định nghĩa getNextApiKey ở phạm vi này
             const getNextApiKey = () => {
                 if (openRouterKeys.length === 0) return null;
                 const key = openRouterKeys[currentKeyIndex];
-                // Luan phien key
                 currentKeyIndex = (currentKeyIndex + 1) % openRouterKeys.length;
                 sessionStorage.setItem('orKeyIndex', currentKeyIndex.toString());
                 return key;
@@ -175,7 +173,7 @@
                     await loadChatHistory();
                     setupEventListeners();
                     if (chatHistory.length === 0) {
-                        addMessage("Chào bạn, tôi là trợ lý AI của AIGEO. Tôi có thể giúp gì cho bạn?", "assistant");
+                        addMessage("Chào bạn, tôi là trợ lý AI của AIGEO. Tôi chỉ có thể trả lời các câu hỏi liên quan đến Địa lý. Tôi có thể giúp gì cho bạn?", "assistant");
                     }
                 } else {
                      window.location.href = `../${userDocSnap.data()?.role || 'auth'}/index.html`;
@@ -186,7 +184,6 @@
                  const apiKeySnap = await getDoc(doc(db, "system_settings", "api_keys"));
                 if (apiKeySnap.exists() && apiKeySnap.data().openrouter_keys && apiKeySnap.data().openrouter_keys.length > 0) {
                     openRouterKeys = apiKeySnap.data().openrouter_keys;
-                    // Đảm bảo index nằm trong phạm vi hợp lệ
                     currentKeyIndex = parseInt(sessionStorage.getItem('orKeyIndex') || '0', 10) % openRouterKeys.length;
                 }
             }
@@ -210,7 +207,7 @@
                 const safeText = text || "";
                 const rawHtml = marked.parse(safeText);
                 element.innerHTML = rawHtml;
-                renderMathInElement(element, { // Render KaTeX after parsing markdown
+                renderMathInElement(element, { 
                     delimiters: [
                         {left: "$$", right: "$$", display: true}, 
                         {left: "$", right: "$", display: false}
@@ -263,19 +260,16 @@
                 typingIndicator.classList.add('flex');
                 
                 try {
-                    // 1. Cap nhat history cục bộ VÀ lưu vào Firestore
                     const newHistory = [...chatHistory, { role: 'user', content: userInput }];
                     addMessage(userInput, "user");
                     chatInput.value = '';
                     chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                    // 2. Lay phan hoi AI (chi gui tin nhan cuoi cung)
-                    const aiResponse = await getOpenRouterResponse(userInput);
+                    const aiResponse = await getOpenRouterResponse(newHistory); 
                     
-                    // 3. Cap nhat history voi phan hoi AI va luu lai
                     const finalHistory = [...newHistory, { role: 'assistant', content: aiResponse }];
                     addMessage(aiResponse, 'assistant');
-                    await saveChatHistory(finalHistory); // Cap nhat ca history local va Firestore
+                    await saveChatHistory(finalHistory);
                     
                 } catch (error) {
                     addMessage(`Rất tiếc, đã có lỗi xảy ra: ${error.message}`, 'assistant');
@@ -286,42 +280,82 @@
                 }
             }
             
-            async function getOpenRouterResponse(latestUserMessage) {
-                const apiKey = getNextApiKey();
-                if (!apiKey) throw new Error("Chưa cấu hình OpenRouter API Key trên trang Admin.");
+            async function getOpenRouterResponse(history) {
+                const MAX_RETRIES = 3;
+                let lastError = null;
 
-                const API_URL = "https://openrouter.ai/api/v1/chat/completions";
-                
-                // Chi gui tin nhan he thong va tin nhan cuoi cung cua nguoi dung
                 const messagesToSend = [
-                    { role: "system", content: "You are a helpful AI assistant for AIGEO, a geography learning platform. Keep your answers concise and helpful for students, focusing on geography and related science topics. Respond in Vietnamese. Use KaTeX for math equations." },
-                    { role: "user", content: latestUserMessage }
+                    // *** ĐÃ CẬP NHẬT PROMPT HỆ THỐNG ***
+                    { 
+                        role: "system", 
+                        content: "Bạn là một trợ lý AI chuyên gia về Địa lý cho AIGEO. Nhiệm vụ duy nhất của bạn là trả lời các câu hỏi liên quan đến Địa lý. Nếu học sinh hỏi về chủ đề khác (như toán, văn, lịch sử, hay các chủ đề chung), hãy từ chối một cách lịch sự. Ví dụ: 'Xin lỗi, tôi chỉ có thể hỗ trợ các câu hỏi liên quan đến Địa lý.' Luôn trả lời bằng tiếng Việt và sử dụng KaTeX cho công thức toán nếu cần." 
+                    },
+                    ...history 
                 ];
 
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`,
-                        'X-Title': 'AIGEO Student Chat'
-                    },
-                    body: JSON.stringify({
-                        model: "deepseek/deepseek-chat-v3.1:free",
-                        messages: messagesToSend
-                    })
-                });
+                for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                    const apiKey = getNextApiKey();
+                    if (!apiKey) {
+                        lastError = new Error("Chưa cấu hình OpenRouter API Key trên trang Admin.");
+                        break; 
+                    }
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error.message || `Lỗi API: ${response.statusText}`);
+                    const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+                    
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Content-Type': 'application/json',
+                                'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`,
+                                'X-Title': 'AIGEO Student Chat'
+                            },
+                            body: JSON.stringify({
+                                model: "openai/gpt-oss-20b:free",
+                                messages: messagesToSend
+                            })
+                        });
+
+                        if (response.ok) {
+                            // THÀNH CÔNG
+                            const result = await response.json();
+                            const generatedText = result.choices[0]?.message?.content;
+                            if (!generatedText) throw new Error("Phản hồi từ AI không hợp lệ.");
+                            return generatedText.trim(); // Success, exit function
+                        }
+
+                        // LỖI HTTP, kiểm tra status
+                        lastError = new Error(`Lỗi API: ${response.status} ${response.statusText}`);
+                        
+                        if (response.status === 400 || response.status === 403) {
+                            // Lỗi client (ví dụ: bad request), không thử lại
+                            try {
+                                const errorData = await response.json();
+                                lastError = new Error(errorData.error.message || `Lỗi ${response.status}`);
+                            } catch (e) { /* Bỏ qua nếu lỗi không phải JSON */ }
+                            break; // Thoát vòng lặp, sẽ báo lỗi
+                        }
+
+                        // Lỗi server (5xx), Rate Limit (429), Timeout (408), và 401 (User not found) -> Thử lại
+                        if (attempt < MAX_RETRIES) {
+                            const delay = Math.pow(2, attempt) * 1000; // 2s, 4s
+                            console.warn(`Attempt ${attempt} failed with status ${response.status}. Retrying in ${delay / 1000}s...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+
+                    } catch (error) { // Lỗi mạng (fetch thất bại)
+                        lastError = error;
+                        console.error(`Attempt ${attempt} network error:`, error);
+                        if (attempt < MAX_RETRIES) {
+                            const delay = Math.pow(2, attempt) * 1000;
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+                    }
                 }
-
-                const result = await response.json();
-                const generatedText = result.choices[0]?.message?.content;
-
-                if (!generatedText) throw new Error("Phản hồi từ AI không hợp lệ.");
-                return generatedText.trim();
+                
+                // Nếu vòng lặp kết thúc mà không return, nghĩa là đã thất bại
+                throw lastError || new Error("AI không phản hồi sau nhiều lần thử.");
             }
             
             async function handleClearChat() {
@@ -335,7 +369,7 @@
                         chatMessages.innerHTML = ''; // Clear display
                         
                         // Gui tin nhan chao mung moi
-                        addMessage("Chào bạn, tôi là trợ lý AI của AIGEO. Tôi có thể giúp gì cho bạn?", "assistant");
+                        addMessage("Chào bạn, tôi là trợ lý AI của AIGEO. Tôi chỉ có thể trả lời các câu hỏi liên quan đến Địa lý. Tôi có thể giúp gì cho bạn?", "assistant");
                         
                         setChatInputDisabled(false);
                     } catch (error) {
