@@ -177,7 +177,10 @@
             function startSessionListener(testId, classId) {
                 if (sessionListener) sessionListener(); // Hủy listener cũ nếu có
 
+                // SỬA LỖI Ở ĐÂY: Thêm điều kiện where("teacherId", "==", currentUser.uid)
+                // Điều kiện này bắt buộc để khớp với Security Rules của Firestore
                 const sessionsQuery = query(collection(db, "test_sessions"), 
+                                            where("teacherId", "==", currentUser.uid),
                                             where("testId", "==", testId), 
                                             where("classId", "==", classId));
                 
@@ -205,6 +208,9 @@
                         }
                     });
                     feather.replace();
+                }, (error) => {
+                    console.error("Lỗi listener:", error);
+                    loadingContainer.innerHTML = `<p class="text-red-500">Lỗi quyền truy cập: ${error.message}</p>`;
                 });
             }
 
@@ -237,7 +243,7 @@
 
                 const cardHTML = `
                     <div class="flex items-center space-x-4">
-                        <img src="https://placehold.co/48x48/E2E8F0/475569?text=${session.studentName.charAt(0)}" class="w-12 h-12 rounded-full flex-shrink-0">
+                        <img src="https://placehold.co/48x48/E2E8F0/475569?text=${(session.studentName || 'S').charAt(0)}" class="w-12 h-12 rounded-full flex-shrink-0">
                         <div class="flex-1 min-w-0">
                             <div class="font-semibold text-lg ${textColor} truncate">${session.studentName}</div>
                             <div class="text-sm font-semibold ${statusColor} status-text">${statusText(session.status)}</div>
@@ -302,7 +308,7 @@
                 // Update text content
                 card.querySelector('.warning-count').textContent = session.warnings || 0;
                 
-                // *** CẬP NHẬT: Hiển thị lý do vi phạm ***
+                // Cập nhật lý do vi phạm
                 const reasonContainer = card.querySelector('.violation-reason-container');
                 if (isLocked) {
                     reasonContainer.innerHTML = `<p class="text-xs text-red-700 font-semibold violation-reason">${session.violationReason || 'Không rõ lý do'}</p>`;
@@ -310,7 +316,7 @@
                     reasonContainer.innerHTML = '';
                 }
 
-                // *** CẬP NHẬT: Hiển thị nút hoặc tiến độ ***
+                // Cập nhật nút hoặc tiến độ
                 const actionProgressContainer = card.querySelector('.action-progress-container');
                 if (isLocked) {
                     actionProgressContainer.innerHTML = `

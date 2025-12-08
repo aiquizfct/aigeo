@@ -49,9 +49,14 @@
         .prose { max-width: none; }
         .skeleton { background-color: #e2e8f0; border-radius: 0.5rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 50% { opacity: .5; } }
-        .answer-option.correct { background-color: #dcfce7 !important; border-color: #22c55e !important; }
+        .answer-option.correct { background-color: #dcfce7 !important; border-color: #22c55e !important; color: #15803d; font-weight: 600; }
         .answer-option.incorrect { background-color: #fee2e2 !important; border-color: #ef4444 !important; }
         #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
+        
+        /* Custom style for AI response */
+        .ai-response ul { list-style-type: disc; padding-left: 1.5rem; margin-top: 0.5rem; }
+        .ai-response li { margin-bottom: 0.25rem; }
+        .ai-response strong { color: #0f766e; }
     </style>
 </head>
 <body class="flex h-screen">
@@ -105,23 +110,29 @@
                 </div>
 
                 <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border-l-4 border-teal-500">
                         <div class="flex justify-between items-center mb-4">
-                             <h2 class="text-xl font-bold text-slate-800 flex items-center"><i data-feather="cpu" class="w-6 h-6 mr-3 text-teal-600"></i>Nhận xét từ AI</h2>
+                             <h2 class="text-xl font-bold text-slate-800 flex items-center"><i data-feather="cpu" class="w-6 h-6 mr-3 text-teal-600"></i>AI Coach Nhận xét</h2>
                              <div class="flex items-center space-x-2">
-                                <button id="ai-retry-btn" class="hidden bg-yellow-100 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-lg flex items-center">
+                                <button id="ai-retry-btn" class="hidden bg-yellow-100 text-yellow-800 text-sm font-semibold px-4 py-2 rounded-lg flex items-center hover:bg-yellow-200">
                                     <i data-feather="refresh-cw" class="w-4 h-4 mr-2"></i>Thử lại
                                 </button>
                                 <button id="ai-detail-btn" class="cta-button text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center">
-                                    <i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết
+                                    <i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Phân tích chi tiết lỗi sai
                                 </button>
                              </div>
                         </div>
-                        <div id="ai-feedback" class="prose prose-sm text-slate-600"><div class="skeleton h-24 w-full"></div></div>
+                        <div id="ai-feedback" class="prose prose-sm text-slate-700 ai-response"><div class="skeleton h-32 w-full"></div></div>
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-sm">
-                         <h3 class="font-bold text-slate-700 mb-3 flex items-center"><i data-feather="target" class="w-5 h-5 mr-2 text-red-500"></i>Nội dung cần ôn lại</h3>
-                         <ul id="review-topics" class="space-y-2 text-slate-600"><li class="skeleton h-5 w-full"></li><li class="skeleton h-5 w-3/4"></li></ul>
+                         <h3 class="font-bold text-slate-700 mb-3 flex items-center"><i data-feather="target" class="w-5 h-5 mr-2 text-red-500"></i>Chủ đề cần ôn tập gấp</h3>
+                         <ul id="review-topics" class="space-y-2 text-slate-600 text-sm">
+                             <li class="skeleton h-5 w-full"></li>
+                             <li class="skeleton h-5 w-3/4"></li>
+                         </ul>
+                         <div class="mt-4 pt-4 border-t">
+                             <p class="text-xs text-slate-500">Dựa trên phân tích 5 bài làm gần nhất.</p>
+                         </div>
                     </div>
                 </div>
 
@@ -148,7 +159,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
@@ -176,6 +187,7 @@
             let currentQuestions = [];
             let allLessonsCache = [];
             let apiKeysCache = null;
+            let historySummary = null;
 
             onAuthStateChanged(auth, async (user) => {
                 if (!user) { window.location.href = '../auth.html'; return; }
@@ -207,7 +219,7 @@
                     if (!resultSnap.exists()) throw new Error("Không tìm thấy dữ liệu kết quả.");
                     
                     currentResultData = resultSnap.data();
-                    const { score, totalQuestions, userAnswers, incorrectQuestions, questionIds, embeddedQuestions, timeTaken, completedAt, testName, type, testId, classId } = currentResultData;
+                    const { score, totalQuestions, userAnswers, incorrectQuestions, questionIds, embeddedQuestions, timeTaken, completedAt, testName, type, testId, classId, subjectId } = currentResultData;
                     
                     if (testName.startsWith("Luyện tập")) {
                         actionButtons.querySelector('#back-to-hub').classList.add('hidden');
@@ -230,38 +242,51 @@
                         retryTestBtn.href = `practice-test.html?testId=${testId}`;
                     }
                     
-                    const [fetchedQuestions, allLessons, apiKeySnap] = await Promise.all([
+                    // --- NÂNG CẤP: Lấy lịch sử sau khi có thông tin cơ bản ---
+                    const [fetchedQuestions, allLessons, apiKeySnap, historyData] = await Promise.all([
                         fetchQuestions(questionIds),
                         fetchAllLessons(),
-                        getDoc(doc(db, "system_settings", "api_keys"))
+                        getDoc(doc(db, "system_settings", "api_keys")),
+                        getHistorySummary(currentUser.uid, subjectId) // Lấy lịch sử học tập
                     ]);
                     
-                    allLessonsCache = allLessons; // Lưu cache
-                    apiKeysCache = apiKeySnap.exists() ? apiKeySnap.data() : null; // Lưu cache
+                    allLessonsCache = allLessons; 
+                    apiKeysCache = apiKeySnap.exists() ? apiKeySnap.data() : null; 
                     currentQuestions = [...(embeddedQuestions || []), ...fetchedQuestions];
+                    historySummary = historyData; // Lưu kết quả lịch sử
 
                     renderReviewSection(currentQuestions, userAnswers, allLessonsCache);
                     
-                    const uniqueIncorrectLessonIds = [...new Set((incorrectQuestions || []).map(q => q.lessonId).filter(id => id))];
-                    const topicsToReview = allLessonsCache.filter(l => uniqueIncorrectLessonIds.includes(l.id));
-                    reviewTopicsEl.innerHTML = topicsToReview.length > 0
-                        ? topicsToReview.map(l => `<li><i data-feather="target" class="w-4 h-4 inline-block mr-2 text-red-500"></i>${cleanPrefix(l.name)}</li>`).join('')
-                        : `<li><i data-feather="check-circle" class="w-4 h-4 inline-block mr-2 text-green-500"></i>Làm tốt lắm, không có lỗi sai!</li>`;
+                    // Logic hiển thị chủ đề yếu (ưu tiên từ lịch sử nếu có)
+                    let weakTopicsToDisplay = [];
+                    if (historySummary && historySummary.weakTopicIds.length > 0) {
+                        // Nếu có lịch sử, lấy top chủ đề yếu nhất từ lịch sử
+                        weakTopicsToDisplay = allLessonsCache.filter(l => historySummary.weakTopicIds.includes(l.id));
+                    } else {
+                        // Nếu không, lấy từ bài làm hiện tại
+                        const uniqueIncorrectLessonIds = [...new Set((incorrectQuestions || []).map(q => q.lessonId).filter(id => id))];
+                        weakTopicsToDisplay = allLessonsCache.filter(l => uniqueIncorrectLessonIds.includes(l.id));
+                    }
+
+                    reviewTopicsEl.innerHTML = weakTopicsToDisplay.length > 0
+                        ? weakTopicsToDisplay.map(l => `<li><i data-feather="alert-circle" class="w-4 h-4 inline-block mr-2 text-red-500"></i>${cleanPrefix(l.name)}</li>`).join('')
+                        : `<li><i data-feather="check-circle" class="w-4 h-4 inline-block mr-2 text-green-500"></i>Không có chủ đề yếu nổi bật.</li>`;
+                    
                     
                     const aiFeedbackFn = (isDetailed) => getAiFeedback(
                         incorrectQuestions || [], 
-                        topicsToReview, 
+                        weakTopicsToDisplay, // Truyền chủ đề yếu tổng hợp
                         score, 
                         totalQuestions, 
                         apiKeysCache, 
-                        isDetailed
+                        isDetailed,
+                        historySummary // Truyền lịch sử vào
                     );
 
-                    // Thêm listener cho các nút AI
                     aiDetailBtn.addEventListener('click', () => aiFeedbackFn(true));
-                    aiRetryBtn.addEventListener('click', () => aiFeedbackFn(false)); // Nút thử lại sẽ gọi lại bản tóm tắt
+                    aiRetryBtn.addEventListener('click', () => aiFeedbackFn(false));
 
-                    aiFeedbackFn(false); // Tải bản tóm tắt ban đầu
+                    aiFeedbackFn(false); 
                     
                     resultPageContent.classList.add('opacity-100');
                     feather.replace();
@@ -283,6 +308,59 @@
                 }
             }
             
+            // --- HÀM MỚI: Lấy tóm tắt lịch sử học tập ---
+            async function getHistorySummary(studentId, subjectId) {
+                if (!subjectId) return null;
+                try {
+                    // Lấy 5 bài gần nhất của môn này
+                    const q = query(
+                        collection(db, "submissions"), 
+                        where("studentId", "==", studentId), 
+                        where("subjectId", "==", subjectId),
+                        orderBy("completedAt", "desc"),
+                        limit(5) 
+                    );
+                    const snapshot = await getDocs(q);
+                    const submissions = snapshot.docs.map(d => d.data());
+                    
+                    if (submissions.length === 0) return null;
+
+                    const totalScore = submissions.reduce((sum, s) => sum + (s.score / s.totalQuestions) * 10, 0);
+                    const avgScore = (totalScore / submissions.length).toFixed(1);
+                    
+                    // Phân tích xu hướng (Scores array for trend)
+                    const scoreTrend = submissions.map(s => ((s.score / s.totalQuestions) * 10).toFixed(1)).reverse(); // Cũ nhất -> Mới nhất
+
+                    // Đếm tần suất các chủ đề bị sai (Lesson ID)
+                    const topicCounts = {};
+                    submissions.forEach(sub => {
+                        if (sub.incorrectQuestions) {
+                            sub.incorrectQuestions.forEach(q => {
+                                if (q.lessonId) {
+                                    topicCounts[q.lessonId] = (topicCounts[q.lessonId] || 0) + 1;
+                                }
+                            });
+                        }
+                    });
+                    
+                    // Lấy top 3 chủ đề yếu nhất
+                    const sortedTopics = Object.entries(topicCounts)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 3)
+                        .map(([id, count]) => id);
+
+                    return {
+                        avgScore,
+                        scoreTrend,
+                        recentCount: submissions.length,
+                        weakTopicIds: sortedTopics
+                    };
+                } catch (e) {
+                    console.error("Error fetching history (có thể do thiếu index):", e);
+                    return null;
+                }
+            }
+
             async function fetchQuestions(questionIds) {
                 if (!questionIds || questionIds.length === 0) return [];
                 const fetchedQuestions = [];
@@ -371,33 +449,31 @@
             }
 
             function getNextApiKey(openRouterKeys) {
+                if (!openRouterKeys || openRouterKeys.length === 0) return null;
                 let currentKeyIndex = parseInt(sessionStorage.getItem('orKeyIndex') || '0', 10) % openRouterKeys.length;
                 const key = openRouterKeys[currentKeyIndex];
                 sessionStorage.setItem('orKeyIndex', ((currentKeyIndex + 1) % openRouterKeys.length).toString());
                 return key;
             }
 
-            // *** HÀM getAiFeedback ĐÃ CẬP NHẬT VỚI LOGIC TỰ ĐỘNG THỬ LẠI ***
-            async function getAiFeedback(incorrectQuestions, topicsToReview, score, total, apiKeysData, isDetailed) {
+            // --- CẬP NHẬT: Hàm AI Feedback hỗ trợ lịch sử ---
+            async function getAiFeedback(incorrectQuestions, topicsToReview, score, total, apiKeysData, isDetailed, historySummary) {
                 const openRouterKeys = apiKeysData?.openrouter_keys;
                 if (!openRouterKeys || openRouterKeys.length === 0) {
                     aiFeedbackEl.innerHTML = "Tính năng nhận xét AI chưa được cấu hình."; return;
                 }
                 
                 aiDetailBtn.disabled = true;
-                aiRetryBtn.classList.add('hidden'); // Ẩn nút thử lại khi bắt đầu
+                aiRetryBtn.classList.add('hidden');
                 aiDetailBtn.innerHTML = `<i data-feather="loader" class="animate-spin w-4 h-4 mr-2"></i>Đang phân tích...`;
                 feather.replace();
 
-                if(incorrectQuestions.length === 0) {
-                    aiFeedbackEl.innerHTML = "<strong>Xuất sắc!</strong><p>Bạn đã trả lời đúng tất cả các câu hỏi. Hãy tiếp tục phát huy nhé!</p>"; 
-                    aiDetailBtn.classList.add('hidden');
-                    return;
-                }
+                // Dù đúng hết vẫn gọi AI để khen ngợi dựa trên lịch sử
                 
                 let systemPrompt, userPrompt;
 
                 if (isDetailed) {
+                    // Logic phân tích chi tiết từng câu sai (không thay đổi)
                     const incorrectQuestionsData = currentQuestions.filter(q => incorrectQuestions.some(iq => iq.questionContent === q.content));
                     const detailedIncorrectContent = incorrectQuestionsData.map((q, index) => {
                         let questionText = `Câu ${index + 1}: ${q.content}\n`;
@@ -415,12 +491,49 @@
                     systemPrompt = "Bạn là một gia sư AI chuyên nghiệp của AIGEO. Nhiệm vụ của bạn là giải thích chi tiết, từng bước một cho từng câu hỏi sai mà người dùng cung cấp. Luôn trả lời bằng tiếng Việt. BẮT BUỘC sử dụng định dạng HTML (ví dụ: <p>, <strong>, <ul>, <li>) và công thức KaTeX (ví dụ: $ax^2+b=0$) nếu cần. Hãy trình bày rõ ràng cho từng câu.";
                     userPrompt = `Vui lòng phân tích và giải thích chi tiết các câu hỏi sai dưới đây. Hãy giải thích rõ tại sao đáp án đúng lại đúng và tại sao các lựa chọn khác (nếu có) lại sai.\n\n${detailedIncorrectContent}`;
                 } else {
+                    // --- XÂY DỰNG PROMPT CÓ LỊCH SỬ CHO NHẬN XÉT TỔNG QUAN ---
                     const topicsContent = topicsToReview.map(t => cleanPrefix(t.name)).join(', ');
-                    systemPrompt = "Bạn là một gia sư AI thân thiện và chuyên nghiệp của AIGEO. Hãy đưa ra một nhận xét ngắn gọn (3-4 câu) bằng tiếng Việt cho kết quả bài làm của học sinh. Nhận xét cần mang tính xây dựng và động viên. BẮT BUỘC sử dụng định dạng HTML (ví dụ: <p>, <strong>, <ul>, <li>) và bắt đầu bằng <strong>. Không dùng markdown.";
-                    userPrompt = `Học sinh đạt ${score}/${total} điểm. Các chủ đề bị sai: ${topicsContent || 'Không có'}. Hãy viết một nhận xét ngắn gọn: 1. Động viên. 2. Chỉ ra (các) mảng kiến thức chính cần củng cố. 3. Đề xuất hành động (ví dụ: ôn lại bài, làm thêm bài tập).`;
+                    let historyText = "";
+                    let adviceContext = "";
+
+                    if (historySummary) {
+                        const weakTopicNames = historySummary.weakTopicIds.map(id => {
+                            const l = allLessonsCache.find(lesson => lesson.id === id);
+                            return l ? cleanPrefix(l.name) : "";
+                        }).filter(Boolean).join(", ");
+                        
+                        const scoreTrendStr = historySummary.scoreTrend.join(" -> ");
+                        const currentScore = (score / total) * 10;
+                        const improvement = currentScore - parseFloat(historySummary.avgScore);
+                        const improvementText = improvement > 0 ? `(tăng ${improvement.toFixed(1)} điểm so với TB)` : `(giảm ${Math.abs(improvement).toFixed(1)} điểm so với TB)`;
+
+                        historyText = `\n[Dữ liệu lịch sử học tập]:\n- Điểm trung bình 5 bài gần nhất: ${historySummary.avgScore}/10.\n- Xu hướng điểm số: ${scoreTrendStr} -> ${currentScore.toFixed(1)} (Hiện tại).\n- Các chủ đề yếu lặp lại nhiều lần: ${weakTopicNames || "Chưa có dữ liệu rõ ràng"}.`;
+                        
+                        adviceContext = `Hãy so sánh kết quả hiện tại với lịch sử:
+                        - Nếu điểm tăng: Khen ngợi sự tiến bộ cụ thể.
+                        - Nếu điểm giảm: Nhắc nhở nhẹ nhàng và chỉ ra nguyên nhân.
+                        - Nếu sai lại chủ đề cũ (${weakTopicNames}): Cảnh báo nghiêm túc hơn và yêu cầu ôn tập lại ngay.
+                        - Đề xuất kế hoạch học tập cụ thể: Cần ôn bài nào? Làm dạng bài tập gì?`;
+                    } else {
+                        historyText = "\n[Dữ liệu lịch sử]: Đây là bài làm đầu tiên hoặc chưa đủ dữ liệu lịch sử.";
+                        adviceContext = "Đưa ra nhận xét dựa trên kết quả bài này. Đề xuất phương pháp học tập chung.";
+                    }
+
+                    systemPrompt = "Bạn là AI Coach của AIGEO - nền tảng học tập thông minh. Hãy đóng vai một người thầy tận tâm, sâu sắc. Nhiệm vụ: Đưa ra nhận xét đánh giá năng lực học sinh dựa trên kết quả bài làm hiện tại VÀ lịch sử học tập. Nhận xét phải chi tiết, chính xác, không chung chung. \nBẮT BUỘC dùng định dạng HTML (<strong>, <p>, <ul>, <li>). Giọng văn: Khích lệ nhưng thẳng thắn.";
+                    
+                    userPrompt = `Kết quả bài hiện tại: ${score}/${total} điểm (${((score/total)*10).toFixed(1)}/10).
+                    Các chủ đề bị sai trong bài này: ${topicsContent || 'Không có'}.
+                    ${historyText}
+                    
+                    Yêu cầu nhận xét theo cấu trúc sau:
+                    1. <strong>Đánh giá năng lực:</strong> Nhận xét về phong độ làm bài và sự tiến bộ/thụt lùi.
+                    2. <strong>Phân tích điểm yếu:</strong> Chỉ ra các lỗ hổng kiến thức (đặc biệt là các lỗi lặp lại từ lịch sử nếu có).
+                    3. <strong>Kế hoạch hành động (Quan trọng):</strong> Gạch đầu dòng 3 việc cụ thể học sinh cần làm ngay để cải thiện (ví dụ: Đọc lại SGK bài nào? Luyện thêm đề dạng nào?).
+                    
+                    ${adviceContext}`;
                 }
 
-                aiFeedbackEl.innerHTML = '<p class="text-center text-slate-500"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500 mx-auto"></div> Đang tạo nhận xét...</p>';
+                aiFeedbackEl.innerHTML = '<p class="text-center text-slate-500"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500 mx-auto"></div> Đang phân tích dữ liệu & tạo lộ trình...</p>';
                 
                 const MAX_RETRIES = 3;
                 let lastError = null;
@@ -446,7 +559,6 @@
                         });
 
                         if (response.ok) {
-                            // THÀNH CÔNG
                             const data = await response.json();
                             const text = data.choices[0]?.message?.content;
                             if (!text) throw new Error("Phản hồi từ AI không hợp lệ.");
@@ -458,10 +570,9 @@
                             aiDetailBtn.disabled = false;
                             aiDetailBtn.innerHTML = `<i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết`;
                             feather.replace();
-                            return; // Thoát khỏi hàm thành công
+                            return;
                         }
 
-                        // LỖI HTTP - Sẽ thử lại với bất kỳ lỗi nào
                         try {
                             const errorData = await response.json();
                             lastError = new Error(errorData.error.message || `Lỗi API: ${response.status} ${response.statusText}`);
@@ -469,17 +580,13 @@
                             lastError = new Error(`Lỗi API: ${response.status} ${response.statusText}`);
                         }
                         
-                        console.warn(`Attempt ${attempt} failed with error: ${lastError.message}.`);
-
                         if (attempt < MAX_RETRIES) {
-                            const delay = Math.pow(2, attempt) * 1000; // 2s, 4s
-                            console.warn(`Retrying in ${delay / 1000}s...`);
+                            const delay = Math.pow(2, attempt) * 1000;
                             await new Promise(resolve => setTimeout(resolve, delay));
                         }
 
-                    } catch (error) { // Lỗi mạng (fetch thất bại)
+                    } catch (error) {
                         lastError = error;
-                        console.error(`Attempt ${attempt} network error:`, error);
                         if (attempt < MAX_RETRIES) {
                             const delay = Math.pow(2, attempt) * 1000;
                             await new Promise(resolve => setTimeout(resolve, delay));
@@ -487,12 +594,9 @@
                     }
                 }
                 
-                // Nếu vòng lặp kết thúc mà không return, nghĩa là TẤT CẢ đã thất bại
-                console.error("AI Feedback Error (after all retries):", lastError);
+                console.error("AI Feedback Error:", lastError);
                 aiFeedbackEl.innerHTML = `<div class="p-3 bg-red-50 text-red-700 rounded-lg"><p class="font-semibold">Lỗi tạo nhận xét AI</p><p class="text-sm">${lastError.message}</p></div>`;
-                aiRetryBtn.classList.remove('hidden'); // Hiển thị nút thử lại thủ công
-
-                // Đặt lại trạng thái nút
+                aiRetryBtn.classList.remove('hidden');
                 aiDetailBtn.disabled = false;
                 aiDetailBtn.innerHTML = `<i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết`;
                 feather.replace();
