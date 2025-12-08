@@ -88,7 +88,10 @@
         </header>
         <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
             <div id="result-page-content" class="max-w-4xl mx-auto opacity-0 transition-opacity duration-500">
-                <h1 id="test-name-title" class="text-3xl font-bold text-slate-800">Kết quả Bài làm</h1>
+                <div class="flex justify-between items-center mb-6">
+                    <h1 id="test-name-title" class="text-3xl font-bold text-slate-800">Kết quả Bài làm</h1>
+                    <span id="result-id-display" class="text-xs text-slate-400 font-mono bg-slate-200 px-2 py-1 rounded"></span>
+                </div>
                 
                 <div class="mt-6 bg-white p-6 rounded-xl shadow-lg grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                     <div>
@@ -159,7 +162,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Cập nhật import: Thêm updateDoc để lưu nhận xét AI
+        import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
@@ -181,6 +185,7 @@
             const aiRetryBtn = document.getElementById('ai-retry-btn'); 
             const actionButtons = document.getElementById('action-buttons');
             const retryTestBtn = document.getElementById('retry-test-btn');
+            const resultIdDisplay = document.getElementById('result-id-display');
             
             let currentUser = null;
             let currentResultData = null;
@@ -188,6 +193,7 @@
             let allLessonsCache = [];
             let apiKeysCache = null;
             let historySummary = null;
+            let resultId = null;
 
             onAuthStateChanged(auth, async (user) => {
                 if (!user) { window.location.href = '../auth.html'; return; }
@@ -212,8 +218,22 @@
 
             async function initResultPage() {
                 try {
-                    const resultId = sessionStorage.getItem('latestResultId');
+                    // 1. Kiểm tra ID từ URL trước, sau đó mới đến sessionStorage
+                    const urlParams = new URLSearchParams(window.location.search);
+                    resultId = urlParams.get('id') || sessionStorage.getItem('latestResultId');
+                    
                     if (!resultId) throw new Error("Không tìm thấy mã kết quả. Vui lòng quay lại và thử lại.");
+                    
+                    // Hiển thị ID để tham khảo
+                    resultIdDisplay.textContent = `#${resultId.slice(0, 8)}`;
+                    
+                    // Cập nhật URL nếu chưa có ID (để link có thể chia sẻ được)
+                    if (!urlParams.get('id')) {
+                        const newUrl = new URL(window.location.href);
+                        newUrl.searchParams.set('id', resultId);
+                        window.history.replaceState({}, '', newUrl);
+                    }
+
                     const resultDocRef = doc(db, "submissions", resultId);
                     const resultSnap = await getDoc(resultDocRef);
                     if (!resultSnap.exists()) throw new Error("Không tìm thấy dữ liệu kết quả.");
@@ -260,10 +280,8 @@
                     // Logic hiển thị chủ đề yếu (ưu tiên từ lịch sử nếu có)
                     let weakTopicsToDisplay = [];
                     if (historySummary && historySummary.weakTopicIds.length > 0) {
-                        // Nếu có lịch sử, lấy top chủ đề yếu nhất từ lịch sử
                         weakTopicsToDisplay = allLessonsCache.filter(l => historySummary.weakTopicIds.includes(l.id));
                     } else {
-                        // Nếu không, lấy từ bài làm hiện tại
                         const uniqueIncorrectLessonIds = [...new Set((incorrectQuestions || []).map(q => q.lessonId).filter(id => id))];
                         weakTopicsToDisplay = allLessonsCache.filter(l => uniqueIncorrectLessonIds.includes(l.id));
                     }
@@ -272,21 +290,28 @@
                         ? weakTopicsToDisplay.map(l => `<li><i data-feather="alert-circle" class="w-4 h-4 inline-block mr-2 text-red-500"></i>${cleanPrefix(l.name)}</li>`).join('')
                         : `<li><i data-feather="check-circle" class="w-4 h-4 inline-block mr-2 text-green-500"></i>Không có chủ đề yếu nổi bật.</li>`;
                     
-                    
-                    const aiFeedbackFn = (isDetailed) => getAiFeedback(
-                        incorrectQuestions || [], 
-                        weakTopicsToDisplay, // Truyền chủ đề yếu tổng hợp
-                        score, 
-                        totalQuestions, 
-                        apiKeysCache, 
-                        isDetailed,
-                        historySummary // Truyền lịch sử vào
-                    );
+                    // Kiểm tra xem đã có nhận xét AI được lưu trong DB chưa
+                    if (currentResultData.aiFeedback) {
+                        // Nếu có, hiển thị ngay từ DB (Cache)
+                        renderAiResponse(currentResultData.aiFeedback);
+                    } else {
+                        // Nếu chưa, gọi hàm tạo mới
+                        const aiFeedbackFn = (isDetailed) => getAiFeedback(
+                            incorrectQuestions || [], 
+                            weakTopicsToDisplay, 
+                            score, 
+                            totalQuestions, 
+                            apiKeysCache, 
+                            isDetailed,
+                            historySummary 
+                        );
 
-                    aiDetailBtn.addEventListener('click', () => aiFeedbackFn(true));
-                    aiRetryBtn.addEventListener('click', () => aiFeedbackFn(false));
-
-                    aiFeedbackFn(false); 
+                        aiDetailBtn.addEventListener('click', () => aiFeedbackFn(true));
+                        aiRetryBtn.addEventListener('click', () => aiFeedbackFn(false));
+                        
+                        // Tự động gọi nhận xét tổng quan
+                        aiFeedbackFn(false); 
+                    }
                     
                     resultPageContent.classList.add('opacity-100');
                     feather.replace();
@@ -308,11 +333,9 @@
                 }
             }
             
-            // --- HÀM MỚI: Lấy tóm tắt lịch sử học tập ---
             async function getHistorySummary(studentId, subjectId) {
                 if (!subjectId) return null;
                 try {
-                    // Lấy 5 bài gần nhất của môn này
                     const q = query(
                         collection(db, "submissions"), 
                         where("studentId", "==", studentId), 
@@ -327,11 +350,8 @@
 
                     const totalScore = submissions.reduce((sum, s) => sum + (s.score / s.totalQuestions) * 10, 0);
                     const avgScore = (totalScore / submissions.length).toFixed(1);
-                    
-                    // Phân tích xu hướng (Scores array for trend)
-                    const scoreTrend = submissions.map(s => ((s.score / s.totalQuestions) * 10).toFixed(1)).reverse(); // Cũ nhất -> Mới nhất
+                    const scoreTrend = submissions.map(s => ((s.score / s.totalQuestions) * 10).toFixed(1)).reverse(); 
 
-                    // Đếm tần suất các chủ đề bị sai (Lesson ID)
                     const topicCounts = {};
                     submissions.forEach(sub => {
                         if (sub.incorrectQuestions) {
@@ -343,7 +363,6 @@
                         }
                     });
                     
-                    // Lấy top 3 chủ đề yếu nhất
                     const sortedTopics = Object.entries(topicCounts)
                         .sort((a, b) => b[1] - a[1])
                         .slice(0, 3)
@@ -456,7 +475,16 @@
                 return key;
             }
 
-            // --- CẬP NHẬT: Hàm AI Feedback hỗ trợ lịch sử ---
+            function renderAiResponse(text) {
+                const renderedHtml = marked.parse(text);
+                aiFeedbackEl.innerHTML = renderedHtml;
+                renderMathWithKaTeX(aiFeedbackEl);
+                aiDetailBtn.disabled = false;
+                aiDetailBtn.innerHTML = `<i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết`;
+                feather.replace();
+            }
+
+            // --- CẬP NHẬT: Hàm AI Feedback hỗ trợ lịch sử + Prompt theo SGK 2018 ---
             async function getAiFeedback(incorrectQuestions, topicsToReview, score, total, apiKeysData, isDetailed, historySummary) {
                 const openRouterKeys = apiKeysData?.openrouter_keys;
                 if (!openRouterKeys || openRouterKeys.length === 0) {
@@ -468,12 +496,19 @@
                 aiDetailBtn.innerHTML = `<i data-feather="loader" class="animate-spin w-4 h-4 mr-2"></i>Đang phân tích...`;
                 feather.replace();
 
-                // Dù đúng hết vẫn gọi AI để khen ngợi dựa trên lịch sử
-                
                 let systemPrompt, userPrompt;
 
+                // --- PROMPT ENGINEERING: ĐỊNH HÌNH CHUYÊN GIA ---
+                const expertPersona = `Bạn là một Giáo viên Địa lý lớp 12 chuyên nghiệp, am hiểu sâu sắc Chương trình Giáo dục Phổ thông 2018 của Bộ Giáo dục & Đào tạo Việt Nam.
+                Bạn có kiến thức toàn diện về nội dung của 3 bộ sách giáo khoa hiện hành: 
+                1. Cánh Diều
+                2. Chân trời sáng tạo
+                3. Kết nối tri thức với cuộc sống.
+                
+                Nhiệm vụ của bạn là nhận xét, đánh giá và hướng dẫn học sinh dựa trên CHUẨN KIẾN THỨC KỸ NĂNG của chương trình mới này.
+                Tuyệt đối không bịa đặt kiến thức. Luôn sử dụng giọng văn sư phạm, khích lệ nhưng thẳng thắn, tập trung vào trọng tâm vấn đề địa lý kinh tế - xã hội Việt Nam.`;
+
                 if (isDetailed) {
-                    // Logic phân tích chi tiết từng câu sai (không thay đổi)
                     const incorrectQuestionsData = currentQuestions.filter(q => incorrectQuestions.some(iq => iq.questionContent === q.content));
                     const detailedIncorrectContent = incorrectQuestionsData.map((q, index) => {
                         let questionText = `Câu ${index + 1}: ${q.content}\n`;
@@ -488,10 +523,9 @@
                         return questionText;
                     }).join('\n\n');
 
-                    systemPrompt = "Bạn là một gia sư AI chuyên nghiệp của AIGEO. Nhiệm vụ của bạn là giải thích chi tiết, từng bước một cho từng câu hỏi sai mà người dùng cung cấp. Luôn trả lời bằng tiếng Việt. BẮT BUỘC sử dụng định dạng HTML (ví dụ: <p>, <strong>, <ul>, <li>) và công thức KaTeX (ví dụ: $ax^2+b=0$) nếu cần. Hãy trình bày rõ ràng cho từng câu.";
-                    userPrompt = `Vui lòng phân tích và giải thích chi tiết các câu hỏi sai dưới đây. Hãy giải thích rõ tại sao đáp án đúng lại đúng và tại sao các lựa chọn khác (nếu có) lại sai.\n\n${detailedIncorrectContent}`;
+                    systemPrompt = `${expertPersona}\n\nNhiệm vụ: Giải thích chi tiết các câu hỏi sai. Với mỗi câu, hãy chỉ rõ kiến thức đó nằm trong bài học nào (nếu xác định được) và giải thích tại sao đáp án đúng lại đúng dựa trên logic địa lý. BẮT BUỘC dùng định dạng HTML (ví dụ: <p>, <strong>, <ul>, <li>) để trình bày đẹp mắt.`;
+                    userPrompt = `Vui lòng phân tích và giải thích chi tiết các câu hỏi sai dưới đây cho học sinh lớp 12:\n\n${detailedIncorrectContent}`;
                 } else {
-                    // --- XÂY DỰNG PROMPT CÓ LỊCH SỬ CHO NHẬN XÉT TỔNG QUAN ---
                     const topicsContent = topicsToReview.map(t => cleanPrefix(t.name)).join(', ');
                     let historyText = "";
                     let adviceContext = "";
@@ -509,27 +543,17 @@
 
                         historyText = `\n[Dữ liệu lịch sử học tập]:\n- Điểm trung bình 5 bài gần nhất: ${historySummary.avgScore}/10.\n- Xu hướng điểm số: ${scoreTrendStr} -> ${currentScore.toFixed(1)} (Hiện tại).\n- Các chủ đề yếu lặp lại nhiều lần: ${weakTopicNames || "Chưa có dữ liệu rõ ràng"}.`;
                         
-                        adviceContext = `Hãy so sánh kết quả hiện tại với lịch sử:
-                        - Nếu điểm tăng: Khen ngợi sự tiến bộ cụ thể.
-                        - Nếu điểm giảm: Nhắc nhở nhẹ nhàng và chỉ ra nguyên nhân.
-                        - Nếu sai lại chủ đề cũ (${weakTopicNames}): Cảnh báo nghiêm túc hơn và yêu cầu ôn tập lại ngay.
-                        - Đề xuất kế hoạch học tập cụ thể: Cần ôn bài nào? Làm dạng bài tập gì?`;
+                        adviceContext = `Hãy so sánh kết quả hiện tại với lịch sử để đưa ra lời khuyên cá nhân hóa. Nếu học sinh yếu ở các chủ đề ${weakTopicNames}, hãy nhắc nhở ôn tập kỹ các bài đó trong SGK.`;
                     } else {
                         historyText = "\n[Dữ liệu lịch sử]: Đây là bài làm đầu tiên hoặc chưa đủ dữ liệu lịch sử.";
-                        adviceContext = "Đưa ra nhận xét dựa trên kết quả bài này. Đề xuất phương pháp học tập chung.";
+                        adviceContext = "Đưa ra nhận xét dựa trên kết quả bài này. Đề xuất phương pháp học tập địa lý hiệu quả (sử dụng Atlat, sơ đồ tư duy...).";
                     }
 
-                    systemPrompt = "Bạn là AI Coach của AIGEO - nền tảng học tập thông minh. Hãy đóng vai một người thầy tận tâm, sâu sắc. Nhiệm vụ: Đưa ra nhận xét đánh giá năng lực học sinh dựa trên kết quả bài làm hiện tại VÀ lịch sử học tập. Nhận xét phải chi tiết, chính xác, không chung chung. \nBẮT BUỘC dùng định dạng HTML (<strong>, <p>, <ul>, <li>). Giọng văn: Khích lệ nhưng thẳng thắn.";
+                    systemPrompt = `${expertPersona}\n\nNhiệm vụ: Đưa ra nhận xét tổng quan ngắn gọn (khoảng 150 từ) về năng lực học sinh. \nCấu trúc nhận xét:\n1. <strong>Đánh giá chung:</strong> Nhận xét điểm số và phong độ.\n2. <strong>Phân tích kiến thức:</strong> Chỉ ra điểm mạnh/yếu dựa trên các chủ đề: ${topicsContent}.\n3. <strong>Lời khuyên:</strong> Gợi ý cụ thể (ví dụ: Xem lại Bài X trong SGK, luyện kỹ năng Atlat...).`;
                     
-                    userPrompt = `Kết quả bài hiện tại: ${score}/${total} điểm (${((score/total)*10).toFixed(1)}/10).
+                    userPrompt = `Học sinh đạt ${score}/${total} điểm (${((score/total)*10).toFixed(1)}/10).
                     Các chủ đề bị sai trong bài này: ${topicsContent || 'Không có'}.
                     ${historyText}
-                    
-                    Yêu cầu nhận xét theo cấu trúc sau:
-                    1. <strong>Đánh giá năng lực:</strong> Nhận xét về phong độ làm bài và sự tiến bộ/thụt lùi.
-                    2. <strong>Phân tích điểm yếu:</strong> Chỉ ra các lỗ hổng kiến thức (đặc biệt là các lỗi lặp lại từ lịch sử nếu có).
-                    3. <strong>Kế hoạch hành động (Quan trọng):</strong> Gạch đầu dòng 3 việc cụ thể học sinh cần làm ngay để cải thiện (ví dụ: Đọc lại SGK bài nào? Luyện thêm đề dạng nào?).
-                    
                     ${adviceContext}`;
                 }
 
@@ -553,7 +577,7 @@
                                 'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`, 'X-Title': 'AIGEO Student Review' 
                             },
                             body: JSON.stringify({ 
-                                model: "openai/gpt-oss-20b:free",
+                                model: "openai/gpt-oss-20b:free", // Hoặc model tốt hơn nếu có
                                 messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }] 
                             })
                         });
@@ -563,13 +587,16 @@
                             const text = data.choices[0]?.message?.content;
                             if (!text) throw new Error("Phản hồi từ AI không hợp lệ.");
                             
-                            const renderedHtml = marked.parse(text);
-                            aiFeedbackEl.innerHTML = renderedHtml;
-                            renderMathWithKaTeX(aiFeedbackEl);
-                            
-                            aiDetailBtn.disabled = false;
-                            aiDetailBtn.innerHTML = `<i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết`;
-                            feather.replace();
+                            // Hiển thị kết quả
+                            renderAiResponse(text);
+
+                            // LƯU KẾT QUẢ VÀO DB ĐỂ DÙNG LẠI (CACHING)
+                            // Chỉ lưu nhận xét tổng quan (không phải chi tiết) để tránh ghi đè dữ liệu lớn không cần thiết mỗi lần click
+                            if (!isDetailed && resultId) {
+                                await updateDoc(doc(db, "submissions", resultId), {
+                                    aiFeedback: text
+                                });
+                            }
                             return;
                         }
 
