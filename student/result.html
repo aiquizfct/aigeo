@@ -88,7 +88,10 @@
         </header>
         <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-8">
             <div id="result-page-content" class="max-w-4xl mx-auto opacity-0 transition-opacity duration-500">
-                <h1 id="test-name-title" class="text-3xl font-bold text-slate-800">Kết quả Bài làm</h1>
+                <div class="flex justify-between items-center mb-6">
+                    <h1 id="test-name-title" class="text-3xl font-bold text-slate-800">Kết quả Bài làm</h1>
+                    <span id="result-id-display" class="text-xs text-slate-400 font-mono bg-slate-200 px-2 py-1 rounded"></span>
+                </div>
                 
                 <div class="mt-6 bg-white p-6 rounded-xl shadow-lg grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                     <div>
@@ -131,7 +134,7 @@
                              <li class="skeleton h-5 w-3/4"></li>
                          </ul>
                          <div class="mt-4 pt-4 border-t">
-                             <p class="text-xs text-slate-500">Dựa trên phân tích 5 bài làm gần nhất.</p>
+                             <p class="text-xs text-slate-500">Dựa trên phân tích các lỗi sai.</p>
                          </div>
                     </div>
                 </div>
@@ -159,7 +162,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         document.addEventListener('DOMContentLoaded', () => {
             const app = initializeApp(firebaseConfig);
@@ -181,6 +184,7 @@
             const aiRetryBtn = document.getElementById('ai-retry-btn'); 
             const actionButtons = document.getElementById('action-buttons');
             const retryTestBtn = document.getElementById('retry-test-btn');
+            const resultIdDisplay = document.getElementById('result-id-display');
             
             let currentUser = null;
             let currentResultData = null;
@@ -188,6 +192,7 @@
             let allLessonsCache = [];
             let apiKeysCache = null;
             let historySummary = null;
+            let resultId = null;
 
             onAuthStateChanged(auth, async (user) => {
                 if (!user) { window.location.href = '../auth.html'; return; }
@@ -212,8 +217,19 @@
 
             async function initResultPage() {
                 try {
-                    const resultId = sessionStorage.getItem('latestResultId');
+                    const urlParams = new URLSearchParams(window.location.search);
+                    resultId = urlParams.get('id') || sessionStorage.getItem('latestResultId');
+                    
                     if (!resultId) throw new Error("Không tìm thấy mã kết quả. Vui lòng quay lại và thử lại.");
+                    
+                    resultIdDisplay.textContent = `#${resultId.slice(0, 8)}`;
+                    
+                    if (!urlParams.get('id')) {
+                        const newUrl = new URL(window.location.href);
+                        newUrl.searchParams.set('id', resultId);
+                        window.history.replaceState({}, '', newUrl);
+                    }
+
                     const resultDocRef = doc(db, "submissions", resultId);
                     const resultSnap = await getDoc(resultDocRef);
                     if (!resultSnap.exists()) throw new Error("Không tìm thấy dữ liệu kết quả.");
@@ -225,7 +241,6 @@
                         actionButtons.querySelector('#back-to-hub').classList.add('hidden');
                     }
 
-                    // Populate Summary Card
                     const tenPointScore = totalQuestions > 0 ? (score / totalQuestions) * 10 : 0;
                     scoreDisplayEl.textContent = tenPointScore.toFixed(1);
                     rawScoreDisplayEl.textContent = `${score}/${totalQuestions}`;
@@ -242,51 +257,49 @@
                         retryTestBtn.href = `practice-test.html?testId=${testId}`;
                     }
                     
-                    // --- NÂNG CẤP: Lấy lịch sử sau khi có thông tin cơ bản ---
+                    // --- TẢI DỮ LIỆU CÂU HỎI VÀ LỊCH SỬ ---
                     const [fetchedQuestions, allLessons, apiKeySnap, historyData] = await Promise.all([
                         fetchQuestions(questionIds),
                         fetchAllLessons(),
                         getDoc(doc(db, "system_settings", "api_keys")),
-                        getHistorySummary(currentUser.uid, subjectId) // Lấy lịch sử học tập
+                        getHistorySummary(currentUser.uid, subjectId, resultId) // Truyền resultId để loại trừ bài hiện tại
                     ]);
                     
                     allLessonsCache = allLessons; 
                     apiKeysCache = apiKeySnap.exists() ? apiKeySnap.data() : null; 
                     currentQuestions = [...(embeddedQuestions || []), ...fetchedQuestions];
-                    historySummary = historyData; // Lưu kết quả lịch sử
+                    historySummary = historyData;
 
                     renderReviewSection(currentQuestions, userAnswers, allLessonsCache);
                     
-                    // Logic hiển thị chủ đề yếu (ưu tiên từ lịch sử nếu có)
                     let weakTopicsToDisplay = [];
-                    if (historySummary && historySummary.weakTopicIds.length > 0) {
-                        // Nếu có lịch sử, lấy top chủ đề yếu nhất từ lịch sử
-                        weakTopicsToDisplay = allLessonsCache.filter(l => historySummary.weakTopicIds.includes(l.id));
-                    } else {
-                        // Nếu không, lấy từ bài làm hiện tại
-                        const uniqueIncorrectLessonIds = [...new Set((incorrectQuestions || []).map(q => q.lessonId).filter(id => id))];
-                        weakTopicsToDisplay = allLessonsCache.filter(l => uniqueIncorrectLessonIds.includes(l.id));
-                    }
+                    const uniqueIncorrectLessonIds = [...new Set((incorrectQuestions || []).map(q => q.lessonId).filter(id => id))];
+                    weakTopicsToDisplay = allLessonsCache.filter(l => uniqueIncorrectLessonIds.includes(l.id));
 
                     reviewTopicsEl.innerHTML = weakTopicsToDisplay.length > 0
                         ? weakTopicsToDisplay.map(l => `<li><i data-feather="alert-circle" class="w-4 h-4 inline-block mr-2 text-red-500"></i>${cleanPrefix(l.name)}</li>`).join('')
                         : `<li><i data-feather="check-circle" class="w-4 h-4 inline-block mr-2 text-green-500"></i>Không có chủ đề yếu nổi bật.</li>`;
                     
-                    
-                    const aiFeedbackFn = (isDetailed) => getAiFeedback(
-                        incorrectQuestions || [], 
-                        weakTopicsToDisplay, // Truyền chủ đề yếu tổng hợp
-                        score, 
-                        totalQuestions, 
-                        apiKeysCache, 
-                        isDetailed,
-                        historySummary // Truyền lịch sử vào
-                    );
+                    if (currentResultData.aiFeedback) {
+                        renderAiResponse(currentResultData.aiFeedback);
+                    } else {
+                        const aiFeedbackFn = (isDetailed) => getAiFeedback(
+                            currentQuestions, // Truyền toàn bộ câu hỏi để phân tích đúng/sai
+                            userAnswers,
+                            incorrectQuestions || [], 
+                            weakTopicsToDisplay, 
+                            score, 
+                            totalQuestions, 
+                            apiKeysCache, 
+                            isDetailed,
+                            historySummary 
+                        );
 
-                    aiDetailBtn.addEventListener('click', () => aiFeedbackFn(true));
-                    aiRetryBtn.addEventListener('click', () => aiFeedbackFn(false));
-
-                    aiFeedbackFn(false); 
+                        aiDetailBtn.addEventListener('click', () => aiFeedbackFn(true));
+                        aiRetryBtn.addEventListener('click', () => aiFeedbackFn(false));
+                        
+                        aiFeedbackFn(false); 
+                    }
                     
                     resultPageContent.classList.add('opacity-100');
                     feather.replace();
@@ -295,68 +308,46 @@
                     console.error("Error loading result page:", error);
                     const mainContent = document.querySelector('.max-w-4xl.mx-auto');
                     if (mainContent) {
-                        mainContent.innerHTML = `<div class="bg-white p-8 rounded-xl shadow-lg text-center">
-                            <i data-feather="alert-triangle" class="w-16 h-16 mx-auto text-red-500"></i>
-                            <h2 class="mt-4 text-2xl font-bold text-slate-800">Đã xảy ra lỗi</h2>
-                            <p class="mt-2 text-slate-600">${error.message}</p>
-                            <a href="index.html" class="mt-6 inline-block cta-button text-white font-semibold px-6 py-3 rounded-lg">
-                                Về trang tổng quan
-                            </a>
-                        </div>`;
+                        mainContent.innerHTML = `<div class="bg-white p-8 rounded-xl shadow-lg text-center"><i data-feather="alert-triangle" class="w-16 h-16 mx-auto text-red-500"></i><h2 class="mt-4 text-2xl font-bold text-slate-800">Đã xảy ra lỗi</h2><p class="mt-2 text-slate-600">${error.message}</p><a href="index.html" class="mt-6 inline-block cta-button text-white font-semibold px-6 py-3 rounded-lg">Về trang tổng quan</a></div>`;
                         feather.replace();
                     }
                 }
             }
             
-            // --- HÀM MỚI: Lấy tóm tắt lịch sử học tập ---
-            async function getHistorySummary(studentId, subjectId) {
+            async function getHistorySummary(studentId, subjectId, currentSubmissionId) {
                 if (!subjectId) return null;
                 try {
-                    // Lấy 5 bài gần nhất của môn này
                     const q = query(
                         collection(db, "submissions"), 
                         where("studentId", "==", studentId), 
                         where("subjectId", "==", subjectId),
                         orderBy("completedAt", "desc"),
-                        limit(5) 
+                        limit(6) // Lấy 6 để trừ bài hiện tại
                     );
                     const snapshot = await getDocs(q);
-                    const submissions = snapshot.docs.map(d => d.data());
+                    // Lọc bỏ bài làm hiện tại
+                    const submissions = snapshot.docs
+                        .filter(d => d.id !== currentSubmissionId) 
+                        .map(d => d.data())
+                        .slice(0, 5); // Chỉ lấy 5 bài gần nhất trước đó
                     
                     if (submissions.length === 0) return null;
 
+                    // Lấy điểm của bài gần nhất (bài ngay trước bài hiện tại)
+                    const lastScore = (submissions[0].score / submissions[0].totalQuestions) * 10;
+
                     const totalScore = submissions.reduce((sum, s) => sum + (s.score / s.totalQuestions) * 10, 0);
                     const avgScore = (totalScore / submissions.length).toFixed(1);
-                    
-                    // Phân tích xu hướng (Scores array for trend)
-                    const scoreTrend = submissions.map(s => ((s.score / s.totalQuestions) * 10).toFixed(1)).reverse(); // Cũ nhất -> Mới nhất
-
-                    // Đếm tần suất các chủ đề bị sai (Lesson ID)
-                    const topicCounts = {};
-                    submissions.forEach(sub => {
-                        if (sub.incorrectQuestions) {
-                            sub.incorrectQuestions.forEach(q => {
-                                if (q.lessonId) {
-                                    topicCounts[q.lessonId] = (topicCounts[q.lessonId] || 0) + 1;
-                                }
-                            });
-                        }
-                    });
-                    
-                    // Lấy top 3 chủ đề yếu nhất
-                    const sortedTopics = Object.entries(topicCounts)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 3)
-                        .map(([id, count]) => id);
+                    const scoreTrend = submissions.map(s => ((s.score / s.totalQuestions) * 10).toFixed(1)).reverse(); 
 
                     return {
                         avgScore,
+                        lastScore: lastScore.toFixed(1), // Lưu điểm bài trước
                         scoreTrend,
-                        recentCount: submissions.length,
-                        weakTopicIds: sortedTopics
+                        recentCount: submissions.length
                     };
                 } catch (e) {
-                    console.error("Error fetching history (có thể do thiếu index):", e);
+                    console.error("Error fetching history:", e);
                     return null;
                 }
             }
@@ -456,8 +447,16 @@
                 return key;
             }
 
-            // --- CẬP NHẬT: Hàm AI Feedback hỗ trợ lịch sử ---
-            async function getAiFeedback(incorrectQuestions, topicsToReview, score, total, apiKeysData, isDetailed, historySummary) {
+            function renderAiResponse(text) {
+                const renderedHtml = marked.parse(text);
+                aiFeedbackEl.innerHTML = renderedHtml;
+                renderMathWithKaTeX(aiFeedbackEl);
+                aiDetailBtn.disabled = false;
+                aiDetailBtn.innerHTML = `<i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết`;
+                feather.replace();
+            }
+
+            async function getAiFeedback(allQuestions, userAnswers, incorrectQuestions, topicsToReview, score, total, apiKeysData, isDetailed, historySummary) {
                 const openRouterKeys = apiKeysData?.openrouter_keys;
                 if (!openRouterKeys || openRouterKeys.length === 0) {
                     aiFeedbackEl.innerHTML = "Tính năng nhận xét AI chưa được cấu hình."; return;
@@ -468,13 +467,13 @@
                 aiDetailBtn.innerHTML = `<i data-feather="loader" class="animate-spin w-4 h-4 mr-2"></i>Đang phân tích...`;
                 feather.replace();
 
-                // Dù đúng hết vẫn gọi AI để khen ngợi dựa trên lịch sử
-                
                 let systemPrompt, userPrompt;
 
+                // --- PROMPT ENGINEERING: ĐỊNH HÌNH CHUYÊN GIA TÂM LÝ & TẬN TỤY ---
+                const expertPersona = `Bạn là một giáo viên Địa lý tâm lý, ân cần và tận tụy. Hãy xưng hô là 'Cô' và gọi học sinh là 'Em'. Giọng văn phải thật nhẹ nhàng, khích lệ, tránh chỉ trích nặng nề. Nhiệm vụ của bạn là đưa ra nhận xét, đánh giá và hướng dẫn học sinh dựa trên CHUẨN KIẾN THỨC KỸ NĂNG SGK Địa lý 12 (CT 2018).`;
+
                 if (isDetailed) {
-                    // Logic phân tích chi tiết từng câu sai (không thay đổi)
-                    const incorrectQuestionsData = currentQuestions.filter(q => incorrectQuestions.some(iq => iq.questionContent === q.content));
+                    const incorrectQuestionsData = allQuestions.filter(q => incorrectQuestions.some(iq => iq.questionContent === q.content));
                     const detailedIncorrectContent = incorrectQuestionsData.map((q, index) => {
                         let questionText = `Câu ${index + 1}: ${q.content}\n`;
                         if (q.type === 'multiple_choice') {
@@ -488,53 +487,48 @@
                         return questionText;
                     }).join('\n\n');
 
-                    systemPrompt = "Bạn là một gia sư AI chuyên nghiệp của AIGEO. Nhiệm vụ của bạn là giải thích chi tiết, từng bước một cho từng câu hỏi sai mà người dùng cung cấp. Luôn trả lời bằng tiếng Việt. BẮT BUỘC sử dụng định dạng HTML (ví dụ: <p>, <strong>, <ul>, <li>) và công thức KaTeX (ví dụ: $ax^2+b=0$) nếu cần. Hãy trình bày rõ ràng cho từng câu.";
-                    userPrompt = `Vui lòng phân tích và giải thích chi tiết các câu hỏi sai dưới đây. Hãy giải thích rõ tại sao đáp án đúng lại đúng và tại sao các lựa chọn khác (nếu có) lại sai.\n\n${detailedIncorrectContent}`;
+                    systemPrompt = `${expertPersona}\n\nNhiệm vụ: Giải thích chi tiết từng câu sai một cách ân cần. Hãy nói: "Ở câu này, đáp án đúng là... vì... Trong sách giáo khoa bài..., kiến thức này được giải thích là...". Mục tiêu là giúp em hiểu bản chất vấn đề. BẮT BUỘC dùng HTML (<p>, <strong>, <ul>, <li>).`;
+                    userPrompt = `Cô hãy giải thích giúp em các câu sai này ạ:\n\n${detailedIncorrectContent}`;
                 } else {
-                    // --- XÂY DỰNG PROMPT CÓ LỊCH SỬ CHO NHẬN XÉT TỔNG QUAN ---
                     const topicsContent = topicsToReview.map(t => cleanPrefix(t.name)).join(', ');
+                    
+                    // --- PHÂN TÍCH CÂU ĐÚNG ĐỂ KHEN ---
+                    const correctQuestions = allQuestions.filter(q => !incorrectQuestions.some(iq => iq.questionContent === q.content));
+                    // Lấy ngẫu nhiên tối đa 2 chủ đề từ các câu làm đúng để khen
+                    let strongTopics = [];
+                    if (correctQuestions.length > 0) {
+                        const correctLessonIds = [...new Set(correctQuestions.map(q => q.lessonId).filter(id => id))];
+                        strongTopics = allLessonsCache.filter(l => correctLessonIds.includes(l.id)).map(l => cleanPrefix(l.name)).slice(0, 3);
+                    }
+                    const strengthText = strongTopics.length > 0 ? `Em đã nắm khá vững các kiến thức về: ${strongTopics.join(', ')}.` : "Cô thấy em đã rất cố gắng hoàn thành bài.";
+
                     let historyText = "";
                     let adviceContext = "";
 
-                    if (historySummary) {
-                        const weakTopicNames = historySummary.weakTopicIds.map(id => {
-                            const l = allLessonsCache.find(lesson => lesson.id === id);
-                            return l ? cleanPrefix(l.name) : "";
-                        }).filter(Boolean).join(", ");
-                        
-                        const scoreTrendStr = historySummary.scoreTrend.join(" -> ");
+                    if (historySummary && historySummary.lastScore) {
                         const currentScore = (score / total) * 10;
-                        const improvement = currentScore - parseFloat(historySummary.avgScore);
-                        const improvementText = improvement > 0 ? `(tăng ${improvement.toFixed(1)} điểm so với TB)` : `(giảm ${Math.abs(improvement).toFixed(1)} điểm so với TB)`;
-
-                        historyText = `\n[Dữ liệu lịch sử học tập]:\n- Điểm trung bình 5 bài gần nhất: ${historySummary.avgScore}/10.\n- Xu hướng điểm số: ${scoreTrendStr} -> ${currentScore.toFixed(1)} (Hiện tại).\n- Các chủ đề yếu lặp lại nhiều lần: ${weakTopicNames || "Chưa có dữ liệu rõ ràng"}.`;
-                        
-                        adviceContext = `Hãy so sánh kết quả hiện tại với lịch sử:
-                        - Nếu điểm tăng: Khen ngợi sự tiến bộ cụ thể.
-                        - Nếu điểm giảm: Nhắc nhở nhẹ nhàng và chỉ ra nguyên nhân.
-                        - Nếu sai lại chủ đề cũ (${weakTopicNames}): Cảnh báo nghiêm túc hơn và yêu cầu ôn tập lại ngay.
-                        - Đề xuất kế hoạch học tập cụ thể: Cần ôn bài nào? Làm dạng bài tập gì?`;
+                        const diff = currentScore - parseFloat(historySummary.lastScore);
+                        if (diff > 0) {
+                            historyText = `So với bài trước (đạt ${historySummary.lastScore} điểm), hôm nay em đã tiến bộ thêm ${diff.toFixed(1)} điểm. Cô rất vui vì sự nỗ lực này!`;
+                        } else if (diff < 0) {
+                            historyText = `Bài trước em đạt ${historySummary.lastScore} điểm, hôm nay kết quả có thấp hơn một chút (${Math.abs(diff).toFixed(1)} điểm). Đừng buồn nhé, mình cùng cố gắng hơn ở lần sau.`;
+                        } else {
+                            historyText = `Em vẫn giữ vững phong độ so với bài trước (${historySummary.lastScore} điểm).`;
+                        }
                     } else {
-                        historyText = "\n[Dữ liệu lịch sử]: Đây là bài làm đầu tiên hoặc chưa đủ dữ liệu lịch sử.";
-                        adviceContext = "Đưa ra nhận xét dựa trên kết quả bài này. Đề xuất phương pháp học tập chung.";
+                        historyText = "Đây là bài làm đầu tiên của em, khởi đầu như vậy là rất đáng ghi nhận!";
                     }
 
-                    systemPrompt = "Bạn là AI Coach của AIGEO - nền tảng học tập thông minh. Hãy đóng vai một người thầy tận tâm, sâu sắc. Nhiệm vụ: Đưa ra nhận xét đánh giá năng lực học sinh dựa trên kết quả bài làm hiện tại VÀ lịch sử học tập. Nhận xét phải chi tiết, chính xác, không chung chung. \nBẮT BUỘC dùng định dạng HTML (<strong>, <p>, <ul>, <li>). Giọng văn: Khích lệ nhưng thẳng thắn.";
+                    systemPrompt = `${expertPersona}\n\nNhiệm vụ: Đưa ra nhận xét tổng quan theo phương pháp 'Sandwich' (Khen - Góp ý - Động viên).
+                    1.  **Lời khen & Điểm mạnh:** Bắt đầu bằng việc khen ngợi điểm số (nếu tốt) hoặc sự nỗ lực. Cụ thể hóa bằng cách nhắc đến các chủ đề em làm tốt: "${strengthText}".
+                    2.  **So sánh lịch sử:** Lồng ghép nhận xét về sự tiến bộ/thụt lùi: "${historyText}".
+                    3.  **Điểm cần cải thiện:** Nhẹ nhàng chỉ ra các lỗ hổng kiến thức ở: ${topicsContent || 'các câu hỏi khó'}. Hãy so sánh: "Tuy em làm tốt phần [Điểm mạnh], nhưng phần [Điểm yếu] em cần lưu ý hơn chút nữa...".
+                    4.  **Hướng dẫn ôn tập chi tiết:** Liệt kê cụ thể tên bài học trong SGK Địa lý 12 mà em cần đọc lại.
+                    5.  **Kết thúc:** Một lời động viên ấm áp.`;
                     
-                    userPrompt = `Kết quả bài hiện tại: ${score}/${total} điểm (${((score/total)*10).toFixed(1)}/10).
-                    Các chủ đề bị sai trong bài này: ${topicsContent || 'Không có'}.
-                    ${historyText}
-                    
-                    Yêu cầu nhận xét theo cấu trúc sau:
-                    1. <strong>Đánh giá năng lực:</strong> Nhận xét về phong độ làm bài và sự tiến bộ/thụt lùi.
-                    2. <strong>Phân tích điểm yếu:</strong> Chỉ ra các lỗ hổng kiến thức (đặc biệt là các lỗi lặp lại từ lịch sử nếu có).
-                    3. <strong>Kế hoạch hành động (Quan trọng):</strong> Gạch đầu dòng 3 việc cụ thể học sinh cần làm ngay để cải thiện (ví dụ: Đọc lại SGK bài nào? Luyện thêm đề dạng nào?).
-                    
-                    ${adviceContext}`;
+                    userPrompt = `Em vừa làm xong bài, được ${score}/${total} điểm. Cô nhận xét giúp em với ạ.`;
                 }
 
-                aiFeedbackEl.innerHTML = '<p class="text-center text-slate-500"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-500 mx-auto"></div> Đang phân tích dữ liệu & tạo lộ trình...</p>';
-                
                 const MAX_RETRIES = 3;
                 let lastError = null;
 
@@ -553,7 +547,7 @@
                                 'HTTP-Referer': `https://${firebaseConfig.projectId}.web.app`, 'X-Title': 'AIGEO Student Review' 
                             },
                             body: JSON.stringify({ 
-                                model: "openai/gpt-oss-20b:free",
+                                model: "openai/gpt-oss-20b:free", 
                                 messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }] 
                             })
                         });
@@ -563,33 +557,31 @@
                             const text = data.choices[0]?.message?.content;
                             if (!text) throw new Error("Phản hồi từ AI không hợp lệ.");
                             
-                            const renderedHtml = marked.parse(text);
-                            aiFeedbackEl.innerHTML = renderedHtml;
-                            renderMathWithKaTeX(aiFeedbackEl);
-                            
-                            aiDetailBtn.disabled = false;
-                            aiDetailBtn.innerHTML = `<i data-feather="zoom-in" class="w-4 h-4 mr-2"></i>Xem phân tích chi tiết`;
-                            feather.replace();
+                            renderAiResponse(text);
+
+                            if (!isDetailed && resultId) {
+                                await updateDoc(doc(db, "submissions", resultId), {
+                                    aiFeedback: text
+                                });
+                            }
                             return;
                         }
-
+                        
                         try {
                             const errorData = await response.json();
-                            lastError = new Error(errorData.error.message || `Lỗi API: ${response.status} ${response.statusText}`);
+                            lastError = new Error(errorData.error.message || `Lỗi API: ${response.status}`);
                         } catch (e) {
-                            lastError = new Error(`Lỗi API: ${response.status} ${response.statusText}`);
+                            lastError = new Error(`Lỗi API: ${response.status}`);
                         }
                         
                         if (attempt < MAX_RETRIES) {
-                            const delay = Math.pow(2, attempt) * 1000;
-                            await new Promise(resolve => setTimeout(resolve, delay));
+                            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
                         }
 
                     } catch (error) {
                         lastError = error;
                         if (attempt < MAX_RETRIES) {
-                            const delay = Math.pow(2, attempt) * 1000;
-                            await new Promise(resolve => setTimeout(resolve, delay));
+                            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
                         }
                     }
                 }
